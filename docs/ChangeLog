@@ -1,6 +1,15 @@
 
-NOTE: Lowest currently recommended version is 0.78b. If it works for you, you
-can keep it. If you have an older release, upgrade is *strongly* advisable.
+NOTE: The lowest currently recommended version is 0.78b. If it works for you,
+you can keep it. If you have an older release, upgrade is strongly advisable.
+
+--------------
+Version 0.82b:
+--------------
+
+  - Additional Xcode fixes, juggling -Q and -q flags. Thanks to Ryan Govostes.
+
+  - Check for __asm__ blocks and switches to .intel_syntax in assembly. Thanks
+    to Ryan Govostes.
 
 --------------
 Version 0.81b:

@@ -48,7 +48,8 @@ static u8   be_quiet,           /* Quiet mode (no stderr output)        */
             clang_mode,         /* Running in clang mode?               */
             pass_thru = 0;      /* Just pass data through?              */
 
-static u32  inst_ratio = 100;   /* Instrumentation probability (%)      */
+static u32  inst_ratio = 100,   /* Instrumentation probability (%)      */
+            as_par_cnt = 1;     /* Number of params to 'as'             */
 
 /* If we don't find --32 or --64 in the command line, default to 
    instrumentation for whichever mode we were compiled with. This is not
@@ -80,43 +81,50 @@ static void edit_params(int argc, char** argv) {
 
   if (!tmp_dir) tmp_dir = "/tmp";
 
-  as_params = ck_alloc((argc + 1) * sizeof(u8*));
-
-  memcpy(as_params, argv, argc * sizeof(u8*));
+  as_params = ck_alloc((argc + 32) * sizeof(u8*));
 
   as_params[0] = afl_as ? afl_as : (u8*)"as";
 
   as_params[argc] = 0;
 
-  for (i = 1; i < argc; i++) {
+  for (i = 1; i < argc - 1; i++) {
 
-    if (!strcmp(as_params[i], "--64")) use_64bit = 1;
-    else if (!strcmp(as_params[i], "--32")) use_64bit = 0;
+    if (!strcmp(argv[i], "--64")) use_64bit = 1;
+    else if (!strcmp(argv[i], "--32")) use_64bit = 0;
 
 #ifdef __APPLE__
 
     /* The Apple case is a bit different... */
 
-    if (!strcmp(as_params[i], "-arch") && i + 1 < argc) {
+    if (!strcmp(argv[i], "-arch") && i + 1 < argc) {
 
-      if (!strcmp(as_params[i + 1], "x86_64")) use_64bit = 1;
-      else if (!strcmp(as_params[i + 1], "i386"))
+      if (!strcmp(argv[i + 1], "x86_64")) use_64bit = 1;
+      else if (!strcmp(argv[i + 1], "i386"))
         FATAL("Sorry, 32-bit Apple platforms are not supported.");
 
     }
 
-    /* In Xcode 6, -no-integrated-as may be broken and requires the -Q flag to
-       be removed if present. Note that -Q / -q have some other meaning for
-       GNU assembler, so let's hope that nothing explodes under normal
-       circumstances. */
+    /* In Xcode 6, -no-integrated-as is reportedly broken in at least
+       some setups, generating code that doesn't work with GNU as. The
+       workaround is to remove the -Q flag and append the -q one when
+       invoking the 'as' driver. I have *not* tested it and have not
+       bumped into the issue myself. */
 
-    if (!strcmp(as_params[i], "-Q")) as_params[i] = "-q";
+    if (clang_mode && !strcmp(argv[i], "-Q")) continue;
 
 #endif /* __APPLE__ */
 
+    as_params[as_par_cnt++] = argv[i];
+
   }
 
-  input_file = as_params[argc - 1];
+#ifdef __APPLE__
+
+  if (clang_mode) as_params[as_par_cnt++] = "-q";
+
+#endif /* __APPLE__ */
+
+  input_file = argv[argc - 1];
 
   if (input_file[0] == '-') {
 
@@ -139,7 +147,8 @@ static void edit_params(int argc, char** argv) {
   modified_file = alloc_printf("%s/.afl-%u-%u.s", tmp_dir, getpid(),
                                (u32)time(NULL));
 
-  as_params[argc - 1] = modified_file;
+  as_params[as_par_cnt++] = modified_file;
+  as_params[as_par_cnt]   = NULL;
 
 }
 
@@ -155,7 +164,9 @@ static void add_instrumentation(void) {
   FILE* outf;
   s32 outfd;
   u32 ins_lines = 0;
-  u8  instr_ok = 0, skip_csect = 0, skip_next_label = 0;
+
+  u8  instr_ok = 0, skip_csect = 0, skip_next_label = 0,
+      skip_intel = 0, skip_app = 0;
 
 #ifdef __APPLE__
 
@@ -214,10 +225,26 @@ static void add_instrumentation(void) {
 
     }
 
+    /* Detect off-flavor assembly (rare, happens in gdb). */
+
     if (strstr(line, ".code")) {
 
       if (strstr(line, ".code32")) skip_csect = use_64bit;
       if (strstr(line, ".code64")) skip_csect = !use_64bit;
+
+    }
+
+    /* Detect syntax changes. */
+
+    if (strstr(line, ".intel_syntax")) skip_intel = 1;
+    if (strstr(line, ".att_syntax")) skip_intel = 0;
+
+    /* Detect and skip ad-hoc __asm__ blocks. */
+
+    if (line[0] == '#' || line[1] == '#') {
+
+      if (strstr(line, "#APP")) skip_app = 1;
+      if (strstr(line, "#NO_APP")) skip_app = 0;
 
     }
 
@@ -236,16 +263,17 @@ static void add_instrumentation(void) {
          ^ # BB#0:   - ditto
          ^.Ltmp0:    - clang non-branch labels
          ^.LC0       - GCC non-branch labels
+         ^.LBB0_0:   - ditto (when in GCC mode)
          ^\tjmp foo  - non-conditional jumps
 
-       Additionally, for clang on MacOS X follows a different convention
+       Additionally, clang and GCC on MacOS X follow a different convention
        with no leading dots on labels, hence the weird maze of #ifdefs
        later on.
 
      */
 
-    if (skip_csect || !instr_ok || line[0] == '#' || line[0] == ' ')
-      continue;
+    if (skip_intel || skip_app || skip_csect || !instr_ok ||
+        line[0] == '#' || line[0] == ' ') continue;
 
     /* Conditional branch instruction (jnz, etc). */
 

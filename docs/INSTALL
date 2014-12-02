@@ -62,8 +62,10 @@ for compilation and usage tips.
 
 The fuzzer reportedly works on Solaris; you will need to use GNU make and GCC or
 clang. I'm being told that the stock version of GCC that comes with the platform
-does not work properly due to its reliance on a hardcoded location for 'as'. If
-you bump into problems, you may want to build stock GCC from the source, like so:
+does not work properly due to its reliance on a hardcoded location for 'as'
+(completely ignoring the -B parameter or $PATH).
+
+To fix this, you may want to build stock GCC from the source, like so:
 
 $ ./configure --prefix=$HOME/gcc --with-gnu-as --with-gnu-ld \
   --with-gmp-include=/usr/include/gmp --with-mpfr-include=/usr/include/mpfr
