@@ -244,8 +244,37 @@ beneath.
 
 Oh - for test case minimization, consider https://code.google.com/p/tmin/.
 
-9) Known limitations & areas for improvement
---------------------------------------------
+9) Common-sense risks
+---------------------
+
+Please keep in mind that, similarly to many other computationally-expensive
+tasks, fuzzing may put some strain on your hardware and on the OS. In
+particular:
+
+  - Your CPU will run hot and will need adequate cooling. In most cases, if
+    cooling is inadequate or if there is a fan malfunction, CPU speeds will
+    be automatically throttled. That said, especially when fuzzing on
+    unsuitable hardware (laptops, smartphones, etc), it's not entirely
+    impossible for something to blow up or even catch fire.
+
+  - Targeted programs may end up erratically grabbing gigabytes of memory or
+    filling up disk space with junk files. AFL tries to enforce basic memory
+    limits, but can't prevent all the possible mishaps. The bottom line is
+    that you shouldn't be fuzzing on systems where data loss is an unacceptable
+    risk.
+
+  - Fuzzing inherently involves billions of reads and writes to the disk. On
+    modern systems, this will be usually heavily cached, resulting in fairly
+    modest "physical" I/O - but there are many factors that may alter this
+    equation. It is your responsibility to monitor for trouble; with very
+    heavy I/O, the lifespan of many HDDs and SSDs may be reduced.
+
+    A good way to monitor disk I/O is the 'iostat' command:
+
+    $ iostat -d 3 -x [...optional disk ID...]
+
+10) Known limitations & areas for improvement
+---------------------------------------------
 
 Here are some of the most important caveats for AFL:
 
@@ -253,10 +282,6 @@ Here are some of the most important caveats for AFL:
     and other multimedia. It is less suited for human-readable formats with
     particularly verbose, redundant verbiage - say, XHTML or JavaScript. In
     such cases, template- or ABNF-based generators tend to fare better.
-
-    (Well, that's the theory. With libxml2, afl-fuzz is known to be able to
-    pull <![CDATA[... out of thin air - even though it's technically not
-    supposed to.)
 
     Of course, if you want to modify the code to generate syntax-aware
     mutations, go ahead! You'd want to start with fuzz_one() in afl-fuzz.c.
@@ -288,8 +313,8 @@ Here are some of the most important caveats for AFL:
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for
     more.
 
-10) Special thanks
------------------
+12) Special thanks
+------------------
 
 Many of the improvements to afl-fuzz wouldn't be possible without feedback,
 bug reports, or patches from:
@@ -317,7 +342,7 @@ bug reports, or patches from:
 
 Thank you!
 
-11) Contact
+12) Contact
 -----------
 
 Questions? Concerns? Bug reports? The author can be usually reached at

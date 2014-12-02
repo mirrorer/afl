@@ -20,7 +20,7 @@ If you are using inverse video, you may want to change your settings, say:
   - For the MacOS X Terminal app, go to Preferences > Settings, click on
     the "Pro" color scheme, and select "Use bright colors for bold text".
     Then, open a new window using the "Pro" scheme via the Shell > New Window
-    menu (or simply make "Pro" your default).
+    menu (or make "Pro" your default).
 
 Alternatively, if you really like your current colors, you can edit config.h
 to comment out USE_COLORS, then do 'make clean all'.
@@ -77,7 +77,7 @@ cases discovered so far, fuzzed them, and looped back. Every fuzzing session
 should be allowed to complete at least one cycle - and ideally, much more than
 that.
 
-As noted earlier, the first pass can take a couple of days, so sit back and
+As noted earlier, the first pass can take a day or longer, so sit back and
 relax :-) If you want to get broader but more shallow coverage right away, try
 the -d option - it gives you a more familiar experience by skipping the
 deterministic fuzzing steps.
@@ -121,26 +121,28 @@ instrumentation embedded in the target binary.
 The first line in the box tells you how many branch tuples we have already
 hit, in proportion to how much the bitmap can hold. Be wary of extremes:
 
-  - Absolute numbers below 200 or so suggests that the program is extremely
-    simple; not instrumented properly (e.g., due to being linked against
-    the wrong copy of the library); or bailing out prematurely on your input
-    test cases. The fuzzer will try to mark this in pink, just to make you
-    aware.
+  - Absolute numbers below 200 or so suggest one of three things: that the
+    program is extremely simple; that it is not instrumented properly (e.g.,
+    due to being linked against the wrong copy of the library); or that it is
+    bailing out prematurely on your input test cases. The fuzzer will try to
+    mark this in pink, just to make you aware.
 
   - Percentages over 70% may very rarely happen with very complex programs
-    that make heavy use of template-generated code. This is very rare.
+    that make heavy use of template-generated code.
 
     Because high bitmap density makes it harder for the fuzzer to reliably
     discern new program states, I recommend recompiling the binary with
     AFL_INST_RATIO=10 or so (see env_variables.txt).
 
-    The fuzzer will flag high percentages in red.
+    The fuzzer will flag high percentages in red. Chances are, you will never
+    see that.
 
 The other line deals with the variability in tuple hit counts seen in the
 binary. In essence, if every taken branch is always taken a fixed number of
 times for all the inputs we have tried, this will read "1.00". As we manage
 to trigger other hit counts for every branch, the needle will start to move
-toward "8.00", but will probably never reach it.
+toward "8.00" (every bit in the 8-bit counter hit), but will probably never
+reach that extreme.
 
 Together, the values can be useful for comparing the coverage of several
 different fuzzing jobs that rely on the same instrumented binary.
@@ -189,7 +191,8 @@ now. It tells you about the current stage, which can be any of:
 
   - sync - a stage used only when -S is set (see parallel_fuzzing.txt). No real
     fuzzing is involved, but the tool scans the output from other fuzzers and
-    imports test cases as necessary.
+    imports test cases as necessary. The first time this is done, it may take
+    several minutes or so.
 
 The remaining fields should be fairly self-evident: there's the exec count
 progress indicator for the current stage, a global exec counter, and a
@@ -214,8 +217,8 @@ things up.
 This gives you several metrics that are of interest mostly to complete nerds.
 The section includes the number of paths that the fuzzer likes the most based
 on a minimization algorithm baked into the code (these will get considerably
-more air time), and the number of test cases that actually result in better edge
-coverage (versus just pushing the branch hit counters up). There are also
+more air time), and the number of test cases that actually resulted in better
+edge coverage (versus just pushing the branch hit counters up). There are also
 additional, more detailed counters for crashes and hangs.
 
 7) Fuzzing strategy yields
@@ -238,7 +241,7 @@ assumptions about the usefulness of the various approaches taken by afl-fuzz.
 The trim strategy stats in this section are a bit different than the rest.
 That line shows the absolute count of removed bytes, the number of execs that
 had to be performed to achieve that result, and a ratio of bytes removed to
-the overall size of test cases fed to the trimmer so far.
+the overall size of test cases that went through the trimmer so far.
 
 8) Path geometry
 ----------------

@@ -17,6 +17,15 @@
    is automatically invoked by the toolchain when compiling programs using
    afl-gcc / afl-clang.
 
+   Note that it's an explicit non-goal to instrument hand-written assembly,
+   be it in separate .s files or in __asm__ blocks. The only aspiration this
+   utility has right now is to be able to skip them gracefully and allow the
+   compilation process to continue.
+
+   That said, see experimental/clang_asm_normalize/ for a solution that may
+   allow clang users to make things work even with hand-crafted assembly. Just
+   note that there is no equivalent for GCC.
+
  */
 
 #define AFL_MAIN
