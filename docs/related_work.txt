@@ -59,9 +59,20 @@ cool on paper and in carefully designed experiments, but failing the ultimate
 test of being able to find new, worthwhile security bugs in otherwise
 well-fuzzed, real-world software.
 
-So, attribution is hard. But I don't think there's anything worth glorifying
-about the core idea - it's essentially the application of well-established
-concepts in CS. The devil is very much in the details, which brings us to...
+As an aside, the baseline that such solutions are competing against is a lot
+more impressive than usually acknowledged; for example, check out the work by
+Gynvael and Mateusz Jurczyk, applying "dumb" fuzzing to ffmpeg, a prominent and
+security-critical component of modern browsers and media players:
+
+  http://googleonlinesecurity.blogspot.com/2014/01/ffmpeg-and-thousand-fixes.html
+
+Effortlessly getting the same results with state-of-the-art static analysis
+seems fairly unlikely, and hasn't been demonstrated in practice so far.
+
+Either way - attribution is hard. But I don't think there's anything worth
+glorifying about the core idea behind afl-fuzz - it's essentially the
+application of well-established concepts in CS. The devil is very much in the
+details, which brings us to...
 
 2) Design goals for afl-fuzz
 ----------------------------
@@ -72,12 +83,6 @@ solves several itches that seemed impossible to scratch with other tools:
 1) It's genuinely hard to compete with brute force when your "smart" approach
    is resource-intensive. If your instrumentation makes it 10x more likely
    to find a bug, but runs 100x slower, your users getting a bad deal.
-
-   The baseline that you will be competing against is a lot more impressive
-   than we may be willing to acknowledge; for example, check out the work by
-   Gynvael and Mateusz Jurczyk - essentially an application of "dumb" fuzzing
-   against ffmpeg, a security-critical component of modern browsers and media
-   players: http://goo.gl/L8DwWE
 
    To avoid starting with a handicap, afl-fuzz is meant to let you fuzz most of
    the intended targets at roughly their native speed - so even if it doesn't
@@ -91,10 +96,10 @@ solves several itches that seemed impossible to scratch with other tools:
 
    The brittleness of solvers aside, many tools are bogged down by path
    explosion: they identify so many complex dependencies between the input
-   data and the state of the program that they can't meaningfully prioritize
-   their next steps.
+   data and the state of the program that they struggle to meaningfully
+   prioritize their next steps.
 
-   In the end, the rule seems pretty simple: if less experienced users
+   In the end, I like to apply a simple rule: if less experienced users
    unfamiliar with your fuzzing framework can't just grab the tool and have it
    work properly against any program of their choice - say, OpenSSL, GnuPG,
    binutils, or ffmpeg - you may be doing more harm than good.
@@ -110,8 +115,6 @@ solves several itches that seemed impossible to scratch with other tools:
    that need to be guessed by the operator ahead of the fuzzing job to get
    decent results.
 
-   (Peach fuzzer is probably pretty hart to beat in terms of option overload.)
-
    In contrast, afl-fuzz is designed so that you don't have to touch anything.
    The three knobs you can play with are the output file, the memory limit,
    and the ability to override the default, auto-calibrated timeout. The rest
@@ -119,8 +122,8 @@ solves several itches that seemed impossible to scratch with other tools:
    outline the probable causes and workarounds, and get you back on track
    right away.
 
-4) Fuzzing can get hard to pull off and will be very slow if you want to test
-   programs that are resource-hungry, require complex UI automation, or need
+4) Fuzzing can get hard to pull off if you want to test programs that are
+   exceptionally resource-hungry, require complex UI automation, or need
    non-trivial testing harnesses to prepare inputs or spot non-crashing bugs.
 
    Most fuzzing frameworks simply ignore the problem; afl-fuzz tries to solve

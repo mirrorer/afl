@@ -46,7 +46,7 @@ So, we have no nice, portable way to avoid counting the ASAN allocation toward
 the limit. On 32-bit systems, or for binaries compiled in 32-bit mode (-m32),
 this is not a big deal: ASAN needs around 540 MB or so, depending on the
 compiler - so all you need to do is to specify -m that is about 50 MB higher
-or so.
+than that.
 
 On 64-bit systems, the situation is more murky, because the ASAN allocation
 is completely outlandish - around 17.5 TB in older versions, and closer to

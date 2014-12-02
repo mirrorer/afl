@@ -18,13 +18,13 @@
    2) Create and cd to an empty directory, put this file & the recently
       compiled bash binary in there.
 
-   3) Run these commands:
+   3) Run these commands (substitute /path/to/afl-gcc with the correct
+      location for afl-fuzz):
 
-      make bash-harness
+      CC=/path/to/afl-gcc make bash-harness
+
       mkdir in_dir
       echo -n '() { a() { a; }; : >b; }' >in_dir/script.txt
-
-      (You do not want to compile bash-harness with afl-gcc, by the way.)
 
    4) Run the fuzzer with:
 

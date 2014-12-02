@@ -122,8 +122,8 @@ static void edit_params(int argc, char** argv) {
        NSS. */
 
     if (strncmp(input_file, tmp_dir, strlen(tmp_dir)) &&
-        strncmp(input_file, "/var/tmp", 8) &&
-        strncmp(input_file, "/tmp", 4)) pass_thru = 1;
+        strncmp(input_file, "/var/tmp/", 9) &&
+        strncmp(input_file, "/tmp/", 5)) pass_thru = 1;
 
   }
 

@@ -1,4 +1,18 @@
 --------------
+Version 0.69b:
+--------------
+
+  - Improved detection of non-instrumented binaries.
+
+  - Crash counter in -C mode is now accurate.
+
+  - Fix for an obscure install bug that made afl-as non-functional with the tool
+    installed to /usr/bin instead of /usr/local/bin. Found by Florian Kiersch.
+
+  - Fix for a cosmetic SIGFPE when Ctrl-C is pressed while the fork server
+    is spinning up.
+
+--------------
 Version 0.68b:
 --------------
 

@@ -22,6 +22,7 @@
 
 #define AFL_MAIN
 #define MESSAGES_TO_STDOUT
+#define _GNU_SOURCE
 
 #include "config.h"
 #include "types.h"
@@ -60,7 +61,8 @@ static u8 *in_dir,                    /* Directory with initial testcases */
           *sync_id,                   /* Fuzzer ID                        */
           *use_banner,                /* Display banner                   */
           *in_bitmap,                 /* Input bitmap                     */
-          *doc_path;                  /* Path to documentation dir        */
+          *doc_path,                  /* Path to documentation dir        */
+          *target_path;               /* Path to target binary            */
 
 static u32 exec_tmout = EXEC_TIMEOUT; /* Configurable exec timeout (ms)   */
 static u64 mem_limit = MEM_LIMIT;     /* Memory cap for child (MB)        */
@@ -1112,9 +1114,9 @@ static void init_forkserver(char** argv) {
                            "detect_leaks=0:"
                            "allocator_may_return_null=1", 0);
 
-    execvp(argv[0], argv);
+    execv(target_path, argv);
 
-    /* Use a distinctive return value to tell the parent about execvp()
+    /* Use a distinctive return value to tell the parent about execv()
        falling through. This is hackish, but meh... */
 
     exit(EXEC_FAIL);
@@ -1160,13 +1162,13 @@ static void init_forkserver(char** argv) {
   if (WIFSIGNALED(status)) {
 
     SAYF("\n" cLRD "[-] " cRST
-         "Whoops, the target binary died before we could anything useful! There are three\n"
-         "    probable causes of this:\n\n"
+         "Whoops, the target binary crashed suddenly, before receiving any input\n"
+         "    from the fuzzer! There are three probable causes of this:\n\n"
 
-         "    - The current memory limit (%s) is too restrictive, causing the program\n"
-         "      to hit an OOM condition in the dynamic linker or other very early stage.\n"
-         "      Try bumping the limit up with the -m setting in the command line. A simple\n"
-         "      way confirm this diagnosis would be:\n\n"
+         "    - The current memory limit (%s) is too restrictive, causing the\n"
+         "      target to hit an OOM condition in the dynamic linker. Try bumping up\n"
+         "      the limit with the -m setting in the command line. A simple way confirm\n"
+         "      this diagnosis would be:\n\n"
 
 #ifdef RLIMIT_AS
          "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
@@ -1174,13 +1176,13 @@ static void init_forkserver(char** argv) {
          "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
-         "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
+         "      You will also see this error when trying to use ASAN. For tips on that,\n"
+         "      please see %s/notes_for_asan.txt.\n\n"
 
-         "    - The binary always crashes when executed, for some reason that is beyond\n"
-         "      our control. If so, you probably need to fix the underlying problem or\n"
-         "      find a more suitable replacement.\n\n"
+         "    - The binary is just buggy and explodes entirely on its own. If so, you\n"
+         "      need to fix the underlying problem or find a better replacement.\n\n"
 
-         "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
+         "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
          "      fail, poke <lcamtuf@coredump.cx>.\n",
          DMS(mem_limit << 20), mem_limit, doc_path);
 
@@ -1193,22 +1195,12 @@ static void init_forkserver(char** argv) {
     FATAL("Unable to execute target application ('%s')", argv[0]);
 
   SAYF("\n" cLRD "[-] " cRST
-       "Hmm, looks like the target binary terminated before we could establish a\n"
-       "    connection to the fork server. There are three possible explanations:\n\n"
+       "Hmm, looks like the target binary terminated before we could complete a\n"
+       "    handshake with the injected code. There are two probable explanations:\n\n"
 
-       "    - The binary is not instrumented. The fuzzer depends on compile-time\n"
-       "      instrumentation to find interesting test cases. For more info on this,\n"
-       "      and for instructions on how to instrument binaries, please consult\n"
-       "      %s/README.\n\n"
-
-       "      (In some cases, you may want to use afl-fuzz as a traditional, \"dumb\"\n"
-       "      fuzzer. If that's the intent, specify the -n option - but expect it to\n"
-       "      perform much worse than with the instrumentation in place).\n\n"
-
-       "    - The binary does not work at all, perhaps because the current memory limit\n"
-       "      (%s) is too restrictive, causing it to hit an OOM condition in the\n"
-       "      dynamic linker. This can be fixed with the -m option. A simple way to\n"
-       "      confirm the diagnosis may be:\n"
+       "    - The current memory limit (%s) is too restrictive, causing an OOM\n"
+       "      fault in the dynamic linker. This can be fixed with the -m option. A\n"
+       "      simple way to confirm the diagnosis may be:\n\n"
 
 #ifdef RLIMIT_AS
        "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
@@ -1216,13 +1208,14 @@ static void init_forkserver(char** argv) {
        "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
-       "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
+       "      You will also see this error when trying to use ASAN. For tips on that,\n"
+       "      please see %s/notes_for_asan.txt.\n\n"
 
-       "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
+       "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
        "      fail, poke <lcamtuf@coredump.cx>.\n",
-       doc_path, DMS(mem_limit << 20), mem_limit, doc_path);
+       DMS(mem_limit << 20), mem_limit, doc_path);
 
-  FATAL("No instrumentation detected or fork server fault");
+  FATAL("Fork server handshake failed");
 
 }
 
@@ -1296,9 +1289,9 @@ static u8 run_target(char** argv) {
 
       close(dev_null_fd);
 
-      execvp(argv[0], argv);
+      execv(target_path, argv);
 
-      /* Use a distinctive return value to tell the parent about execvp()
+      /* Use a distinctive return value to tell the parent about execv()
          falling through. */
 
       exit(EXEC_FAIL);
@@ -1866,9 +1859,12 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
   if (fault == crash_mode) {
 
     /* Keep only if there are new bits in the map, add to queue for
-       future fuzing, etc. */
+       future fuzzing, etc. */
 
-    if (!(hnb = has_new_bits(virgin_bits))) return 0;
+    if (!(hnb = has_new_bits(virgin_bits))) {
+      if (crash_mode) total_crashes++;
+      return 0;
+    }    
 
     fn = alloc_printf("%s/queue/id:%06u,%s", out_dir, queued_paths,
                       describe_op(hnb));
@@ -2557,8 +2553,10 @@ static void show_init_stats(void) {
   struct queue_entry* q = queue;
   u32 min_bits = 0, max_bits = 0;
   u64 min_us = 0, max_us = 0;
-  u64 avg_us = total_cal_us / total_cal_cycles;
+  u64 avg_us = 0;
   u32 max_len = 0;
+
+  if (total_cal_cycles) avg_us = total_cal_us / total_cal_cycles;
 
   while (q) {
 
@@ -2606,7 +2604,7 @@ static void show_init_stats(void) {
       cGRA "       Bitmap range : " cNOR "%u to %u bits (average: %0.02f bits)\n"
       cGRA "        Exec timing : " cNOR "%s to %s us (average: %s us)\n",
       queued_favored, queued_variable, queued_paths, min_bits, max_bits, 
-      ((double)total_bitmap_size) / total_bitmap_entries,
+      ((double)total_bitmap_size) / (total_bitmap_entries ? total_bitmap_entries : 1),
       DI(min_us), DI(max_us), DI(avg_us));
 
   if (!timeout_given) {
@@ -2959,7 +2957,7 @@ static u8 fuzz_one(char** argv) {
 
   orig_in = in_buf = mmap(0, len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 
-  if (mmap == MAP_FAILED) PFATAL("Unable to mmap '%s'", queue_cur->fname);
+  if (orig_in == MAP_FAILED) PFATAL("Unable to mmap '%s'", queue_cur->fname);
 
   close(fd);
 
@@ -4207,23 +4205,25 @@ static void handle_timeout(int sig) {
 
 
 /* Do a PATH search and find target binary to see that it exists and
-   isn't a shell script - a common and painful mistake. */
+   isn't a shell script - a common and painful mistake. We also check for
+   a valid ELF header and for evidence of AFL instrumentation. */
 
 static void check_binary(u8* fname) {
 
-  u8 *use_file = 0, *env_path = 0;
+  u8* env_path = 0;
   struct stat st;
 
   s32 fd;
-  u8 file_hdr[2];
+  u8* f_data;
+  u32 f_len = 0;
 
   ACTF("Validating target binary...");
 
   if (strchr(fname, '/') || !(env_path = getenv("PATH"))) {
 
-    use_file = ck_strdup(fname);
-
-    if (stat(use_file, &st) || !S_ISREG(st.st_mode) || !(st.st_mode & 0111))
+    target_path = ck_strdup(fname);
+    if (stat(target_path, &st) || !S_ISREG(st.st_mode) ||
+        !(st.st_mode & 0111) || (f_len = st.st_size) < 4)
       FATAL("Program '%s' not found or not executable", fname);
 
   } else {
@@ -4243,28 +4243,35 @@ static void check_binary(u8* fname) {
       env_path = delim;
 
       if (cur_elem[0])
-        use_file = alloc_printf("%s/%s", cur_elem, fname);
+        target_path = alloc_printf("%s/%s", cur_elem, fname);
       else
-        use_file = ck_strdup(fname);
+        target_path = ck_strdup(fname);
 
       ck_free(cur_elem);
 
-      if (!stat(use_file, &st) && S_ISREG(st.st_mode) && (st.st_mode & 0111))
-        break;
+      if (!stat(target_path, &st) && S_ISREG(st.st_mode) &&
+          (st.st_mode & 0111) && (f_len = st.st_size) >= 4) break;
 
-      ck_free(use_file);
-      use_file = 0;
+      ck_free(target_path);
+      target_path = 0;
 
     }
 
-    if (!use_file) FATAL("Program '%s' not found or not executable", fname);
+    if (!target_path) FATAL("Program '%s' not found or not executable", fname);
 
   }
 
-  fd = open(use_file, O_RDONLY);
+  fd = open(target_path, O_RDONLY);
 
-  if (fd >= 0 && read(fd, file_hdr, 2) == 2 && file_hdr[0] == '#' &&
-      file_hdr[1] == '!') {
+  if (fd < 0) PFATAL("Unable to open '%s'", target_path);
+
+  f_data = mmap(0, f_len, PROT_READ, MAP_PRIVATE, fd, 0);
+
+  if (f_data == MAP_FAILED) PFATAL("Unable to mmap file '%s'", target_path);
+
+  close(fd);
+
+  if (f_data[0] == '#' && f_data[1] == '!') {
 
     SAYF("\n" cLRD "[-] " cRST
          "Oops, the target binary looks like a shell script. Some build systems will\n"
@@ -4276,13 +4283,30 @@ static void check_binary(u8* fname) {
          "    fuzzing process by a factor of 20x or more; it's best to write the wrapper\n"
          "    in a compiled language instead.\n");
 
-    FATAL("Program '%s' is a shell script", fname);
+    FATAL("Program '%s' is a shell script", target_path);
 
   }
 
-  if (fd >= 0) close(fd);
+  if (f_data[0] != 0x7f || memcmp(f_data + 1, "ELF", 3))
+    FATAL("Program '%s' is not an ELF binary", target_path);
 
-  ck_free(use_file);
+  if (!dumb_mode && !memmem(f_data, f_len, SHM_ENV_VAR, strlen(SHM_ENV_VAR) + 1)) {
+
+    SAYF("\n" cLRD "[-] " cRST
+         "Looks like the target binary is not instrumented! The fuzzer depends on\n"
+         "    compile-time instrumentation to isolate interesting test cases while\n"
+         "    mutating the input data. For more information, and for tips on how to\n"
+         "    instrument binaries, please see %s/README.\n\n"
+
+         "    (It is also possible to use afl-fuzz as a traditional, \"dumb\" fuzzer.\n"
+         "    For that, you can use the -n option - but expect much worse results.)\n",
+         doc_path);
+
+    FATAL("No instrumentation detected");
+
+  }
+
+  if (munmap(f_data, f_len)) PFATAL("unmap() failed");
 
 }
 
@@ -4492,7 +4516,6 @@ static void check_coredumps(void) {
     FATAL("Pipe at the beginning of 'core_pattern'");
 
   }
-
  
   close(fd);
 

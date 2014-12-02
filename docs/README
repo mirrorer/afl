@@ -228,8 +228,12 @@ code analysis work. To assist with this task, afl-fuzz supports a very unique
 "crash exploration" mode enabled with the -C flag.
 
 In this mode, the fuzzer takes one or more crashing test cases as the input,
-and uses genetic fuzzing to very quickly enumerate all code paths that can be
-reached in the program while keeping it in the crashing state.
+and uses its feedback-driven fuzzing strategies to very quickly enumerate all
+code paths that can be reached in the program while keeping it in the
+crashing state.
+
+Mutations that do not result in a crash are rejected; so are any changes that
+do not affect the execution path.
 
 The output is a small corpus of files that can be very rapidly examined to see
 what degree of control the attacker has over the faulting address, or whether
@@ -270,7 +274,8 @@ Here are some of the most important caveats for AFL:
     experimental/arm_support/, too - but it's pretty brittle at this point.
 
   - Instrumentation of binary-only code is theoretically possible, but not
-    supported today. Leveraging pin or DynamoRIO may be a simple approach.
+    supported today. Leveraging pin or DynamoRIO seems like a pretty simple
+    project.
 
   - There are some unfortunate trade-offs with ASAN and 64-bit binaries. This
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for

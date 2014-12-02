@@ -75,13 +75,13 @@ static void find_as(u8* argv0) {
 
   if (slash) {
 
-    u8* dir;
+    u8 *dir;
 
     *slash = 0;
     dir = ck_strdup(argv0);
     *slash = '/';
 
-    tmp = alloc_printf("%s/as", dir);
+    tmp = alloc_printf("%s/afl-as", dir);
 
     if (!access(tmp, X_OK)) {
       as_path = dir;
