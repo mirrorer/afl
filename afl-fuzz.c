@@ -2082,52 +2082,39 @@ static u8 delete_files(u8* path, u8* prefix) {
 }
 
 
-/* Get the number of runnable processes, averaging over the course of
-   roughly 5 seconds. */
-
-#define RP_SAMPLES (UI_TARGET_HZ * 5)
+/* Get the number of runnable processes, with some simple smoothing. */
 
 static double get_runnable_processes(void) {
 
-  static u32 measurements[RP_SAMPLES];
-  static u32 m_off;
-  static u8  first_call = 1;
+  static double res;
 
   FILE* f = fopen("/proc/stat", "r");
   u8 tmp[1024];
-  u32 i, ret = 0;
+  u32 val = 0;
 
   if (!f) return 0;
-
-  measurements[m_off] = 0;
 
   while (fgets(tmp, sizeof(tmp), f)) {
 
     if (!strncmp(tmp, "procs_running ", 14) ||
-        !strncmp(tmp, "procs_blocked ", 14))
-      measurements[m_off] += atoi(tmp + 14);
+        !strncmp(tmp, "procs_blocked ", 14)) val += atoi(tmp + 14);
 
   }
  
   fclose(f);
 
-  /* On first call, just initialize the entire table with the current
-     reading. */
+  if (!res) {
 
-  if (first_call) {
+    res = val;
 
-    for (i = 1; i < RP_SAMPLES; i++) 
-      measurements[i] = measurements[0];
+  } else {
 
-    first_call = 0;
+    res = res * (1.0 - 1.0 / AVG_SMOOTHING) +
+          ((double)val) * (1.0 / AVG_SMOOTHING);
 
   }
 
-  m_off = (m_off + 1) % RP_SAMPLES;
-
-  for (i = 0; i < RP_SAMPLES; i++) ret += measurements[i];
-
-  return ((double)ret) / RP_SAMPLES;
+  return res;
 
 }
 
@@ -2275,31 +2262,51 @@ dir_cleanup_failed:
 
 static void show_stats(void) {
 
+  static u64 prev_ms, prev_execs;
+  static double avg_exec;
+  double t_byte_ratio;
+
+  u64 cur_ms;
+  u32 t_bytes, t_bits;
+
   u32 banner_len, banner_pad;
-  u8 tmp[256]; 
-
-  /* Compute some mildly useful bitmap stats. */
-
-  u32 t_bytes = count_non_255_bytes(virgin_bits);
-  u32 t_bits = (MAP_SIZE << 3) - count_bits(virgin_bits);
-
-  /* Figure out current running time. */
-
-  s64 cur_ms   = get_cur_time();
-  s64 run_time = cur_ms - start_time;
-  double avg_exec, t_byte_ratio;
+  u8  tmp[256];
 
   if (not_on_tty) return;
 
-  if (!run_time) run_time = 1;
+  /* Compute some mildly useful bitmap stats. */
 
-  /* Calculate average exec speed and adjust UI update frequency. */
+  t_bytes = count_non_255_bytes(virgin_bits);
+  t_bits = (MAP_SIZE << 3) - count_bits(virgin_bits);
 
-  avg_exec = ((double)total_execs) * 1000 / run_time;
+  cur_ms   = get_cur_time();
 
-  stats_update_freq = avg_exec / UI_TARGET_HZ;
+  /* Calculate the recent, smoothed average exec speed and adjust UI update
+     frequency - but not more often than UI_TARGET_HZ. */
 
-  if (!stats_update_freq) stats_update_freq = 1;
+  if (cur_ms - prev_ms >= UI_TARGET_HZ) {
+
+    if (!prev_execs) {
+  
+      avg_exec = ((double)total_execs) * 1000 / (cur_ms - start_time);
+
+    } else {
+
+      double cur_avg = ((double)(total_execs - prev_execs)) * 1000 /
+                       (cur_ms - prev_ms);
+
+      avg_exec = avg_exec * (1.0 - 1.0 / AVG_SMOOTHING) +
+                 cur_avg * (1.0 / AVG_SMOOTHING);
+
+    }
+
+    prev_ms = cur_ms;
+    prev_execs = total_execs;
+
+    stats_update_freq = avg_exec / UI_TARGET_HZ;
+    if (!stats_update_freq) stats_update_freq = 1;
+
+  }
 
   if (clear_screen) {
 
@@ -4715,6 +4722,30 @@ static void detect_file_args(char** argv) {
 }
 
 
+/* Set up signal handlers. */
+
+static void setup_signal_handlers(void) {
+
+  signal(SIGHUP,   handle_stop_sig);
+  signal(SIGINT,   handle_stop_sig);
+  signal(SIGTERM,  handle_stop_sig);
+  signal(SIGALRM,  handle_timeout);
+  signal(SIGWINCH, handle_resize);
+
+  signal(SIGTSTP, SIG_IGN);
+  signal(SIGPIPE, SIG_IGN);
+
+  /* On Solaris, libc doesn't resume interrupted reads :-( */
+
+  siginterrupt(SIGHUP, 0);
+  siginterrupt(SIGINT, 0);
+  siginterrupt(SIGTERM, 0);
+  siginterrupt(SIGALRM, 0);
+  siginterrupt(SIGWINCH, 0);
+
+}
+
+
 /* Main entry point */
 
 int main(int argc, char** argv) {
@@ -4725,15 +4756,6 @@ int main(int argc, char** argv) {
 
   SAYF(cCYA "afl-fuzz " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
        ") by <lcamtuf@google.com>\n");
-
-  signal(SIGHUP,   handle_stop_sig);
-  signal(SIGINT,   handle_stop_sig);
-  signal(SIGTERM,  handle_stop_sig);
-  signal(SIGALRM,  handle_timeout);
-  signal(SIGWINCH, handle_resize);
-
-  signal(SIGTSTP, SIG_IGN);
-  signal(SIGPIPE, SIG_IGN);
 
   doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 
@@ -4859,6 +4881,8 @@ int main(int argc, char** argv) {
 
   if (optind == argc || !in_dir || !out_dir) usage(argv[0]);
 
+  setup_signal_handlers();
+
   check_asan_opts();
 
   if (sync_id) fix_up_sync();
@@ -4875,8 +4899,6 @@ int main(int argc, char** argv) {
 
   count_cores();
 
-  start_time = get_cur_time();
-
   check_coredumps();
 
   setup_shm();
@@ -4892,6 +4914,8 @@ int main(int argc, char** argv) {
   if (!out_file) setup_stdio_file();
 
   check_binary(argv[optind]);
+
+  start_time = get_cur_time();
 
   perform_dry_run(argv + optind);
 

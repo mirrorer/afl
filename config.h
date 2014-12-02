@@ -121,6 +121,10 @@
 
 #define UI_TARGET_HZ        4
 
+/* Smoothing divisor for CPU load and exec speed stats (1 - no smoothing). */
+
+#define AVG_SMOOTHING       25
+
 /* Sync interval (havoc cycles): */
 
 #define SYNC_INTERVAL       10

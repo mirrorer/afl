@@ -1,4 +1,12 @@
 --------------
+Version 0.74b:
+--------------
+
+  - More responsive exec speed averages an UI speed scaling.
+
+  - Fix for interrupted reads on Solaris. Submitted by Martin Carpenter.
+
+--------------
 Version 0.73b:
 --------------
 
