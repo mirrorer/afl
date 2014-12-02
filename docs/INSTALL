@@ -27,14 +27,14 @@ Compile with GNU make:
 
 $ gmake
 
-Note that BSD make will *not* work. As on Linux, you can use the tool without
+Note that BSD make will *not* work; if you do not have gmake on your system,
+please install it first. As on Linux, you can use the fuzzer itself without
 installation, or install it with:
 
 # gmake install
 
 In principle, the tool should work properly, although it hasn't been tested in
-nearly as much depth. User reports of successful or failed builds are very much
-welcome!
+nearly as much depth. Reports of problems are very much welcome!
 
 3) Linux (ARMv7)
 ----------------

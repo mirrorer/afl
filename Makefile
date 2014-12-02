@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.60b
+VERSION     = 0.61b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -32,7 +32,7 @@ ifneq "$(shell echo $$HOSTNAME)" "raccoon"
   CFLAGS   += -Wno-format
 endif
 
-ifeq "$(findstring clang, $(CC))" ""
+ifeq "$(findstring clang, $(shell $(CC) --version 2>/dev/null))" ""
   TEST_CC   = afl-gcc
 else
   TEST_CC   = afl-clang

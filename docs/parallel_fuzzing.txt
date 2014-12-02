@@ -18,12 +18,12 @@ fuzzer per every virtual core on HT-enabled system at very little cost.
 underutilizing the hardware, as indicated by the CPU load widget in the bottom
 right corner of the screen.)
 
-When targeting multiple unrelated binaries, it is perfectly fine to run fully
-separate instances of afl-fuzz - be it on a single machine or across a large
-fleet. The picture gets more complicated when you want to have multiple fuzzers
-hammering a common target: if a hard-to-hit but interesting test case is
-synthesized by one fuzzer, the remaining instances will not be able to use that
-input to guide their work.
+When targeting multiple unrelated binaries or using the tool in "dumb" (-n)
+mode, it is perfectly fine to run fully separate instances of afl-fuzz - be it
+on a single machine or across a large fleet. The picture gets more complicated
+when you want to have multiple fuzzers hammering a common target: if a
+hard-to-hit but interesting test case is synthesized by one fuzzer, the
+remaining instances will not be able to use that input to guide their work.
 
 To help with this problem, afl-fuzz offers a simple way to synchronize test
 cases on the fly.
@@ -55,9 +55,11 @@ $ ./afl-fuzz -o /path/to/sync_dir -M fuzzer01 [...other params...]
 
 Enabling this one more than one instance would be likely a waste of CPU time.
 
-Of course, it is important to assign every fuzzer a different ID. Care should
-be exercised when using the -f option, too: two processes competing to write
-to the same file is bad news.
+Of course, it is important to assign every fuzzer a different ID. 
+
+WARNING: Care should be exercised when using the -f option: two processes
+competing to write to the same file is bad news, so be sure to use unique file
+names!
 
 3) Multi-system parallelization
 -------------------------------

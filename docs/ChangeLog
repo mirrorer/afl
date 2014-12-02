@@ -1,4 +1,14 @@
 --------------
+Version 0.61b:
+--------------
+
+  - A trivial fix for FreeBSD and MacOS X.
+
+  - Cosmetic doc and CPU load indicator improvements.
+
+  - Improvements for crash removal (README.txt, d'oh).
+
+--------------
 Version 0.60b:
 --------------
 

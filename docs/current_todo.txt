@@ -8,6 +8,9 @@ Here's the list of stuff I want to implement in afl:
 
   - More test cases (see testcases/wishlist.txt).
 
+  - Special-cased expansion for strcmp() & similar functions to replace
+    them with an instrumented loop - on a trial basis.
+
   - Perhaps a rewrite of the fork server code in C that gets precompiled
     with -S and then appended alongside with the instrumentation.
 

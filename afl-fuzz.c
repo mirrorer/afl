@@ -2193,6 +2193,10 @@ static void maybe_delete_out_dir(void) {
 
   // All right, let's do <out_dir>/crashes/id:* and <out_dir>/hangs/id:* next:
 
+  fn = alloc_printf("%s/crashes/README.txt", out_dir);
+  unlink(fn); /* Ignore errors */
+  ck_free(fn);
+
   fn = alloc_printf("%s/crashes", out_dir);
   if (delete_id_files(fn)) goto dir_cleanup_failed;
   ck_free(fn);
@@ -2532,14 +2536,14 @@ static void show_stats(void) {
 
     u8* cpu_color = cCYA;
 
-    /* If we could still run two or more processes, use green. */
+    /* If we could still run one or more processes, use green. */
 
     if (cpu_core_count > 1 && cur_runnable + 1 <= cpu_core_count)
       cpu_color = cLGN;
 
     /* If we're clearly oversubscribed, use red. */
 
-    if (cur_runnable * 0.8 > cpu_core_count) cpu_color = cLRD;
+    if (cur_utilization >= 125) cpu_color = cLRD;
 
     SAYF(SP20 SP20 SP20 SP5 cGRA "    [cpu:%s%3u%%" cGRA "]\r" cRST,
          cpu_color, cur_utilization < 999 ? cur_utilization : 999);
