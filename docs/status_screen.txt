@@ -122,8 +122,8 @@ The first line in the box tells you how many branch tuples we have already
 hit, in proportion to how much the bitmap can hold. Be wary of extremes:
 
   - Absolute numbers below 200 or so suggests that the program is extremely
-    simple, or not instrumented properly (e.g., due to being linked against
-    the wrong copy of the library), or bailing out prematurely on your input
+    simple; not instrumented properly (e.g., due to being linked against
+    the wrong copy of the library); or bailing out prematurely on your input
     test cases. The fuzzer will try to mark this in pink, just to make you
     aware.
 

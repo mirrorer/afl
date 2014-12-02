@@ -200,8 +200,8 @@ in real time:
 
 Crashes and hangs are considered "unique" if the associated execution paths
 involve any state transitions not seen in previously-recorded faults. If a
-single bug can be reached in a multitude of ways, the counts may end up getting
-inflated early on in the process, but this should quickly taper off.
+single bug can be reached in multiple ways, there will be some count inflation
+early in the process, but this should quickly taper off.
 
 The file names for crashes and hangs should let you correlate them with the
 parent, non-faulting queue entries. This should help with debugging.
@@ -210,18 +210,35 @@ Any existing output directory can be also used to resume aborted jobs; simply do
 
 $ ./afl-fuzz -i old_output_dir -o new_output_dir [...etc...]
 
-Although the fuzzer does not perform any additional analysis of the discovered
-crashes, the coverage-based grouping usually makes it easy to triage new finds
-manually - or to examine them with a simple GDB script. One such script is
-provided in experimental/crash_triage/.
-
 7) Parallelized fuzzing
 -----------------------
 
 For tips on how to fuzz a common target on multiple cores or multiple networked
 machines, please refer to parallel_fuzzing.txt.
 
-8) Known limitations & areas for improvement
+8) Crash exploration
+--------------------
+
+The coverage-based grouping of crashes usually produces a small data set that
+can be quickly triaged manually or with a very simple GDB or Valgrind script.
+
+Of course, it's important to acknowledge that some fuzzing crashes can be
+difficult quickly evaluate for exploitability without a lot of debugging and
+code analysis work. To assist with this task, afl-fuzz supports a very unique
+"crash exploration" mode enabled with the -C flag.
+
+In this mode, the fuzzer takes one or more crashing test cases as the input,
+and uses genetic fuzzing to very quickly enumerate all code paths that can be
+reached in the program while keeping it in the crashing state.
+
+The output is a small corpus of files that can be very rapidly examined to see
+what degree of control the attacker has over the faulting address, or whether
+it is possible to get past an initial out-of-bounds read - and see what lies
+beneath.
+
+Oh - for test case minimization, consider https://code.google.com/p/tmin/.
+
+9) Known limitations & areas for improvement
 --------------------------------------------
 
 Here are some of the most important caveats for AFL:
@@ -259,7 +276,7 @@ Here are some of the most important caveats for AFL:
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for
     more.
 
-9) Special thanks
+10) Special thanks
 -----------------
 
 Many of the improvements to afl-fuzz wouldn't be possible without feedback,
@@ -284,7 +301,7 @@ bug reports, or patches from:
 
 Thank you!
 
-10) Contact
+11) Contact
 -----------
 
 Questions? Concerns? Bug reports? The author can be usually reached at

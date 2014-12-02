@@ -75,8 +75,9 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            kill_signal,               /* Signal that killed the child     */
            resuming_fuzz,             /* Resuming an older fuzzing job?   */
            timeout_given,             /* Specific timeout given?          */
-           not_on_tty;                /* stdout is not a tty              */
-            
+           not_on_tty,                /* stdout is not a tty              */
+           crash_mode;                /* Crash mode! Yeah!                */
+    
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
            dev_null_fd,               /* Persistent fd for /dev/null      */
@@ -1466,7 +1467,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
 
   fault = run_target(argv);
 
-  if (stop_soon || fault) goto abort_calibration;
+  if (stop_soon || fault != crash_mode) goto abort_calibration;
 
   /* Except for running in dumb mode, we expect some data in trace_bits[].
      We also call has_new_bits() to update our map and see if this test case
@@ -1511,7 +1512,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
     /* stop_soon is set by the handler for Ctrl+C. When it's pressed,
        we want to bail out quickly. */
 
-    if (stop_soon || fault) goto abort_calibration;
+    if (stop_soon || fault != crash_mode) goto abort_calibration;
 
     new_cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
 
@@ -1621,6 +1622,11 @@ static void perform_dry_run(char** argv) {
 
     switch (res) {
 
+      case FAULT_NONE:
+
+        if (crash_mode) FATAL("Test case '%s' does *NOT* crash", fn);
+        break;
+
       case FAULT_HANG:
 
         if (timeout_given) {
@@ -1642,6 +1648,8 @@ static void perform_dry_run(char** argv) {
         }
 
       case FAULT_CRASH:  
+
+        if (crash_mode) break;
 
         SAYF("\n" cLRD "[-] " cRST
              "Oops, the program crashed with one of the test cases provided. There are\n"
@@ -1845,37 +1853,46 @@ static void write_crash_readme(void) {
 
 
 /* Check if the result of an execve() during routine fuzzing is interesting,
-   save or queue the input test case for further analysis if so. */
+   save or queue the input test case for further analysis if so. Returns 1 if
+   entry is saved, 0 otherwise. */
 
 static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
   u8  *fn = "";
   u8  hnb;
   s32 fd;
+  u8  keeping = 0;
+
+  if (fault == crash_mode) {
+
+    /* Keep only if there are new bits in the map, add to queue for
+       future fuzing, etc. */
+
+    if (!(hnb = has_new_bits(virgin_bits))) return 0;
+
+    fn = alloc_printf("%s/queue/id:%06u,%s", out_dir, queued_paths,
+                      describe_op(hnb));
+
+    add_to_queue(fn, len, 0);
+
+    if (hnb == 2) {
+      queue_top->has_new_cov = 1;
+      queued_with_cov++;
+    }
+
+    queue_top->bitmap_size = count_bits(trace_bits);
+    update_bitmap_score(queue_top);      
+
+    fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (fd < 0) PFATAL("Unable to create '%s'\n", fn);
+    if (write(fd, mem, len) != len) PFATAL("Short write to '%s'", fn);
+    close(fd);
+
+    keeping = 1;
+
+  }
 
   switch (fault) {
-
-    case FAULT_NONE:
-
-      /* Keep only if there are new bits in the map, add to queue for
-         future fuzing, etc. */
-
-      if (!(hnb = has_new_bits(virgin_bits))) return 0;
-
-      fn = alloc_printf("%s/queue/id:%06u,%s", out_dir, queued_paths,
-                        describe_op(hnb));
-
-      add_to_queue(fn, len, 0);
-
-      if (hnb == 2) {
-        queue_top->has_new_cov = 1;
-        queued_with_cov++;
-      }
-
-      queue_top->bitmap_size = count_bits(trace_bits);
-      update_bitmap_score(queue_top);      
-
-      break;
 
     case FAULT_HANG:
 
@@ -1886,13 +1903,13 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
       total_hangs++;
 
-      if (unique_hangs >= KEEP_UNIQUE_HANG) return 0;
+      if (unique_hangs >= KEEP_UNIQUE_HANG) return keeping;
 
       if (!dumb_mode) {
 
         simplify_trace(trace_bits);
 
-        if (!has_new_bits(virgin_hang)) return 0;
+        if (!has_new_bits(virgin_hang)) return keeping;
 
       }
 
@@ -1912,13 +1929,13 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
       total_crashes++;
 
-      if (unique_crashes >= KEEP_UNIQUE_CRASH) return 0;
+      if (unique_crashes >= KEEP_UNIQUE_CRASH) return keeping;
 
       if (!dumb_mode) {
 
         simplify_trace(trace_bits);
 
-        if (!has_new_bits(virgin_crash)) return 0;
+        if (!has_new_bits(virgin_crash)) return keeping;
 
       }
 
@@ -1935,19 +1952,21 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
     case FAULT_ERROR: FATAL("Unable to execute target application");
 
+    default: return keeping;
+
   }
 
+  /* If we're here, we apparently want to save the crash or hang
+     test case, too. */
+
   fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
-
   if (fd < 0) PFATAL("Unable to create '%s'\n", fn);
-
   if (write(fd, mem, len) != len) PFATAL("Short write to '%s'", fn);
-
-  if (fault) ck_free(fn);
-
   close(fd);
 
-  return !fault;
+  ck_free(fn);
+
+  return keeping;
 
 }
 
@@ -2256,13 +2275,13 @@ static void show_stats(void) {
 
   /* Let's start by drawing a centered banner. */
 
-  banner_len = 22 + strlen(VERSION) + strlen(use_banner);
+  banner_len = (crash_mode ? 24 : 22) + strlen(VERSION) + strlen(use_banner);
   banner_pad = (80 - banner_len) / 2;
-
   memset(tmp, ' ', banner_pad);
 
-  sprintf(tmp + banner_pad, cYEL "american fuzzy lop " cLCY VERSION cLGN
-          " (%s)",  use_banner);
+  sprintf(tmp + banner_pad, "%s " cLCY VERSION cLGN
+          " (%s)",  crash_mode ? cPIN "peruvian were-rabbit" : 
+          cYEL "american fuzzy lop", use_banner);
 
   SAYF("\n%s\n\n", tmp);
 
@@ -2336,7 +2355,7 @@ static void show_stats(void) {
      limit with a '+' appended to the count. */
 
   sprintf(tmp, "%s%s", DI(unique_crashes),
-         (unique_crashes >= KEEP_UNIQUE_CRASH) ? "+" : "");
+          (unique_crashes >= KEEP_UNIQUE_CRASH) ? "+" : "");
 
   SAYF(bV bSTOP " last uniq crash : " cNOR "%-34s " bSTG bV bSTOP
        " uniq crashes : %s%-6s " bSTG bV "\n",
@@ -2648,7 +2667,7 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
   fault = run_target(argv);
   trim_execs++;
 
-  if (stop_soon || fault) goto abort_trimming;
+  if (stop_soon || fault != crash_mode) goto abort_trimming;
 
   cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
 
@@ -2737,8 +2756,6 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
 
   }
 
-  fault = 0;
-
 abort_trimming:
 
   bytes_trim_out += q->len;
@@ -2753,7 +2770,7 @@ abort_trimming:
 
 static u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 
-  u8  fault;
+  u8 fault;
 
   write_to_testcase(out_buf, len);
 
@@ -2977,7 +2994,7 @@ static u8 fuzz_one(char** argv) {
     if (res == FAULT_ERROR)
       FATAL("Unable to execute target application");
 
-    if (stop_soon || res != FAULT_NONE) {
+    if (stop_soon || res != crash_mode) {
       cur_skipped_paths++;
       goto abandon_entry;
     }
@@ -4358,8 +4375,9 @@ static void usage(u8* argv0) {
 
        "Other stuff:\n\n"
 
-       "  -T text       - show a specific text banner on the screen\n"
-       "  -M / -S id    - distributed mode (see parallel_fuzzing.txt)\n\n"
+       "  -T text       - text banner to show on the screen\n"
+       "  -M / -S id    - distributed mode (see parallel_fuzzing.txt)\n"
+       "  -C            - crash exploration mode (the peruvian rabbit thing)\n\n"
 
        "For additional tips, please consult %s/README.\n\n",
 
@@ -4644,7 +4662,7 @@ int main(int argc, char** argv) {
 
   doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 
-  while ((opt = getopt(argc,argv,"+i:o:f:m:t:T:dnB:S:M:")) > 0)
+  while ((opt = getopt(argc,argv,"+i:o:f:m:t:T:dnCB:S:M:")) > 0)
 
     switch (opt) {
 
@@ -4741,6 +4759,12 @@ int main(int argc, char** argv) {
         read_bitmap(in_bitmap);
         break;
 
+      case 'C':
+
+        if (crash_mode) FATAL("Multiple -C options not supported");
+        crash_mode = FAULT_CRASH;
+        break;
+
       case 'n':
 
         dumb_mode = 1;
@@ -4766,6 +4790,9 @@ int main(int argc, char** argv) {
 
   if (!strcmp(in_dir, out_dir))
     FATAL("Input and output directories can't be the same!");
+
+  if (crash_mode && dumb_mode)
+    FATAL("-C and -n are mutually exclusive");
 
   fix_up_banner(argv[optind]);
 
