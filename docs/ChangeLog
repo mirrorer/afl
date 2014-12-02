@@ -1,4 +1,13 @@
 --------------
+Version 0.65b:
+--------------
+
+  - Fix for shell printf escape codes in Makefile. Reported by Jakub Wilk.
+
+  - A bit more color to fuzzer_stats, short documentation of the file format,
+    and several other stats-related improvements.
+
+--------------
 Version 0.64b:
 --------------
 

@@ -100,7 +100,7 @@ static volatile u8 stop_soon,         /* Ctrl-C pressed?                  */
 static u32 queued_paths,              /* Total number of queued testcases */
            queued_variable,           /* Testcases with variable behavior */
            queued_at_start,           /* Total number of initial inputs   */
-           queued_later_on,           /* Items queued after 1st cycle     */
+           queued_discovered,         /* Items discovered during this run */
            queued_imported,           /* Items imported via -S            */
            queued_favored,            /* Paths deemed favorable           */
            queued_with_cov,           /* Paths with new coverage bytes    */
@@ -565,8 +565,6 @@ static void add_to_queue(u8* fname, u32 len, u8 passed_det) {
     queue_p1k = q;
 
   }
-
-  if (queue_cycle > 1) queued_later_on++;
 
   last_path_time = get_cur_time();
 
@@ -1849,7 +1847,7 @@ static void write_crash_readme(void) {
 /* Check if the result of an execve() during routine fuzzing is interesting,
    save or queue the input test case for further analysis if so. */
 
-static void save_if_interesting(void* mem, u32 len, u8 fault) {
+static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
   u8  *fn = "";
   u8  hnb;
@@ -1862,7 +1860,7 @@ static void save_if_interesting(void* mem, u32 len, u8 fault) {
       /* Keep only if there are new bits in the map, add to queue for
          future fuzing, etc. */
 
-      if (!(hnb = has_new_bits(virgin_bits))) return;
+      if (!(hnb = has_new_bits(virgin_bits))) return 0;
 
       fn = alloc_printf("%s/queue/id:%06u,%s", out_dir, queued_paths,
                         describe_op(hnb));
@@ -1888,13 +1886,13 @@ static void save_if_interesting(void* mem, u32 len, u8 fault) {
 
       total_hangs++;
 
-      if (unique_hangs >= KEEP_UNIQUE_HANG) return;
+      if (unique_hangs >= KEEP_UNIQUE_HANG) return 0;
 
       if (!dumb_mode) {
 
         simplify_trace(trace_bits);
 
-        if (!has_new_bits(virgin_hang)) return;
+        if (!has_new_bits(virgin_hang)) return 0;
 
       }
 
@@ -1914,13 +1912,13 @@ static void save_if_interesting(void* mem, u32 len, u8 fault) {
 
       total_crashes++;
 
-      if (unique_crashes >= KEEP_UNIQUE_CRASH) return;
+      if (unique_crashes >= KEEP_UNIQUE_CRASH) return 0;
 
       if (!dumb_mode) {
 
         simplify_trace(trace_bits);
 
-        if (!has_new_bits(virgin_crash)) return;
+        if (!has_new_bits(virgin_crash)) return 0;
 
       }
 
@@ -1949,6 +1947,8 @@ static void save_if_interesting(void* mem, u32 len, u8 fault) {
 
   close(fd);
 
+  return !fault;
+
 }
 
 
@@ -1976,6 +1976,8 @@ static void write_stats_file(void) {
              "cycles_done    : %llu\n"
              "execs_done     : %llu\n"
              "paths_total    : %u\n"
+             "paths_found    : %u\n"
+             "paths_imported : %u\n"
              "cur_path       : %u\n"
              "pending_favs   : %u\n"
              "pending_total  : %u\n"
@@ -1983,9 +1985,9 @@ static void write_stats_file(void) {
              "unique_crashes : %llu\n"
              "unique_hangs   : %llu\n",
              start_time / 1000, get_cur_time() / 1000, getpid(),
-             queue_cycle - 1, total_execs, queued_paths, current_entry,
-             pending_favored, pending_not_fuzzed, queued_variable,
-             unique_crashes, unique_hangs);
+             queue_cycle - 1, total_execs, queued_paths, queued_discovered,
+             queued_imported, current_entry, pending_favored,
+             pending_not_fuzzed, queued_variable, unique_crashes, unique_hangs);
 
   fclose(f);
 
@@ -2474,32 +2476,32 @@ static void show_stats(void) {
           DI(stage_finds[STAGE_FLIP4]), DI(stage_cycles[STAGE_FLIP2]),
           DI(stage_finds[STAGE_FLIP4]), DI(stage_cycles[STAGE_FLIP4]));
 
-  SAYF(bV bSTOP "   bit flips : " cNOR "%-37s " bSTG bV bSTOP "   levels : "
-       cNOR "%-11s " bSTG bV "\n", tmp, DI(max_depth));
+  SAYF(bV bSTOP "   bit flips : " cNOR "%-37s " bSTG bV bSTOP "    levels : "
+       cNOR "%-10s " bSTG bV "\n", tmp, DI(max_depth));
 
   sprintf(tmp, "%s/%s, %s/%s, %s/%s",
           DI(stage_finds[STAGE_FLIP8]), DI(stage_cycles[STAGE_FLIP8]),
           DI(stage_finds[STAGE_FLIP16]), DI(stage_cycles[STAGE_FLIP16]),
           DI(stage_finds[STAGE_FLIP32]), DI(stage_cycles[STAGE_FLIP32]));
 
-  SAYF(bV bSTOP "  byte flips : " cNOR "%-37s " bSTG bV bSTOP "  pending : "
-       cNOR "%-11s " bSTG bV "\n", tmp, DI(pending_not_fuzzed));
+  SAYF(bV bSTOP "  byte flips : " cNOR "%-37s " bSTG bV bSTOP "   pending : "
+       cNOR "%-10s " bSTG bV "\n", tmp, DI(pending_not_fuzzed));
 
   sprintf(tmp, "%s/%s, %s/%s, %s/%s",
           DI(stage_finds[STAGE_ARITH8]), DI(stage_cycles[STAGE_ARITH8]),
           DI(stage_finds[STAGE_ARITH16]), DI(stage_cycles[STAGE_ARITH16]),
           DI(stage_finds[STAGE_ARITH32]), DI(stage_cycles[STAGE_ARITH32]));
 
-  SAYF(bV bSTOP " arithmetics : " cNOR "%-37s " bSTG bV bSTOP " pend fav : "
-       cNOR "%-11s " bSTG bV "\n", tmp, DI(pending_favored));
+  SAYF(bV bSTOP " arithmetics : " cNOR "%-37s " bSTG bV bSTOP "  pend fav : "
+       cNOR "%-10s " bSTG bV "\n", tmp, DI(pending_favored));
 
   sprintf(tmp, "%s/%s, %s/%s, %s/%s",
           DI(stage_finds[STAGE_INTEREST8]), DI(stage_cycles[STAGE_INTEREST8]),
           DI(stage_finds[STAGE_INTEREST16]), DI(stage_cycles[STAGE_INTEREST16]),
           DI(stage_finds[STAGE_INTEREST32]), DI(stage_cycles[STAGE_INTEREST32]));
 
-  SAYF(bV bSTOP "  known ints : " cNOR "%-37s " bSTG bV bSTOP " imported : "
-       cNOR "%-11s " bSTG bV "\n", tmp, DI(queued_imported));
+  SAYF(bV bSTOP "  known ints : " cNOR "%-37s " bSTG bV bSTOP " own finds : "
+       cNOR "%-10s " bSTG bV "\n", tmp, DI(queued_discovered));
 
 
   sprintf(tmp, "%s/%s, %s/%s",
@@ -2507,8 +2509,7 @@ static void show_stats(void) {
           DI(stage_finds[STAGE_SPLICE]), DI(stage_cycles[STAGE_SPLICE]));
 
   SAYF(bV bSTOP "       havoc : " cNOR "%-37s " bSTG bV bSTOP
-       " variable : %s%-11s " bSTG bV "\n", tmp, queued_variable ? cLRD : cNOR,
-       DI(queued_variable));
+       "  imported : " cNOR "%-10s " bSTG bV "\n", tmp, DI(queued_imported));
 
   if (!bytes_trim_out) {
 
@@ -2523,7 +2524,8 @@ static void show_stats(void) {
   }
 
   SAYF(bV bSTOP "        trim : " cNOR "%-37s " bSTG bV bSTOP 
-       "   latent : " cNOR "%-11s " bSTG bV "\n", tmp, DI(queued_later_on));
+       "  variable : %s%-10s " bSTG bV "\n", tmp, queued_variable ? cLRD : cNOR,
+       DI(queued_variable));
 
   SAYF(bLB bH30 bH20 bH2 bH bHT bH20 bH2 bH2 bRB bSTOP cRST "\n");
 
@@ -2780,7 +2782,7 @@ abort_trimming:
 
 static u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 
-  u8 fault;
+  u8  fault;
 
   write_to_testcase(out_buf, len);
 
@@ -2799,7 +2801,7 @@ static u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 
   /* This handles FAULT_ERROR for us: */
 
-  save_if_interesting(out_buf, len, fault);
+  queued_discovered += save_if_interesting(out_buf, len, fault);
 
   if (!(stage_cur % stats_update_freq) || stage_cur + 1 == stage_max)
     show_stats();
@@ -4063,7 +4065,6 @@ static void sync_fuzzers(char** argv) {
   DIR* sd;
   struct dirent* sd_ent;
   u32 sync_cnt = 0;
-  u32 orig_queued = queued_paths;
 
   sd = opendir(sync_dir);
   if (!sd) PFATAL("Unable to open '%s'", sync_dir);
@@ -4159,7 +4160,7 @@ static void sync_fuzzers(char** argv) {
         if (stop_soon) return;
 
         syncing_party = sd_ent->d_name;
-        save_if_interesting(mem, st.st_size, fault);
+        queued_imported += save_if_interesting(mem, st.st_size, fault);
         syncing_party = 0;
 
         munmap(mem, st.st_size);
@@ -4182,8 +4183,6 @@ static void sync_fuzzers(char** argv) {
   }  
 
   closedir(sd);
-
-  queued_imported += queued_paths - orig_queued;
 
 }
 

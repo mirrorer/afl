@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.64b
+VERSION     = 0.65b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -73,7 +73,7 @@ test_build: afl-gcc afl-as afl-showmap
 
 all_done: test_build
 	@echo "[+] All done! Be sure to review README - it's pretty short and useful."
-	@printf "\x1b[0;30mNOTE: If you can read this, your terminal probably uses white background.\nThis will make the UI hard to read. See docs/status_screen.txt for advice.\x1b[0m\n" 2>/dev/null
+	@printf "\033[0;30mNOTE: If you can read this, your terminal probably uses white background.\nThis will make the UI hard to read. See docs/status_screen.txt for advice.\033[0m\n" 2>/dev/null
 
 clean:
 	rm -f $(PROGS) as afl-g++ afl-clang afl-clang++ *.o *~ a.out core core.[1-9][0-9]* *.stackdump test .test test-instr .test-instr0 .test-instr1

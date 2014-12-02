@@ -8,7 +8,8 @@ My secret wish list for minimal test cases:
   - WebM,
   - JPEG with ICC (LCMS),
   - Small font (Freetype),
-  - Small PDF (Poppler).
+  - Small PDF (Poppler),
+  - Perhaps a couple more exotic compression formats.
 
 If you end up creating minimalistic files for any of the above, or have
 any other inputs worth sharing with the world, please let me know!

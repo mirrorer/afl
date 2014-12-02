@@ -28,10 +28,10 @@
 
 /* Naive instrumented memcmp(). */
 
-int my_memcmp(char* ptr1, char* ptr2, int len)
+inline int my_memcmp(char* ptr1, char* ptr2, int len)
   __attribute__((always_inline));
 
-int my_memcmp(char* ptr1, char* ptr2, int len) {
+inline int my_memcmp(char* ptr1, char* ptr2, int len) {
 
   while (len--) if (*(ptr1++) ^ *(ptr2++)) return 1;
   return 0;

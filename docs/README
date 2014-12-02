@@ -191,8 +191,8 @@ in real time:
                synthesized corpus mentioned in section 2.
 
   - hangs/   - unique test cases that cause the tested program to time out. Note
-               that the default timeouts are fairly aggressive to keep things
-               moving fast.
+               that the default timeouts are fairly aggressive (set at 5x the
+               average execution time) to keep things moving fast.
 
   - crashes/ - unique test cases that cause the tested program to receive a
                fatal signal (e.g., SIGSEGV, SIGILL, SIGABRT). The entries are 

@@ -10,7 +10,7 @@ Understanding the status screen
 The status screen and error messages use colors to keep things readable and
 attract your attention to the most important details. Unfortunately, the UI
 will render correctly only if your terminal is using traditional un*x palette
-(white text on black background).
+(white text on black background) or something close to that.
 
 If you are using inverse video, you may want to change your settings, say:
 
@@ -27,6 +27,8 @@ to comment out USE_COLORS, then do 'make clean all'.
 
 I'm not aware of any other simple way to make this work without causing
 other side effects - sorry about that.
+
+With that out of the way, let's talk about what's actually on the screen...
 
 1) Process timing
 -----------------
@@ -240,14 +242,14 @@ the overall size of test cases fed to the trimmer so far.
 8) Path geometry
 ----------------
 
-  +----------------------+
-  |   levels : 5         |
-  |  pending : 1570      |
-  | pend fav : 583       |
-  | imported : 0         |
-  | variable : 0         |
-  |   latent : 0         |
-  +----------------------+
+  +---------------------+
+  |    levels : 5       |
+  |   pending : 1570    |
+  |  pend fav : 583     |
+  | own finds : 0       |
+  |  imported : 0       |
+  |  variable : 0       |
+  +---------------------+
 
 The first field in this section tracks the path depth reached through the
 guided fuzzing process. In essence: the initial test cases supplied by the
@@ -262,13 +264,12 @@ fuzzing yet. The same stat is also given for "favored" entries that the fuzzer
 really wants to get to in this queue cycle (the non-favored entries may have to
 wait).
 
-Next, we have the number of paths imported from other fuzzer instances when
-doing parallelized fuzzing; the number of inputs that produce seemingly
-variable behavior in the tested binary; and the number of latent entries
-uncovered after completing the initial pass over the queue.
+Next, we have the number of new paths found during this fuzzing section and
+imported from other fuzzer instances when doing parallelized fuzzing; and the
+number of inputs that produce seemingly variable behavior in the tested binary.
 
-The bit about variable paths is actually fairly interesting. There are three
-quasi-common explanations for variable behavior of the tested program:
+That last bit is actually fairly interesting. There are three quasi-common
+explanations for variable behavior of the tested program:
 
   - Use of uninitialized memory in conjunction with some intrinsic sources of
     entropy in the tested binary. This can be indicative of a security bug.
@@ -307,3 +308,27 @@ If the value is shown in red, your CPU is probably oversubscribed, and running
 additional fuzzers may not give you any benefits. Of course, there are many
 other, complex factors at play, especially when using virtualized systems - so
 treat this number only as a rough guideline.
+
+10) Addendum: status file
+-------------------------
+
+For unattended operation, some of the key status screen information can be also
+found in a machine-readable format in the fuzzer_stats file in the output
+directory. This includes:
+
+  - start_time     - unix time indicating the start time of afl-fuzz
+  - last_update    - unix time corresponding to the last update of this file
+  - fuzzer_pid     - PID of the fuzzer process
+  - cycles_done    - queue cycles completed so far
+  - execs_done     - number of execve() calls attempted
+  - paths_total    - total number of entries in the queue
+  - paths_found    - number of entries discovered through local fuzzing
+  - paths_imported - number of entries imported from other instances
+  - cur_path       - currently processed entry number
+  - pending_favs   - number of entries still waiting to be fuzzed
+  - pending_total  - number of favored entries waiting to be fuzzed
+  - variable_paths - number of test cases showing variable behavior
+  - unique_crashes - number of unique crashes recorded
+  - unique_hangs   - number of unique hangs encountered
+
+Most of these map directly to the UI elements discussed earlier on.
