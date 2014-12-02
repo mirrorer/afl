@@ -1,4 +1,10 @@
 --------------
+Version 0.76b:
+--------------
+
+  - Another signal handling fix for Solaris. Submitted by Martin Carpenter.
+
+--------------
 Version 0.75b:
 --------------
 

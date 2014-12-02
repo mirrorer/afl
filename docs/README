@@ -182,7 +182,8 @@ quick but less systematic and less in-depth results right away.
 
 The fuzzing process will continue until you press Ctrl-C. See the
 status_screen.txt file for information on how to interpret the displayed stats
-and monitor the health of the process.
+and monitor the health of the process. In general, you want to allow the fuzzer
+to complete at least one queue cycle, which may take a couple of days.
 
 There are three subdirectories created within the output directory and updated
 in real time:

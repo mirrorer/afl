@@ -4722,26 +4722,42 @@ static void detect_file_args(char** argv) {
 }
 
 
-/* Set up signal handlers. */
+/* Set up signal handlers. More complicated that needs to be, because libc on
+   Solaris doesn't resume interrupted reads(), sets SA_RESETHAND when you call
+   siginterrupt(), and does other stupid things. */
 
 static void setup_signal_handlers(void) {
 
-  signal(SIGHUP,   handle_stop_sig);
-  signal(SIGINT,   handle_stop_sig);
-  signal(SIGTERM,  handle_stop_sig);
-  signal(SIGALRM,  handle_timeout);
-  signal(SIGWINCH, handle_resize);
+  struct sigaction sa;
 
-  signal(SIGTSTP, SIG_IGN);
-  signal(SIGPIPE, SIG_IGN);
+  sa.sa_handler   = NULL;
+  sa.sa_flags     = SA_RESTART;
+  sa.sa_sigaction = NULL;
 
-  /* On Solaris, libc doesn't resume interrupted reads :-( */
+  sigemptyset(&sa.sa_mask);
 
-  siginterrupt(SIGHUP, 0);
-  siginterrupt(SIGINT, 0);
-  siginterrupt(SIGTERM, 0);
-  siginterrupt(SIGALRM, 0);
-  siginterrupt(SIGWINCH, 0);
+  /* Various ways of saying "stop". */
+
+  sa.sa_handler = handle_stop_sig;
+  sigaction(SIGHUP, &sa, NULL);
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGTERM, &sa, NULL);
+
+  /* Exec timeout notifications. */
+
+  sa.sa_handler = handle_timeout;
+  sigaction(SIGALRM, &sa, NULL);
+
+  /* Window resize */
+
+  sa.sa_handler = handle_resize;
+  sigaction(SIGWINCH, &sa, NULL);
+
+  /* Things we don't care about. */
+
+  sa.sa_handler = SIG_IGN;
+  sigaction(SIGTSTP, &sa, NULL);
+  sigaction(SIGPIPE, &sa, NULL);
 
 }
 
