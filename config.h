@@ -113,9 +113,9 @@
 #define TRIM_START_STEPS    16
 #define TRIM_END_STEPS      1024
 
-/* Maximum size of input file (keep under 100MB): */
+/* Maximum size of input file, in bytes (keep under 100MB): */
 
-#define MAX_FILE            (1 * 1000 * 1000)
+#define MAX_FILE            (1 * 1024 * 1024)
 
 /* UI refresh frequency (Hz): */
 

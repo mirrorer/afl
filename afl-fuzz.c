@@ -1161,13 +1161,13 @@ static void init_forkserver(char** argv) {
   if (WIFSIGNALED(status)) {
 
     SAYF("\n" cLRD "[-] " cRST
-         "Whoops, the fork server died before doing anything useful! There are\n"
-         "    several possible causes of this:\n\n"
+         "Whoops, the target binary died before we could anything useful! There are three\n"
+         "    probable causes of this:\n\n"
 
-         "    - The current memory limit (%s) is too low for this program, causing\n"
-         "      it to die due to OOM very early on (e.g., in the dynamic linker). You can\n"
-         "      try bumping the limit up with the -m setting in the command line. To\n"
-         "      confirm this diagnosis, it may be helpful to try:\n\n"
+         "    - The current memory limit (%s) is too restrictive, causing the program\n"
+         "      to hit an OOM condition in the dynamic linker or other very early stage.\n"
+         "      Try bumping the limit up with the -m setting in the command line. A simple\n"
+         "      way confirm this diagnosis would be:\n\n"
 
 #ifdef RLIMIT_AS
          "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
@@ -1177,7 +1177,7 @@ static void init_forkserver(char** argv) {
 
          "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
 
-         "    - The binary always crashes when executed for some intrinsic reason beyond\n"
+         "    - The binary always crashes when executed, for some reason that is beyond\n"
          "      our control. If so, you probably need to fix the underlying problem or\n"
          "      find a more suitable replacement.\n\n"
 
@@ -1206,10 +1206,10 @@ static void init_forkserver(char** argv) {
        "      fuzzer. If that's the intent, specify the -n option - but expect it to\n"
        "      perform much worse than with the instrumentation in place).\n\n"
 
-       "    - The current memory limit (%s) is too low for this program, causing it\n"
-       "      to die due to OOM very early on (e.g., in the dynamic linker). You can\n"
-       "      try bumping the limit up with the -m setting in the command line. A simple\n"
-       "      way to confirm this problem may be:\n\n"
+       "    - The binary does not work at all, perhaps because the current memory limit\n"
+       "      (%s) is too restrictive, causing it to hit an OOM condition in the\n"
+       "      dynamic linker. This can be fixed with the -m option. A simple way to\n"
+       "      confirm the diagnosis may be:\n"
 
 #ifdef RLIMIT_AS
        "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
@@ -1370,7 +1370,7 @@ static u8 run_target(char** argv) {
     return FAULT_CRASH;
   }
 
-  if (WEXITSTATUS(status) == EXEC_FAIL) return FAULT_ERROR;
+  if (dumb_mode && WEXITSTATUS(status) == EXEC_FAIL) return FAULT_ERROR;
 
   return FAULT_NONE;
 
@@ -1609,7 +1609,7 @@ static void perform_dry_run(char** argv) {
     fd = open(q->fname, O_RDONLY);
     if (fd < 0) PFATAL("Unable to open '%s'", q->fname);
 
-    use_mem = ck_alloc(q->len);
+    use_mem = ck_alloc_nozero(q->len);
 
     if (read(fd, use_mem, q->len) != q->len)
       FATAL("Short read from '%s'", q->fname);
@@ -1654,9 +1654,9 @@ static void perform_dry_run(char** argv) {
              "      inputs - but not ones that cause an outright crash.\n\n"
 
              "    - The current memory limit (%s) is too low for this program, causing\n"
-             "      it to die due to OOM even for valid input files. To fix this, try\n"
+             "      it to die due to OOM when parsing valid files. To fix this, try\n"
              "      bumping it up with the -m setting in the command line. If in doubt,\n"
-             "      try running something along the lines of:\n\n"
+             "      try something along the lines of:\n\n"
 
 #ifdef RLIMIT_AS
              "      ( ulimit -Sv $[%llu << 20]; /path/to/binary [...] <testcase )\n\n"
@@ -2977,7 +2977,7 @@ static u8 fuzz_one(char** argv) {
      single byte anyway, so it wouldn't give us any performance or memory usage
      benefits. */
 
-  out_buf = ck_alloc(len);
+  out_buf = ck_alloc_nozero(len);
 
   subseq_hangs = 0;
 
@@ -3847,7 +3847,7 @@ havoc_stage:
             clone_from = UR(temp_len - clone_len + 1);
             clone_to   = UR(temp_len);
 
-            new_buf = ck_alloc(temp_len + clone_len);
+            new_buf = ck_alloc_nozero(temp_len + clone_len);
 
             /* Head */
 
@@ -3991,7 +3991,7 @@ retry_splicing:
 
     if (fd < 0) PFATAL("Unable to open '%s'", target->fname);
 
-    new_buf = ck_alloc(target->len);
+    new_buf = ck_alloc_nozero(target->len);
 
     if (read(fd, new_buf, target->len) != target->len)
       PFATAL("Short read from '%s'", target->fname);
@@ -4020,7 +4020,7 @@ retry_splicing:
     in_buf = new_buf;
 
     ck_free(out_buf);
-    out_buf = ck_alloc(len);
+    out_buf = ck_alloc_nozero(len);
     memcpy(out_buf, in_buf, len);
 
     goto havoc_stage;

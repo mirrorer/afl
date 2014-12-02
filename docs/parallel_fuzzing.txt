@@ -31,35 +31,36 @@ cases on the fly.
 2) Single-system parallelization
 --------------------------------
 
-If you wish to parallelize a single job across multiple cores on a single
+If you wish to parallelize a single job across multiple cores on a local
 system, simply create a new, empty output directory that will be shared by all
-the instances of afl-fuzz; and then assign a unique alphanumeric ID to every
-instance, passing it in the -S parameter when invoking the tool, e.g.:
+the instances of afl-fuzz; and then come up with a naming scheme for every
+instance - say, "fuzzer01", "fuzzer02", etc. 
 
-$ ./afl-fuzz -o /path/to/sync_dir -S fuzzer15 [...other params...]
-
-This syntax will cause the fuzzer to write its output to a directory called:
-
-  /path/to/sync_dir/fuzzer15/
-
-In this setup, each instance will periodically rescan all subdirectories in
-/path/to/sync_dir/ to find outputs discovered by other jobs and use them if they
-result in any locally new coverage.
-
-Note that fuzzers running in -S mode will proceed straight to non-deterministic
-checks. You probably still want one fuzzer instance performing deterministic 
-tests on new paths discovered across the fleet, so designate a single process as
-"master" and run it with -M instead of -S:
+Run the first one ("master") like this:
 
 $ ./afl-fuzz -o /path/to/sync_dir -M fuzzer01 [...other params...]
 
-Enabling this one more than one instance would be likely a waste of CPU time.
+...and then, start up secondary instances like this:
 
-Of course, it is important to assign every fuzzer a different ID. 
+$ ./afl-fuzz -o /path/to/sync_dir -S fuzzer02 [...other params...]
+$ ./afl-fuzz -o /path/to/sync_dir -S fuzzer03 [...other params...]
 
-WARNING: Care should be exercised when using the -f option: two processes
-competing to write to the same file is bad news, so be sure to use unique file
-names!
+Each fuzzer will write to its own output subdirectory directory, like so:
+
+  /path/to/sync_dir/fuzzer01/
+
+Each instance will also periodically rescan the top-level output directory
+for any test cases found by other fuzzers - and will incorporate them into
+its own fuzzing if they result in any locally new coverage.
+
+The only difference between the -M and -S modes is that the master instance
+will still perform deterministic checks; while the slaves will proceed straight
+to random tweaks. If you don't want to do deterministic fuzzing at all, it's OK
+to run all instances with -S. (Running multiple instances with the -M flag
+would be a waste of CPU time, however.)
+
+WARNING: Exercise caution when using the -f option. Each fuzzer must use a
+separate output file. Otherwise, things will go south.
 
 3) Multi-system parallelization
 -------------------------------
@@ -70,7 +71,8 @@ write a simple script that performs two actions:
 
   - Uses SSH with authorized_keys to connect to every machine and retrieve
     a tar archive of the /path/to/sync_dir/<fuzzer_id>/queue/ directories for
-    every <fuzzer_id> local to the machine, e.g.:
+    every <fuzzer_id> local to the machine. It's best to use a naming scheme
+    that includes host name in the fuzzer ID, so that you can do:
 
     for s in {1..10}; do
       ssh user@host${s} "tar -czf - sync/host${s}_fuzzid*/queue" >host${s}.tgz
@@ -87,7 +89,8 @@ write a simple script that performs two actions:
 
 There is an example of such a script in experimental/distributed_fuzzing/.
 
-When developing custom code, there are several optimizations to keep in mind:
+When developing custom test case sync code, there are several optimizations
+to keep in mind:
 
   - The synchronization does not have to happen very often; running the
     task every 15-30 minutes or so may be perfectly fine.
@@ -96,10 +99,10 @@ When developing custom code, there are several optimizations to keep in mind:
     copy over queue/*.
 
   - It is not necessary (and not advisable!) to overwrite existing files;
-    the -k option in tar is a good choice.
+    the -k option in tar is a good way to avoid that.
 
   - There is no need to fetch directories for fuzzers that are not running
-    locally on a particular machine, and were simply copied over to that
+    locally on a particular machine, and were simply copied over onto that
     system during earlier runs.
 
   - For large fleets, you will want to consolidate tarballs for each host,

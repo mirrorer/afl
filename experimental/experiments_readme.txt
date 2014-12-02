@@ -15,6 +15,10 @@ Here's a quick overview of the stuff you can find in this directory:
   - distributed_fuzzing - a sample script for synchronizing fuzzer instances
                           across multiple machines (see parallel_fuzzing.txt).
 
+  - instrumented_cmp    - an experiment showing how a custom memcmp() or
+                          strcmp() can be used to work around one of the
+                          limitations of afl-fuzz.
+
   - libpng_no_checksum  - a sample patch for removing CRC checks in libpng.
 
   - minimization_script - a script for removing redundant files from a corpus

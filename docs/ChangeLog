@@ -1,4 +1,16 @@
 --------------
+Version 0.62b:
+--------------
+
+  - Minor improvements to the allocator, as suggested by Tobias Ospelt.
+
+  - Example instrumented memcmp() in experimental/instrumented_cmp.
+
+  - Another speculative fix for MacOS X (hopefully the last one?).
+
+  - Minor documentation fix for parallelization, d'oh!
+
+--------------
 Version 0.61b:
 --------------
 

@@ -61,7 +61,7 @@
   })
 
 
-static inline void* DFL_ck_alloc(u32 size) {
+static inline void* DFL_ck_alloc_nozero(u32 size) {
   void* ret;
 
   if (!size) return NULL;
@@ -75,7 +75,41 @@ static inline void* DFL_ck_alloc(u32 size) {
   ALLOC_C(ret) = ALLOC_MAGIC;
   ALLOC_S(ret) = size;
 
-  return memset(ret, 0, size);
+  return ret;
+}
+
+
+static inline void* DFL_ck_alloc(u32 size) {
+
+  void* mem;
+
+  if (!size) return NULL;
+  mem = DFL_ck_alloc_nozero(size);
+
+  return memset(mem, 0, size);
+
+}
+
+
+static inline void DFL_ck_free(void* mem) {
+
+  if (mem) {
+
+    CHECK_PTR(mem);
+
+#ifdef DEBUG_BUILD
+
+    /* Catch pointer issues sooner. */
+    memset(mem - ALLOC_OFF, 0xFF, ALLOC_S(mem) + ALLOC_OFF);
+
+#endif /* DEBUG_BUILD */
+
+    ALLOC_C(mem) = ALLOC_MAGIC_F;
+
+    free(mem - ALLOC_OFF);
+
+  }
+
 }
 
 
@@ -85,20 +119,7 @@ static inline void* DFL_ck_realloc(void* orig, u32 size) {
 
   if (!size) {
 
-    if (orig) {
-
-      CHECK_PTR(orig);
-
-      /* Catch pointer issues sooner. */
-
-#ifdef DEBUG_BUILD
-      memset(orig - ALLOC_OFF, 0xFF, ALLOC_S(orig) + ALLOC_OFF);
-#endif /* DEBUG_BUILD */
-
-      free(orig - ALLOC_OFF);
-
-    }
-
+    DFL_ck_free(orig);
     return NULL;
 
   }
@@ -238,32 +259,12 @@ static inline u8* DFL_ck_memdup_str(u8* mem, u32 size) {
 }
 
 
-static inline void DFL_ck_free(void* mem) {
-
-  if (mem) {
-
-    CHECK_PTR(mem);
-
-#ifdef DEBUG_BUILD
-
-    /* Catch pointer issues sooner. */
-    memset(mem - ALLOC_OFF, 0xFF, ALLOC_S(mem) + ALLOC_OFF);
-
-#endif /* DEBUG_BUILD */
-
-    ALLOC_C(mem) = ALLOC_MAGIC_F;
-
-    free(mem - ALLOC_OFF);
-
-  }
-
-}
-
 #ifndef DEBUG_BUILD
 
 /* Non-debugging mode - straightforward aliasing. */
 
 #define ck_alloc          DFL_ck_alloc
+#define ck_alloc_nozero   DFL_ck_alloc_nozero
 #define ck_realloc        DFL_ck_realloc
 #define ck_realloc_chunk  DFL_ck_realloc_chunk
 #define ck_strdup         DFL_ck_strdup
@@ -460,6 +461,9 @@ static inline void TRK_ck_free(void* ptr, const char* file,
 #define ck_alloc(_p1) \
   TRK_ck_alloc(_p1, __FILE__, __FUNCTION__, __LINE__)
 
+#define ck_alloc_nozero(_p1) \
+  TRK_ck_alloc(_p1, __FILE__, __FUNCTION__, __LINE__)
+
 #define ck_realloc(_p1, _p2) \
   TRK_ck_realloc(_p1, _p2, __FILE__, __FUNCTION__, __LINE__)
 
@@ -477,7 +481,6 @@ static inline void TRK_ck_free(void* ptr, const char* file,
 
 #define ck_free(_p1) \
   TRK_ck_free(_p1, __FILE__, __FUNCTION__, __LINE__)
-
 
 #endif /* ^!DEBUG_BUILD */
 

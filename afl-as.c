@@ -146,8 +146,9 @@ static void add_instrumentation(void) {
           isdigit(line[10]) && line[11] == '\n') skip_next_label = 1;
 
       if (!strncmp(line + 2, "text\n", 5) ||
-          !strncmp(line + 2, "section\t.text", 13)) {
-        instr_ok = 1; 
+          !strncmp(line + 2, "section\t.text", 13) ||
+          !strncmp(line + 2, "section\t__TEXT,__text,", 22)) {
+        instr_ok = 1;
         continue; 
       }
 

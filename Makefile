@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.61b
+VERSION     = 0.62b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -74,7 +74,7 @@ all_done: test_build
 	@echo "[+] All done! Be sure to review README - it's pretty short and useful."
 
 clean:
-	rm -f $(PROGS) as afl-g++ afl-clang afl-clang++ *.o *~ a.out core core.[1-9][0-9]* *.stackdump test .test
+	rm -f $(PROGS) as afl-g++ afl-clang afl-clang++ *.o *~ a.out core core.[1-9][0-9]* *.stackdump test .test test-instr .test-instr0 .test-instr1
 	rm -rf out_dir
 
 install: all
