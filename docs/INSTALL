@@ -1,0 +1,54 @@
+=========================
+Installation instructions
+=========================
+
+  (See README for the general instruction manual.)
+
+1) Linux (x86)
+--------------
+
+Compile the program with:
+
+$ make
+
+You can starting using the fuzzer without installation, but it is also possible
+to install it with:
+
+# make install
+
+There are no special dependencies to speak of; you will need GNU make and a
+working compiler (gcc or clang). Some of the optional scripts in experimental/*
+may depend on bash, gdb, and similar basic tools.
+
+2) *BSD / MacOS X (x86)
+-----------------------
+
+Compile with GNU make:
+
+$ gmake
+
+Note that BSD make will *not* work. As on Linux, you can use the tool without
+installation, or install it with:
+
+# gmake install
+
+In principle, the tool should work properly, although it hasn't been tested in
+nearly as much depth. User reports of successful or failed builds are very much
+welcome!
+
+3) Linux (ARMv7)
+----------------
+
+ARMv7 is not officially supported. You can try an unofficial patch, but
+expect to run into some issues. Please refer to experimental/arm_support/README
+for compilation tips.
+
+4) Other platforms
+------------------
+
+Platforms other than x86 and ARMv7 will not work and support for them is not
+currently planned due to minimal interest. The same goes for Cygwin.
+
+Getting the tool to work on non-POSIX-compliant unix systems may be doable,
+but will probably require more effort than its worth, so try it at your own
+risk :-)

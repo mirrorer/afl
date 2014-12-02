@@ -337,6 +337,9 @@ static const u8* main_payload_32 =
   "/* --- END --- */\n"
   "\n";
 
+/* The OpenBSD hack is due to lahf and sahf not being recognized by some
+   versions os binutils: http://marc.info/?l=openbsd-cvs&m=141636589924400 */
+
 static const u8* main_payload_64 = 
 
   "\n"
@@ -348,7 +351,11 @@ static const u8* main_payload_64 =
   "\n"
   "__afl_maybe_log:\n"
   "\n"
+#ifdef  __OpenBSD__
+  "  .byte 0x9f /* lahf */\n"
+#else
   "  lahf\n"
+#endif /* ^__OpenBSD__ */
   "  seto  %al\n"
   "\n"
   "  /* Check if SHM region is already mapped. */\n"
@@ -375,7 +382,11 @@ static const u8* main_payload_64 =
   "__afl_return:\n"
   "\n"
   "  addb $127, %al\n"
+#ifdef  __OpenBSD__
+  "  .byte 0x9e /* sahf */\n"
+#else
   "  sahf\n"
+#endif /* ^__OpenBSD__ */
   "  ret\n"
   "\n"
   ".align 8\n"

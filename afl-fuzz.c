@@ -1033,6 +1033,16 @@ static void init_forkserver(char** argv) {
 
     struct rlimit r;
 
+    /* Umpf. On OpenBSD, the default fd limit for root users is set to
+       soft 128. Let's try to fix that... */
+
+    if (!getrlimit(RLIMIT_NOFILE, &r) && r.rlim_cur < FORKSRV_FD + 2) {
+
+      r.rlim_cur = FORKSRV_FD + 2;
+      setrlimit(RLIMIT_NOFILE, &r); /* Ignore errors */
+
+    }
+
     if (mem_limit) {
 
       r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;

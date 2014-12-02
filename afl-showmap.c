@@ -44,6 +44,7 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 
 static s32 forksrv_pid,               /* PID of the fork server            */
            child_pid;                 /* PID of the fuzzed program         */
@@ -168,6 +169,15 @@ static void run_target(char** argv) {
   if (forksrv_pid < 0) PFATAL("fork() failed");
 
   if (!forksrv_pid) {
+
+    struct rlimit r;
+
+    if (!getrlimit(RLIMIT_NOFILE, &r) && r.rlim_cur < FORKSRV_FD + 2) {
+
+      r.rlim_cur = FORKSRV_FD + 2;
+      setrlimit(RLIMIT_NOFILE, &r); /* Ignore errors */
+
+    }
 
     if (sink_output) {
 

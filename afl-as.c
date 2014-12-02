@@ -116,7 +116,7 @@ static void add_instrumentation(void) {
   FILE* outf;
   s32 outfd;
   u32 ins_lines = 0;
-  u8  now_instr = 0, force_inhibit = 0;
+  u8  instr_ok = 0, skip_csect = 0, skip_next_label = 0;
 
   if (input_file) {
 
@@ -142,16 +142,19 @@ static void add_instrumentation(void) {
 
     if (line[0] == '\t' && line[1] == '.') {
 
+      if (!clang_mode && instr_ok && !strncmp(line + 2, "p2align ", 8) &&
+          isdigit(line[10]) && line[11] == '\n') skip_next_label = 1;
+
       if (!strncmp(line + 2, "text\n", 5) ||
           !strncmp(line + 2, "section\t.text", 13)) {
-        now_instr = 1; 
+        instr_ok = 1; 
         continue; 
       }
 
       if (!strncmp(line + 2, "section\t", 8) ||
           !strncmp(line + 2, "bss\n", 4) ||
           !strncmp(line + 2, "data\n", 5)) {
-        now_instr = 0;
+        instr_ok = 0;
         continue;
       }
 
@@ -159,8 +162,8 @@ static void add_instrumentation(void) {
 
     if (strstr(line, ".code")) {
 
-      if (strstr(line, ".code32")) force_inhibit = use_64bit;
-      if (strstr(line, ".code64")) force_inhibit = !use_64bit;
+      if (strstr(line, ".code32")) skip_csect = use_64bit;
+      if (strstr(line, ".code64")) skip_csect = !use_64bit;
 
     }
 
@@ -183,7 +186,7 @@ static void add_instrumentation(void) {
 
      */
 
-    if (force_inhibit || !now_instr || line[0] == '#' || line[0] == ' ')
+    if (skip_csect || !instr_ok || line[0] == '#' || line[0] == ' ')
       continue;
 
     /* Conditional branch instruction (jnz, etc). */
@@ -214,10 +217,14 @@ static void add_instrumentation(void) {
         if ((isdigit(line[2]) || (clang_mode && !strncmp(line + 1, "LBB", 3)))
             && R(100) < inst_ratio) {
 
-          fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
-                  R(MAP_SIZE));
+          if (!skip_next_label) {
 
-          ins_lines++;
+            fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
+                    R(MAP_SIZE));
+
+            ins_lines++;
+
+          } else skip_next_label = 0;
 
         }
 
