@@ -75,7 +75,7 @@ static u8   use_64bit = 0;
 
 static void edit_params(int argc, char** argv) {
 
-  u8* tmp_dir = getenv("TMPDIR");
+  u8 *tmp_dir = getenv("TMPDIR"), *afl_as = getenv("AFL_AS");
   u32 i;
 
   if (!tmp_dir) tmp_dir = "/tmp";
@@ -84,7 +84,8 @@ static void edit_params(int argc, char** argv) {
 
   memcpy(as_params, argv, argc * sizeof(u8*));
 
-  as_params[0] = "as";
+  as_params[0] = afl_as ? afl_as : (u8*)"as";
+
   as_params[argc] = 0;
 
   for (i = 1; i < argc; i++) {
@@ -388,7 +389,12 @@ int main(int argc, char** argv) {
     if (sscanf(inst_ratio_str, "%u", &inst_ratio) != 1 || inst_ratio > 100) 
       FATAL("Bad value of AFL_INST_RATIO (must be between 0 and 100)");
 
-  }    
+  }
+
+  if (getenv("__AFL_AS_BEENHERE"))
+    FATAL("Endless loop when calling 'as' (remove '.' from your PATH)");
+
+  setenv("__AFL_AS_BEENHERE", "1", 1);
 
   /* When compiling with ASAN, we don't have a particularly elegant way to skip
      ASAN-specific branches. But we can probabilistically compensate for
@@ -409,7 +415,7 @@ int main(int argc, char** argv) {
 
   if (waitpid(pid, &status, 0) <= 0) PFATAL("waitpid() failed");
 
-  unlink(modified_file);
+  if (!getenv("AFL_KEEP_ASSEMBLY")) unlink(modified_file);
 
   exit(WEXITSTATUS(status));
 

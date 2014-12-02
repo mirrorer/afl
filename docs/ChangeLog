@@ -1,4 +1,15 @@
 --------------
+Version 0.80b:
+--------------
+
+  - Added a check for $PATH-induced loops. Spotted by Kartik Agaram.
+
+  - Added AFL_KEEP_ASSEMBLY.
+
+  - Override for AFL_USE_ASAN if set at afl compile time. Requested by
+    Hanno Boeck.
+
+--------------
 Version 0.79b:
 --------------
 

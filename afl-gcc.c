@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
          "  CC=/usr/local/bin/afl-gcc ./configure\n"
          "  CXX=/usr/local/bin/afl-g++ ./configure\n\n"
 
-         "You can specify a non-default next-stage compiler via AFL_CC or AFL_CXX.\n"
+         "You can specify custom next-stage toolchain via AFL_CC, AFL_CXX, and AFL_AS.\n"
          "Setting AFL_HARDEN enables hardening optimizations in the compiled code.\n\n");
 
     exit(1);
@@ -299,4 +299,3 @@ int main(int argc, char** argv) {
   return 0;
 
 }
-

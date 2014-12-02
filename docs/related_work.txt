@@ -30,9 +30,10 @@ from that. The reasoning / correlation part was probably in part inspired by
 other projects done around the same time by Will Drewry and Chris Evans.
 
 The state correlation approach sounded very sexy on paper, but ultimately, made
-the fuzzer complicated, brittle, and cumbersome to use. Because Bunny didn't
-fare a whole lot better than less sophisticated brute-force tools, I eventually
-decided to write it off. You can still find its original documentation at:
+the fuzzer complicated, brittle, and cumbersome to use; every other target
+program would require a tweak or two. Because Bunny didn't fare a whole lot
+better than less sophisticated brute-force tools, I eventually decided to write
+it off. You can still find its original documentation at:
 
   https://code.google.com/p/bunny-the-fuzzer/wiki/BunnyDoc
 
