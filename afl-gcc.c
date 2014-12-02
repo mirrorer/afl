@@ -1,6 +1,6 @@
 /*
-   american fuzzy lop - wrapper for GCC
-   ------------------------------------
+   american fuzzy lop - wrapper for GCC and clang
+   ----------------------------------------------
 
    Written and maintained by Michal Zalewski <lcamtuf@google.com>
 
@@ -12,9 +12,9 @@
 
      http://www.apache.org/licenses/LICENSE-2.0
 
-   This program is a drop-in replacement for GCC. The most common way of using
-   it is to pass the path to afl-gcc via the CC or CXX variable when invoking
-   ./configure.
+   This program is a drop-in replacement for GCC or clang. The most common way
+   of using it is to pass the path to afl-gcc or afl-clang via CC when invoking
+   ./configure (use CXX and afl-g++ / afl-clang++ for C++ code).
 
    The wrapper needs to know the path to afl-as (renamed to 'as'). The default
    is /usr/local/lib/afl/. A convenient way to specify alternative directories
@@ -42,10 +42,10 @@
 #include <string.h>
 
 static u8*  as_path;                /* Path to the AFL 'as' wrapper      */
-static u8** gcc_params;             /* Parameters passed to the real GCC */
-static u32  gcc_par_cnt = 1;        /* Param count, including argv0      */
-static u8   be_quiet;               /* Quiet mode                        */
-
+static u8** cc_params;              /* Parameters passed to the real CC  */
+static u32  cc_par_cnt = 1;         /* Param count, including argv0      */
+static u8   be_quiet,               /* Quiet mode                        */
+            clang_mode;             /* Invoked as afl-clang*?            */
 
 /* Try to find our "fake" GNU assembler in AFL_PATH or at the location derived
    from argv[0]. If that fails, abort. */
@@ -102,27 +102,39 @@ static void find_as(u8* argv0) {
 }
 
 
-/* Copy argv to gcc_params, making the necessary edits. */
+/* Copy argv to cc_params, making the necessary edits. */
 
 static void edit_params(u32 argc, char** argv) {
 
   u8 fortify_set = 0;
   u8 *name;
 
-  gcc_params = ck_alloc((argc + 12) * sizeof(u8*));
+  cc_params = ck_alloc((argc + 16) * sizeof(u8*));
 
   name = strrchr(argv[0], '/');
   if (!name) name = argv[0]; else name++;
 
-  if (strcmp(name, "afl-g++") && strcmp(name, "afl-c++")) {
+  if (!strncmp(name, "afl-clang", 9)) {
 
-    u8* alt_cc = getenv("AFL_CC");
-    gcc_params[0] = alt_cc ? alt_cc : (u8*)"gcc";
+    clang_mode = 1;
+
+    if (strcmp(name, "afl-clang++")) {
+      u8* alt_cc = getenv("AFL_CC");
+      cc_params[0] = alt_cc ? alt_cc : (u8*)"clang";
+    } else {
+      u8* alt_cxx = getenv("AFL_CXX");
+      cc_params[0] = alt_cxx ? alt_cxx : (u8*)"clang++";
+    }
 
   } else {
 
-    u8* alt_cxx = getenv("AFL_CXX");
-    gcc_params[0] = alt_cxx ? alt_cxx : (u8*)"g++";
+    if (strcmp(name, "afl-g++")) {
+      u8* alt_cc = getenv("AFL_CC");
+      cc_params[0] = alt_cc ? alt_cc : (u8*)"gcc";
+    } else {
+      u8* alt_cxx = getenv("AFL_CXX");
+      cc_params[0] = alt_cxx ? alt_cxx : (u8*)"g++";
+    }
 
   }
 
@@ -138,36 +150,37 @@ static void edit_params(u32 argc, char** argv) {
 
     }
 
+    if (!strcmp(cur, "-integrated-as")) continue;
+
     if (!strcmp(cur, "-pipe")) continue;
 
     if (strstr(cur, "FORTIFY_SOURCE")) fortify_set = 1;
 
-    gcc_params[gcc_par_cnt++] = cur;
+    cc_params[cc_par_cnt++] = cur;
 
   }
 
-  gcc_params[gcc_par_cnt++] = "-B";
-  gcc_params[gcc_par_cnt++] = as_path;
-  gcc_params[gcc_par_cnt++] = "-g";
+  cc_params[cc_par_cnt++] = "-B";
+  cc_params[cc_par_cnt++] = as_path;
 
-  if (getenv("AFL_HARDEN") || getenv("AFL_HARDEN_NOASAN")) {
+  if (clang_mode)
+    cc_params[cc_par_cnt++] = "-no-integrated-as";
 
-    gcc_params[gcc_par_cnt++] = "-fstack-protector-all";
-
-    if (!fortify_set)
-      gcc_params[gcc_par_cnt++] = "-D_FORTIFY_SOURCE=2";
-
-  }
+  cc_params[cc_par_cnt++] = "-g";
 
   if (getenv("AFL_HARDEN")) {
 
-#ifdef USE_ASAN
-    gcc_params[gcc_par_cnt++] = "-fsanitize=address";
-#endif /* USE_ASAN */
+    cc_params[cc_par_cnt++] = "-fstack-protector-all";
+
+    if (!fortify_set)
+      cc_params[cc_par_cnt++] = "-D_FORTIFY_SOURCE=2";
 
   }
 
-  gcc_params[gcc_par_cnt] = NULL;
+  if (getenv("AFL_USE_ASAN"))
+    cc_params[cc_par_cnt++] = "-fsanitize=address";
+
+  cc_params[cc_par_cnt] = NULL;
 
 }
 
@@ -176,13 +189,9 @@ static void edit_params(u32 argc, char** argv) {
 
 int main(int argc, char** argv) {
 
-  /* The as_nl part is a crude check from being called from within ./configure.
-     Some sketchy ./configure checks can fail if the compiler outputs anything
-     to stderr, even if the compilation succeeds and return code is 0. Yuck. */
+  if (isatty(2) && !getenv("AFL_QUIET")) {
 
-  if (!getenv("AFL_QUIET") && !getenv("as_nl")) {
-
-    SAYF(cCYA "afl-gcc " cBRI VERSION cRST " (" __DATE__ " " __TIME__
+    SAYF(cCYA "afl-cc " cBRI VERSION cRST " (" __DATE__ " " __TIME__
          ") by <lcamtuf@google.com>\n");
 
   } else be_quiet = 1;
@@ -191,10 +200,12 @@ int main(int argc, char** argv) {
 
     SAYF("\n"
          "This is a helper application for afl-fuzz. It serves as a drop-in\n"
-         "replacement for gcc, letting you recompile third-party code with\n"
-         "the required runtime instrumentation. A common use pattern would be:\n\n"
+         "replacement for gcc or clang, letting you recompile third-party code\n"
+         "with the required runtime instrumentation. A common use pattern\n"
+         "would be one of the following:\n\n"
 
-         "  CC=/usr/local/bin/afl-gcc ./configure\n\n");
+         "  CC=/usr/local/bin/afl-gcc ./configure\n"
+         "  CXX=/usr/local/bin/afl-g++ ./configure\n\n");
 
     exit(1);
 
@@ -205,9 +216,9 @@ int main(int argc, char** argv) {
 
   edit_params(argc, argv);
 
-  execvp(gcc_params[0], (char**)gcc_params);
+  execvp(cc_params[0], (char**)cc_params);
 
-  FATAL("Oops, failed to execute '%s' - check your PATH", gcc_params[0]);
+  FATAL("Oops, failed to execute '%s' - check your PATH", cc_params[0]);
 
   return 0;
 

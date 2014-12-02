@@ -38,7 +38,7 @@ FUZZ_USER=bob
 # Directory to synchronize
 SYNC_DIR='/home/bob/sync_dir'
 
-# Interval (seconds) betwen sync attempts
+# Interval (seconds) between sync attempts
 SYNC_INTERVAL=$[30 * 60]
 
 rm -rf .sync_tmp 2>/dev/null

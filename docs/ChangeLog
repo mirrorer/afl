@@ -1,4 +1,21 @@
 --------------
+Version 0.49b:
+--------------
+
+  - More typo fixes (thanks to Jakub Wilk).
+
+  - Support for clang!
+
+  - AFL_HARDEN doesn't include ASAN by default anymore. Use AFL_USE_ASAN if
+    needed. The reasons for this are in notes_for_asan.txt.
+
+  - Switched from configure auto-detection to isatty() to keep afl-as and
+    afl-gcc quiet.
+
+  - Improved installation process to properly create symlinks, rather than
+    copies of binaries (grr, /usr/bin/install).
+
+--------------
 Version 0.48b:
 --------------
 

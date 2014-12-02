@@ -1033,7 +1033,12 @@ static void init_forkserver(char** argv) {
        doing extra work post-fork(). */
 
     setenv("LD_BIND_NOW", "1", 0);
-    setenv("ASAN_OPTIONS", "abort_on_error=1", 0);
+
+    /* Set sane defaults for ASAN if nothing else specified. */
+
+    setenv("ASAN_OPTIONS", "abort_on_error=1:"
+                           "detect_leaks=0:"
+                           "allocator_may_return_null=1", 0);
 
     execvp(argv[0], argv);
 

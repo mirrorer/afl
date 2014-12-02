@@ -4,31 +4,31 @@ Notes for using ASAN with afl-fuzz
 
   (See README for the general instruction manual)
 
-The afl-gcc wrapper lets you build ASAN-enabled binaries with GCC 4.8 or newer.
-To do this, you need to specify AFL_HARDEN=1 in the environment when building
-the instrumented program.
+The afl CC wrapper lets you build ASAN-enabled binaries with clang or with
+GCC 4.8+. To do this automatically, you can specify AFL_USE_ASAN=1 in the
+environment when building the instrumented program.
 
 ASAN allocates a huge region of virtual address space for bookkeeping purposes.
 Most of this is never actually accessed, so the OS never has to allocate any
 real pages of memory for the process, and the hack used by ASAN is essentially
 "free" - but the mapping counts against the OS-enforced limit of virtual
-memory (RLIMIT_AS, ulimit -v).
+memory (RLIMIT_AS, aka ulimit -v).
 
-At the same time, afl-fuzz tries to protect you from processes that go awry
-and try to consume all available memory in a vain attempt to parse a malformed
-input file. This happens surprisingly often, so enforcing such a limit is
-important for almost any fuzzer: the alternative is for the kernel OOM
+At the same time, afl-fuzz tries to protect you from processes that go off-rails
+and start consuming all the available memory in a vain attempt to parse a
+malformed input file. This happens surprisingly often, so enforcing such a limit
+is important for almost any fuzzer: the alternative is for the kernel OOM
 handler to step in and start killing random processes to free up resources.
 Needless to say, that's not a very nice prospect to live with.
 
-Unfortunately, un*x systems have no portable way to limit the amount of
+Unfortunately, un*x systems offer no portable way to limit the amount of
 pages actually given to a process, and distinguish that from the harmless
 "land grab" done by ASAN. In principle, there are three standard ways to
 limit the size of the heap:
 
   - The RLIMIT_AS mechanism (ulimit -v) caps the size of the virtual space,
     but as noted, this pays no attention to the number of pages actually
-    in use by the process. 
+    in use by the process, and doesn't help us here.
 
   - The RLIMIT_DATA mechanism (ulimit -d) seems like a good fit, but it applies
     only to the traditional sbrk() / brk() methods of requesting heap space;
@@ -63,7 +63,3 @@ examine the test cases with ASAN, Valgrind, or other heavy-duty tools.
 
 Of course, you can also always compile stuff with -m32 if your system
 supports that.
-
-Oh: if you want to use AFL_HARDEN *without* ASAN, you can specify
-AFL_HAREN_NOASAN=1 instead.
-

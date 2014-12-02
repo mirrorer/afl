@@ -150,9 +150,25 @@ static void add_instrumentation(void) {
     }
 
     /* If we're in the right mood for instrumenting, check for function
-       names or conditional labels. */
+       names or conditional labels. This is a bit messy, but in essence,
+       we want to catch:
 
-    if (!force_inhibit && now_instr && (
+         ^main:      - function entry point
+         ^.L0:       - GCC branch label
+         ^.LBB0_0:   - clang branch label
+         ^\tjnz foo  - conditional branches
+
+       ...but not:
+
+         ^# BB#0:    - clang comments
+         ^.Ltmp0:    - clang non-branch labels
+         ^.LC0       - GCC non-branch labels
+         ^\tjmp foo  - non-conditional jumps
+
+     */
+
+    if (!force_inhibit && now_instr && line[0] != '#' && (
+        !strncmp(line, ".LBB", 4) ||
         (strstr(line, ":\n") && (line[0] == '.' ? isdigit(line[2]) : 1)) ||
         (line[0] == '\t' && line[1] == 'j' && line[2] != 'm'))) {
 
@@ -185,8 +201,10 @@ static void add_instrumentation(void) {
   if (!be_quiet) {
 
     if (!ins_lines) WARNF("No instrumentation targets found.");
-    else OKF("Instrumented %u locations (%s-bit mode, seed 0x%08x).",
-             ins_lines, use_64bit ? "64" : "32", rand_seed);
+    else OKF("Instrumented %u locations (%s-bit, %s mode, seed 0x%08x).",
+             ins_lines, use_64bit ? "64" : "32",
+             getenv("AFL_HARDEN") ? "hardened" : "non-hardened",
+             rand_seed);
  
   }
 
@@ -203,7 +221,7 @@ int main(int argc, char** argv) {
   struct timeval tv;
   struct timezone tz;
 
-  if (!getenv("AFL_QUIET") && !getenv("as_nl")) {
+  if (isatty(2) && !getenv("AFL_QUIET")) {
 
     SAYF(cCYA "afl-as " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
          ") by <lcamtuf@google.com>\n");

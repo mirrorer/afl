@@ -1,0 +1,25 @@
+====
+TODO
+====
+
+Here's the list of stuff I want to implement in afl:
+
+  - A second part of Jann's fork server patch, which allows us to skip setup
+    steps for certain slow programs.
+
+  - A pluggable version of fuzz_one(), so that people can write syntax-aware
+    mutators or filters more easily.
+
+  - Perhaps afl-fuzz.c broken into several smaller files for aesthetic
+    purposes.
+
+  - Proper support for threads, with prev_loc traced on a per-tid basis?
+    (This may be slow.)
+
+  - Support for DynamoRIO (or pin) for closed-source instrumentation in
+    non-obfuscated binaries.
+
+I'm not particularly convinced about adding more exotic output modes, for
+example to send data to a TCP or UDP socket, or serve it off one. Ditto for
+supporting "remote" execution with execution code phoned back in by a
+harness. It's probably more effort than it's worth.

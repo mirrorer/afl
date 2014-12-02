@@ -39,7 +39,7 @@ If the fuzzing process is slow, there are several things to try:
     if you disable some features on compile time (./configure --help), or if you
     change the command line a bit?
 
-  - Compile without AFL_HARDEN or ASAN.
+  - Compile without AFL_HARDEN, ASAN, or any other similar tweaks.
 
   - Parallelize the process - see parallel_fuzzing.txt.
 

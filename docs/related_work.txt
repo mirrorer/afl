@@ -16,7 +16,7 @@ in 2007. Tavis did some very persuasive experiments using gcov block coverage
 to select optimal test cases out of a large corpus of data, and then using
 them as a starting point for traditional fuzzing workflows.
 
-(By "persuasive", I mean: metting a significant number of interesting
+(By "persuasive", I mean: netting a significant number of interesting
 vulnerabilities.)
 
 In parallel to this, both Tavis and I were interested in evolutionary fuzzing.
