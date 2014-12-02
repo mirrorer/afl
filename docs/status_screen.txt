@@ -284,7 +284,8 @@ explanations for variable behavior of the tested program:
 
   - Attempts to create files that were already created during previous runs.
     This is harmless, but you may want to instruct the targeted program to
-    write to stdout or to /dev/null to avoid surprises.
+    write to stdout or to /dev/null to avoid surprises (and disable the
+    creation of temporary files, if applicable).
 
 Less likely causes may include running out of disk space, SHM handles, or other
 globally limited resources; or the program being intentionally designed to

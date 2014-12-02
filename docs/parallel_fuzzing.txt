@@ -156,8 +156,11 @@ It is perhaps worth noting that all of the following is permitted:
 
   - Running some of the synchronized fuzzers with different (but related)
     target binaries. For example, simultaneously stress-testing several
-    different JPEG parsers can have synergistic effects and improve
-    the overall coverage.
+    different JPEG parsers (say, IJG jpeg and libjpeg-turbo) can have
+    synergistic effects and improve the overall coverage.
+
+    (In this case, running one -M instance per each binary can be
+    worthwhile.)
 
   - Having some of the fuzzers invoke the binary in different ways.
     For example, 'djpeg' supports several DCT modes, configurable with

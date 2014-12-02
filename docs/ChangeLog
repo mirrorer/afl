@@ -1,8 +1,29 @@
 --------------
+Version 0.73b:
+--------------
+
+  - Fix a stray memcpy() instead of memmove().
+
+--------------
+Version 0.72b:
+--------------
+
+  - Map size bumped up to 32k. You may want to recompile instrumented
+    binaries (but nothing horrible will happen if you don't).
+
+  - Huge performance improvements for bit-counting functions.
+
+  - Default optimizations now include -funroll-loops. This should have
+    interesting effects on the instrumentation. Frankly, I'm just going to
+    ship it and see what happens next.
+
+  - Fix for stack alignment crash on MacOS X 10.10. Spotted by Mudge Zatko.
+
+--------------
 Version 0.71b:
 --------------
 
-  - A fix for the nonsensical MacOS ELF check.
+  - A fix for the nonsensical MacOS ELF check. Spotted by Mudge Zatko.
 
 --------------
 Version 0.70b:

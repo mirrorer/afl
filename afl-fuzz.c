@@ -676,7 +676,7 @@ static inline u8 has_new_bits(u8* virgin_map) {
 
 
 /* Count the number of bits set in the provided bitmap. This is used just
-   for the status screen. */
+   for the status screen, not called very often. */
 
 static inline u32 count_bits(u8* mem) {
 
@@ -700,7 +700,8 @@ static inline u32 count_bits(u8* mem) {
 
 
 /* Count the number of non-255 bytes in the provided bitmap. Likewise,
-   just a helper function to help with the visuals. */
+   just a helper function to help with the visuals, not called very 
+   often. */
 
 static inline u32 count_non_255_bytes(u8* mem) {
 
@@ -716,12 +717,29 @@ static inline u32 count_non_255_bytes(u8* mem) {
 
 /* Destructively simplify trace by eliminating hit count information. */
 
+#define AREP4(_sym) (_sym), (_sym), (_sym), (_sym)
+#define AREP8(_sym) AREP4(_sym), AREP4(_sym)
+#define AREP16(_sym) AREP8(_sym), AREP8(_sym)
+#define AREP32(_sym) AREP16(_sym), AREP16(_sym)
+#define AREP64(_sym) AREP32(_sym), AREP32(_sym)
+#define AREP128(_sym) AREP64(_sym), AREP64(_sym)
+
+static u8 simplify_lookup[256] = { 
+  /*    4 */ 1, 128, 128, 128,
+  /*   +4 */ AREP4(128),
+  /*   +8 */ AREP8(128),
+  /*  +16 */ AREP16(128),
+  /*  +32 */ AREP32(128),
+  /*  +64 */ AREP64(128),
+  /* +128 */ AREP128(128)
+};
+
 static void simplify_trace(u8* mem) {
 
   u32 i = MAP_SIZE;
 
   while (i--) {
-    if (*mem) *mem = 128; else *mem = 1;
+    *mem = simplify_lookup[*mem];
     mem++;
   }
 
@@ -733,21 +751,24 @@ static void simplify_trace(u8* mem) {
    into several buckets: 1, 2, 3, 4 to 7, 8 to 15, 16 to 31, 32 to 127, and
    128+. */
 
+static u8 count_class_lookup[256] = {
+
+  /* 0 - 3:       4 */ 0, 1, 2, 4,
+  /* 4 - 7:      +4 */ AREP4(8),
+  /* 8 - 15:     +8 */ AREP8(16),
+  /* 16 - 31:   +16 */ AREP16(32),
+  /* 32 - 127:  +96 */ AREP64(64), AREP32(64),
+  /* 128+:     +128 */ AREP128(128)
+
+};
+
 static void classify_counts(u8* mem) {
 
   u32 i = MAP_SIZE;
 
   while (i--) {
 
-    switch (*mem) {
-      case 3:           *mem = (1 << 2); break;
-      case 4 ... 7:     *mem = (1 << 3); break;
-      case 8 ... 15:    *mem = (1 << 4); break;
-      case 16 ... 31:   *mem = (1 << 5); break;
-      case 32 ... 127:  *mem = (1 << 6); break;
-      case 128 ... 255: *mem = (1 << 7); break;
-    }
-
+    *mem = count_class_lookup[*mem];
     mem++;
 
   }
@@ -822,7 +843,7 @@ static void update_bitmap_score(struct queue_entry* q) {
 static void cull_queue(void) {
 
   struct queue_entry* q;
-  u8 temp_v[MAP_SIZE];
+  static u8 temp_v[MAP_SIZE];
   u32 i;
 
   if (dumb_mode || !score_changed) return;
@@ -2735,8 +2756,8 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
         q->len -= trim_avail;
         len_p2  = next_p2(q->len);
 
-        memcpy(in_buf + remove_pos, in_buf + remove_pos + trim_avail, 
-               move_tail);
+        memmove(in_buf + remove_pos, in_buf + remove_pos + trim_avail, 
+                move_tail);
 
         needs_write = 1;
 
@@ -4315,7 +4336,7 @@ static void check_binary(u8* fname) {
 #else
 
   if (f_data[0] != 0xCF || f_data[1] != 0xFA || f_data[2] != 0xED)
-    FATAL("Program '%s' is not a Mach-O binary", target_path);
+    FATAL("Program '%s' is not a 64-bit Mach-O binary", target_path);
 
 #endif /* ^!__APPLE__ */
 

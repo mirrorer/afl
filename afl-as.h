@@ -85,13 +85,6 @@
    different way, with previous tuple being recorded separately within the scope
    of every .c file. This should have no real impact.
 
-   TODO(?): The 64-bit ABI theoretically requires 16-byte stack alignment; some
-   versions of GCC & clang make the same assumption for 32-bit. This can
-   plausibly matter only in the startup code, but the few libc functions we do
-   call (getenv, atoi, shmat, read, write, fork, waitpid, close, exit) probably
-   don't use alignment-requiring SSE instructions on stack buffers. Anyway,
-   it's a simple fix if we're ever forced to make it.
-
  */
 
 static const u8* trampoline_fmt_32 =
@@ -441,6 +434,14 @@ static const u8* main_payload_64 =
   "  pushq %r10\n"
   "  pushq %r11\n"
   "\n"
+  "  /* The 64-bit ABI requires 16-byte stack alignment. We'll keep the\n"
+  "     original stack ptr in the callee-saved r12. */\n"
+  "\n"
+  "  pushq %r12\n"
+  "  movq  %rsp, %r12\n"
+  "  subq  $16, %rsp\n"
+  "  andq  $0xfffffffffffffff0, %rsp\n"
+  "\n"
   "  leaq .AFL_SHM_ID(%rip), %rdi\n"
   CALL_L64("getenv")
   "\n"
@@ -471,6 +472,9 @@ static const u8* main_payload_64 =
 #endif /* ^__APPLE__ */
   "  movq %rax, %rdx\n"
   "\n"
+  "  movq %r12, %rsp\n"
+  "  popq %r12\n"
+  "\n"
   "  popq %r11\n"
   "  popq %r10\n"
   "  popq %r9\n"
@@ -493,6 +497,11 @@ static const u8* main_payload_64 =
   "  pushq %r9\n"
   "  pushq %r10\n"
   "  pushq %r11\n"
+  "\n"
+  "  pushq %r12\n"
+  "  movq  %rsp, %r12\n"
+  "  subq  $16, %rsp\n"
+  "  andq  $0xfffffffffffffff0, %rsp\n"
   "\n"
   "  /* Phone home and tell the parent that we're OK. (Note that signals with\n"
   "     no SA_RESTART will mess it up). If this fails, assume that the fd is\n"
@@ -562,6 +571,9 @@ static const u8* main_payload_64 =
   "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi\n"
   CALL_L64("close")
   "\n"
+  "  movq %r12, %rsp\n"
+  "  popq %r12\n"
+  "\n"
   "  popq %r11\n"
   "  popq %r10\n"
   "  popq %r9\n"
@@ -584,6 +596,10 @@ static const u8* main_payload_64 =
   "     shmget() / shmat() over and over again. */\n"
   "\n"
   "  incb __afl_setup_failure(%rip)\n"
+  "\n"
+  "  movq %r12, %rsp\n"
+  "  popq %r12\n"
+  "\n"
   "  popq %r11\n"
   "  popq %r10\n"
   "  popq %r9\n"

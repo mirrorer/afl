@@ -8,6 +8,8 @@ Here's the list of stuff I want to implement in afl:
 
   - Test 8192 as an "interesting" integer,
 
+  - Investigate x86 hardware branch tracing via the perf tracing API,
+
   - More test cases (see testcases/wishlist.txt).
 
   - Detect multi-thread / execve() binaries and warn user about trade-offs?
