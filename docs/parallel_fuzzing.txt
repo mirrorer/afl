@@ -32,26 +32,26 @@ cases on the fly.
 --------------------------------
 
 If you wish to parallelize a single job across multiple cores on a local
-system, simply create a new, empty output directory that will be shared by all
-the instances of afl-fuzz; and then come up with a naming scheme for every
-instance - say, "fuzzer01", "fuzzer02", etc. 
+system, simply create a new, empty output directory ("sync dir") that will be
+shared by all the instances of afl-fuzz; and then come up with a naming scheme
+for every instance - say, "fuzzer01", "fuzzer02", etc. 
 
-Run the first one ("master") like this:
+Run the first one ("master", -M) like this:
 
-$ ./afl-fuzz -o /path/to/sync_dir -M fuzzer01 [...other params...]
+$ ./afl-fuzz -i testcase_dir -o sync_dir -M fuzzer01 [...other stuff...]
 
-...and then, start up secondary instances like this:
+...and then, start up secondary (-S) instances like this:
 
-$ ./afl-fuzz -o /path/to/sync_dir -S fuzzer02 [...other params...]
-$ ./afl-fuzz -o /path/to/sync_dir -S fuzzer03 [...other params...]
+$ ./afl-fuzz -i testcase_dir -o sync_dir -S fuzzer02 [...other stuff...]
+$ ./afl-fuzz -i testcase_dir -o sync_dir -S fuzzer03 [...other stuff...]
 
-Each fuzzer will write to its own output subdirectory directory, like so:
+Each fuzzer will keep its state in a separate subdirectory, like so:
 
   /path/to/sync_dir/fuzzer01/
 
-Each instance will also periodically rescan the top-level output directory
+Each instance will also periodically rescan the top-level sync directory
 for any test cases found by other fuzzers - and will incorporate them into
-its own fuzzing if they result in any locally new coverage.
+its own fuzzing when they are deemed interesting enough.
 
 The only difference between the -M and -S modes is that the master instance
 will still perform deterministic checks; while the slaves will proceed straight
@@ -59,8 +59,13 @@ to random tweaks. If you don't want to do deterministic fuzzing at all, it's OK
 to run all instances with -S. (Running multiple instances with the -M flag
 would be a waste of CPU time, however.)
 
-WARNING: Exercise caution when using the -f option. Each fuzzer must use a
-separate output file. Otherwise, things will go south.
+WARNING: Exercise caution when explicitly specifying the -f option. Each fuzzer
+must use a separate output file; otherwise, things will go south. One safe
+example may be:
+
+$ ./afl-fuzz [...] -S fuzzer10 -f file10.txt ./fuzzed/binary @@
+$ ./afl-fuzz [...] -S fuzzer11 -f file11.txt ./fuzzed/binary @@
+$ ./afl-fuzz [...] -S fuzzer12 -f file12.txt ./fuzzed/binary @@
 
 3) Multi-system parallelization
 -------------------------------

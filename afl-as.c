@@ -60,6 +60,10 @@ static u8   use_64bit = 1;
 
 static u8   use_64bit = 0;
 
+#ifdef __APPLE__
+#  error "Sorry, 32-bit Apple platforms are not supported."
+#endif /* __APPLE__ */
+
 #endif /* ^__x86_64__ */
 
 
@@ -85,6 +89,20 @@ static void edit_params(int argc, char** argv) {
 
     if (!strcmp(as_params[i], "--64")) use_64bit = 1;
     else if (!strcmp(as_params[i], "--32")) use_64bit = 0;
+
+#ifdef __APPLE__
+
+    /* The Apple case is a bit different... */
+
+    if (!strcmp(as_params[i], "-arch") && i + 1 < argc) {
+
+      if (!strcmp(as_params[i + 1], "x86_64")) use_64bit = 1;
+      else if (!strcmp(as_params[i + 1], "i386"))
+        FATAL("Sorry, 32-bit Apple platforms are not supported.");
+
+    }
+
+#endif /* __APPLE__ */
 
   }
 
@@ -117,6 +135,12 @@ static void add_instrumentation(void) {
   s32 outfd;
   u32 ins_lines = 0;
   u8  instr_ok = 0, skip_csect = 0, skip_next_label = 0;
+
+#ifdef __APPLE__
+
+  u8* colon_pos;
+
+#endif /* __APPLE__ */
 
   if (input_file) {
 
@@ -185,6 +209,10 @@ static void add_instrumentation(void) {
          ^.LC0       - GCC non-branch labels
          ^\tjmp foo  - non-conditional jumps
 
+       Additionally, for clang on MacOS X follows a different convention
+       with no leading dots on labels, hence the weird maze of #ifdefs
+       later on.
+
      */
 
     if (skip_csect || !instr_ok || line[0] == '#' || line[0] == ' ')
@@ -209,14 +237,41 @@ static void add_instrumentation(void) {
 
     /* Label of some sort. */
 
+#ifdef __APPLE__
+
+    /* Apple: L<whatever><digit>: */
+
+    if ((colon_pos = strstr(line, ":"))) {
+
+      if (line[0] == 'L' && isdigit(*(colon_pos - 1))) {
+
+#else
+
+    /* Everybody else: .L<whatever>: */
+
     if (strstr(line, ":")) {
 
       if (line[0] == '.') {
 
+#endif /* __APPPLE__ */
+
         /* .L0: or LBB0_0: style jump destination */
+
+#ifdef __APPLE__
+
+        /* Apple: L<num> / LBB<num> */
+
+        if ((isdigit(line[1]) || (clang_mode && !strncmp(line, "LBB", 3)))
+            && R(100) < inst_ratio) {
+
+#else
+
+        /* Apple: .L<num> / .LBB<num> */
 
         if ((isdigit(line[2]) || (clang_mode && !strncmp(line + 1, "LBB", 3)))
             && R(100) < inst_ratio) {
+
+#endif /* __APPLE__ */
 
           if (!skip_next_label) {
 
@@ -298,6 +353,13 @@ int main(int argc, char** argv) {
     exit(1);
 
   }
+
+#ifdef __APPLE__
+
+  if (!clang_mode)
+    FATAL("GCC mode not supported on Apple platforms (use afl-clang instead).");
+
+#endif /* __APPLE__ */
 
   gettimeofday(&tv, &tz);
 

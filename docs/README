@@ -126,8 +126,8 @@ Oh: when using ASAN, see the notes_for_asan.txt file for important caveats.
 4) Choosing initial test cases
 ------------------------------
 
-To operate correctly, the fuzzer requires one or more input file containing
-typical input normally processed by the targeted application. There are
+To operate correctly, the fuzzer requires one or more starting file containing
+typical input normally expected by the targeted application. There are
 two basic rules:
 
   - Keep the files small. Under 1 kB is ideal, although not strictly necessary.
@@ -149,17 +149,20 @@ this.
 --------------------------------
 
 The fuzzing process itself is carried out by the afl-fuzz utility. The program
-requires an input directory containing one or more initial test cases, plus a
-path to the binary to test.
+requires a read-only directory with initial test cases, a separate place to
+store its findings, plus a path to the binary to test.
 
 For programs that accept input directly from stdin, the usual syntax may be:
 
-$ ./afl-fuzz -i input_dir -o output_dir /path/to/program [...params...]
+$ ./afl-fuzz -i testcase_dir -o findings_dir /path/to/program [...params...]
 
-For programs that need to read input from a specific file, the appropriate
-location can be specified via the -f flag:
+For programs that take input from a file, use '@@' to mark the location where
+the input file name should go. The fuzzer will substitute this for you:
 
-$ ./afl-fuzz [...] -f testme.txt /path/to/program testme.txt
+$ ./afl-fuzz -i testcase_dir -o findings_dir /path/to/program -r @@
+
+You can also use the -f option to have the mutated data written to a specific
+file. This is useful if the program expects a particular file extension or so.
 
 It is possible to fuzz non-instrumented code using the -n flag. This gives you
 a fairly traditional fuzzer with a couple of nice testing strategies.
@@ -276,7 +279,8 @@ bug reports, or patches from:
   - Ben Laurie,
   - @dronesec,
   - Luca Barbato,
-  - Tobias Ospelt.
+  - Tobias Ospelt,
+  - Thomas Jarosch.
 
 Thank you!
 

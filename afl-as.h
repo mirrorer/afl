@@ -15,12 +15,13 @@
      http://www.apache.org/licenses/LICENSE-2.0
 
    This file houses the assembly-level instrumentation injected into fuzzed
-   programs. The instrumentation stores pairs of data: identifiers of the
-   currently executing line and the line that executed immediately before.
+   programs. The instrumentation stores XORed pairs of data: identifiers of the
+   currently executing branch and the one that executed immediately before.
 
-   The assembly code shown below is designed for debug-enabled (-g), 32-bit
-   x86 output produced by GCC for C/C++ programs. 64-bit mode can be enabled
-   with USE_64BIT.
+   The code is designed for 32-bit and 64-bit x86 systems. Both modes should
+   work everywhere except for Apple systems. Apple does relocations differently
+   from everybody else, so since their OSes have been 64-bit for a longer while,
+   I didn't go through the mental effort of porting the 32-bit code.
 
    In principle, similar code should be easy to inject into any well-behaved
    binary-only code (e.g., using DynamoRIO). Conditional jumps offer natural
@@ -70,12 +71,15 @@
      help, but badly breaks the "~1 core per fuzzer" design, making it harder to
      scale up. Maybe there is some middle ground.
 
-   Perhaps of note: in the 64-bit version, the instrumentation is done slightly
-   differently than on 32-bit, with __afl_prev_loc and __afl_area_ptr being
-   local to the object file (.lcomm), rather than global (.comm). This is to
-   avoid GOTRELPC lookups in the critical code path, which AFAICT, are otherwise
-   unavoidable if we want gcc -shared to work; simple relocations between .bss
-   and .text won't work on 64 bit platforms in such a case.
+   Perhaps of note: in the 64-bit version for all platforms except for Apple,
+   the instrumentation is done slightly differently than on 32-bit, with
+   __afl_prev_loc and __afl_area_ptr being local to the object file (.lcomm),
+   rather than global (.comm). This is to avoid GOTRELPC lookups in the critical
+   code path, which AFAICT, are otherwise unavoidable if we want gcc -shared to
+   work; simple relocations between .bss and .text won't work on most 64-bit
+   platforms in such a case.
+
+   (Fun fact: on Apple systems, .lcomm can segfault the linker.)
 
    The side effect is that state transitions are measured in a somewhat
    different way, with previous tuple being recorded separately within the scope
@@ -332,13 +336,24 @@ static const u8* main_payload_32 =
   "  .comm   __afl_temp, 4, 32\n"
   "\n"
   ".AFL_SHM_ID:\n"
-  "  .string \"" SHM_ENV_VAR "\"\n"
+  "  .asciz \"" SHM_ENV_VAR "\"\n"
   "\n"
   "/* --- END --- */\n"
   "\n";
 
 /* The OpenBSD hack is due to lahf and sahf not being recognized by some
-   versions os binutils: http://marc.info/?l=openbsd-cvs&m=141636589924400 */
+   versions os binutils: http://marc.info/?l=openbsd-cvs&m=141636589924400
+
+   The Apple code is a bit different when calling libc functions becuase
+   they are doing relocations differently from everbody else. We also need
+   to work around the crash issue with .lcomm and the fact that they don't
+   recognize .string. */
+
+#ifdef __APPLE__
+#  define CALL_L64(str)		"call _" str "\n"
+#else
+#  define CALL_L64(str)		"call " str "@PLT\n"
+#endif /* ^__APPLE__ */
 
 static const u8* main_payload_64 = 
 
@@ -400,8 +415,13 @@ static const u8* main_payload_64 =
   "\n"
   "  /* Check out if we have a global pointer on file. */\n"
   "\n"
+#ifndef __APPLE__
   "  movq  __afl_global_area_ptr@GOTPCREL(%rip), %rdx\n"
   "  movq  (%rdx), %rdx\n"
+#else
+  "  movq  __afl_global_area_ptr(%rip), %rdx\n"
+#endif /* !^__APPLE__ */
+
   "  testq %rdx, %rdx\n"
   "  je    __afl_setup_first\n"
   "\n"
@@ -422,18 +442,18 @@ static const u8* main_payload_64 =
   "  pushq %r11\n"
   "\n"
   "  leaq .AFL_SHM_ID(%rip), %rdi\n"
-  "  call getenv@PLT\n"
+  CALL_L64("getenv")
   "\n"
   "  testq %rax, %rax\n"
   "  je    __afl_setup_abort\n"
   "\n"
   "  movq  %rax, %rdi\n"
-  "  call  atoi@PLT\n"
+  CALL_L64("atoi")
   "\n"
   "  xorq %rdx, %rdx   /* shmat flags    */\n"
   "  xorq %rsi, %rsi   /* requested addr */\n"
   "  movq %rax, %rdi   /* SHM ID         */\n"
-  "  call shmat@PLT\n"
+  CALL_L64("shmat")
   "\n"
   "  cmpq $-1, %rax\n"
   "  je   __afl_setup_abort\n"
@@ -443,8 +463,12 @@ static const u8* main_payload_64 =
   "  movq %rax, %rdx\n"
   "  movq %rax, __afl_area_ptr(%rip)\n"
   "\n"
+#ifdef __APPLE__
+  "  movq %rax, __afl_global_area_ptr(%rip)\n"
+#else
   "  movq __afl_global_area_ptr@GOTPCREL(%rip), %rdx\n"
   "  movq %rax, (%rdx)\n"
+#endif /* ^__APPLE__ */
   "  movq %rax, %rdx\n"
   "\n"
   "  popq %r11\n"
@@ -477,7 +501,7 @@ static const u8* main_payload_64 =
   "  movq $4, %rdx               /* length    */\n"
   "  leaq __afl_temp(%rip), %rsi /* data      */\n"
   "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi       /* file desc */\n"
-  "  call write@PLT\n"
+  CALL_L64("write")
   "\n"
   "  cmpq $4, %rax\n"
   "  jne  __afl_fork_resume\n"
@@ -489,7 +513,7 @@ static const u8* main_payload_64 =
   "  movq $4, %rdx               /* length    */\n"
   "  leaq __afl_temp(%rip), %rsi /* data      */\n"
   "  movq $" STRINGIFY(FORKSRV_FD) ", %rdi           /* file desc */\n"
-  "  call read@PLT\n"
+  CALL_L64("read")
   "  cmpq $4, %rax\n"
   "  jne  __afl_die\n"
   "\n"
@@ -498,7 +522,7 @@ static const u8* main_payload_64 =
   "     caches getpid() results and offers no way to update the value, breaking\n"
   "     abort(), raise(), and a bunch of other things :-( */\n"
   "\n"
-  "  call fork@PLT\n"
+  CALL_L64("fork")
   "  cmpq $0, %rax\n"
   "  jl   __afl_die\n"
   "  je   __afl_fork_resume\n"
@@ -510,12 +534,12 @@ static const u8* main_payload_64 =
   "  movq $4, %rdx                   /* length    */\n"
   "  leaq __afl_fork_pid(%rip), %rsi /* data      */\n"
   "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi             /* file desc */\n"
-  "  call  write@PLT\n"
+  CALL_L64("write")
   "\n"
   "  movq $2, %rdx                   /* WUNTRACED */\n"
   "  leaq __afl_temp(%rip), %rsi     /* status    */\n"
   "  movq __afl_fork_pid(%rip), %rdi /* PID       */\n"
-  "  call waitpid@plt\n"
+  CALL_L64("waitpid")
   "  cmpq $0, %rax\n"
   "  jle  __afl_die\n"
   "\n"
@@ -524,7 +548,7 @@ static const u8* main_payload_64 =
   "  movq $4, %rdx               /* length    */\n"
   "  leaq __afl_temp(%rip), %rsi /* data      */\n"
   "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi         /* file desc */\n"
-  "  call write@plt\n"
+  CALL_L64("write")
   "\n"
   "  jmp  __afl_fork_wait_loop\n"
   "\n"
@@ -533,10 +557,10 @@ static const u8* main_payload_64 =
   "  /* In child process: close fds, resume execution. */\n"
   "\n"
   "  movq $" STRINGIFY(FORKSRV_FD) ", %rdi\n"
-  "  call close@plt\n"
+  CALL_L64("close")
   "\n"
   "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi\n"
-  "  call close@plt\n"
+  CALL_L64("close")
   "\n"
   "  popq %r11\n"
   "  popq %r10\n"
@@ -552,7 +576,7 @@ static const u8* main_payload_64 =
   "__afl_die:\n"
   "\n"
   "  xorq %rax, %rax\n"
-  "  call exit@plt\n"
+  CALL_L64("exit")
   "\n"
   "__afl_setup_abort:\n"
   "\n"
@@ -572,17 +596,33 @@ static const u8* main_payload_64 =
   "\n"
   ".AFL_VARS:\n"
   "\n"
+
+#ifdef __APPLE__
+
+  "  .comm   __afl_area_ptr, 8\n"
+#ifndef COVERAGE_ONLY
+  "  .comm   __afl_prev_loc, 8\n"
+#endif /* !COVERAGE_ONLY */
+  "  .comm   __afl_fork_pid, 4\n"
+  "  .comm   __afl_temp, 4\n"
+  "  .comm   __afl_setup_failure, 1\n"
+
+#else
+
   "  .lcomm   __afl_area_ptr, 8\n"
+#ifndef COVERAGE_ONLY
   "  .lcomm   __afl_prev_loc, 8\n"
+#endif /* !COVERAGE_ONLY */
   "  .lcomm   __afl_fork_pid, 4\n"
   "  .lcomm   __afl_temp, 4\n"
   "  .lcomm   __afl_setup_failure, 1\n"
+
+#endif /* ^__APPLE__ */
+
   "  .comm    __afl_global_area_ptr, 8, 8\n"
-#ifndef COVERAGE_ONLY
-#endif /* !COVERAGE_ONLY */
   "\n"
   ".AFL_SHM_ID:\n"
-  "  .string \"" SHM_ENV_VAR "\"\n"
+  "  .asciz \"" SHM_ENV_VAR "\"\n"
   "\n"
   "/* --- END --- */\n"
   "\n";

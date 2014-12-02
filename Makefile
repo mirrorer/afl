@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.62b
+VERSION     = 0.63b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -46,6 +46,7 @@ test_x86:
 	@echo "[*] Checking for the ability to compile x86 code..."
 	@echo 'main() { __asm__("xorb %al, %al"); }' | $(CC) -w -x c - -o .test || ( echo; echo "Oops, looks like your compiler can't generate x86 code."; echo; echo "(If you are looking for ARM, see experimental/arm_support/README.)"; echo; exit 1 )
 	@rm -f .test
+	@echo "[+] Everything seems to be working, ready to compile."
 
 afl-gcc: afl-gcc.c $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
@@ -72,6 +73,7 @@ test_build: afl-gcc afl-as afl-showmap
 
 all_done: test_build
 	@echo "[+] All done! Be sure to review README - it's pretty short and useful."
+	@printf "\x1b[0;30mNOTE: If you can read this, your terminal probably uses white background.\nThis will make the UI hard to read. See docs/status_screen.txt for advice.\x1b[0m\n" 2>/dev/null
 
 clean:
 	rm -f $(PROGS) as afl-g++ afl-clang afl-clang++ *.o *~ a.out core core.[1-9][0-9]* *.stackdump test .test test-instr .test-instr0 .test-instr1

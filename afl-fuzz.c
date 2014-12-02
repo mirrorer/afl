@@ -4236,7 +4236,7 @@ static void check_binary(u8* fname) {
 
     use_file = ck_strdup(fname);
 
-    if (!stat(use_file, &st) && !S_ISREG(st.st_mode) && (st.st_mode & 0111))
+    if (stat(use_file, &st) || !S_ISREG(st.st_mode) || !(st.st_mode & 0111))
       FATAL("Program '%s' not found or not executable", fname);
 
   } else {
@@ -4373,7 +4373,7 @@ static void usage(u8* argv0) {
        "Required parameters:\n\n"
 
        "  -i dir        - input directory with test cases\n"
-       "  -o dir        - output directory for captured crashes\n\n"
+       "  -o dir        - output directory for fuzzer findings\n\n"
 
        "Execution control settings:\n\n"
 
@@ -4605,6 +4605,53 @@ static void check_asan_opts(void) {
 } 
 
 
+/* Detect @@ in args. */
+
+static void detect_file_args(char** argv) {
+
+  u32 i = 0;
+  u8* cwd = getcwd(NULL, 0);
+
+  if (!cwd) PFATAL("getcwd() failed");
+
+  while (argv[i]) {
+
+    u8* aa_loc = strstr(argv[i], "@@");
+
+    if (aa_loc) {
+
+      u8 *aa_subst, *n_arg;
+
+      /* If we don't have a file name chosen yet, use a safe default. */
+
+      if (!out_file)
+        out_file = alloc_printf("%s/.cur_input", out_dir);
+
+      /* Be sure that we're always using fully-qualified paths. */
+
+      if (out_file[0] == '/') aa_subst = out_file;
+      else aa_subst = alloc_printf("%s/%s", cwd, out_file);
+
+      /* Construct a replacement argv value. */
+
+      *aa_loc = 0;
+      n_arg = alloc_printf("%s%s%s", argv[i], aa_subst, aa_loc + 2);
+      argv[i] = n_arg;
+      *aa_loc = '@';
+
+      if (out_file[0] != '/') ck_free(aa_subst);
+
+    }
+
+    i++;
+
+  }
+
+  free(cwd); /* not tracked */
+
+}
+
+
 /* Main entry point */
 
 int main(int argc, char** argv) {
@@ -4767,6 +4814,8 @@ int main(int argc, char** argv) {
   read_testcases();
 
   pivot_inputs();
+
+  detect_file_args(argv + optind + 1);
 
   if (!out_file) setup_stdio_file();
 

@@ -20,8 +20,8 @@ There are no special dependencies to speak of; you will need GNU make and a
 working compiler (gcc or clang). Some of the optional scripts in experimental/*
 may depend on bash, gdb, and similar basic tools.
 
-2) *BSD / MacOS X (x86)
------------------------
+2) OpenBSD, FreeBSD, NetBSD (x86)
+---------------------------------
 
 Compile with GNU make:
 
@@ -33,22 +33,31 @@ installation, or install it with:
 
 # gmake install
 
-In principle, the tool should work properly, although it hasn't been tested in
-nearly as much depth. Reports of problems are very much welcome!
+Keep in mind that if you are using csh as your shell, the syntax of some of the
+shell commands given in the README and other docs will be different.
 
-3) Linux (ARMv7)
+3) MacOS X (x86)
+----------------
+
+Follow the instructions for Linux. Of course, you need Xcode installed to
+compile this or any other program.
+
+At this point, only 64-bit clang-based compilation is supported.
+
+4) Linux (ARMv7)
 ----------------
 
 ARMv7 is not officially supported. You can try an unofficial patch, but
 expect to run into some issues. Please refer to experimental/arm_support/README
-for compilation tips.
+for compilation and usage tips.
 
-4) Other platforms
+5) Other platforms
 ------------------
 
 Platforms other than x86 and ARMv7 will not work and support for them is not
-currently planned due to minimal interest. The same goes for Cygwin.
+currently planned (due to limited practical benefits and zero user interest).
+The same goes for Cygwin.
 
 Getting the tool to work on non-POSIX-compliant unix systems may be doable,
-but will probably require more effort than its worth, so try it at your own
+but will probably require more effort than its worth; try it at your own
 risk :-)

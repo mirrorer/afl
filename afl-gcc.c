@@ -111,6 +111,10 @@ static void edit_params(u32 argc, char** argv) {
   u8 fortify_set = 0, asan_set = 0;
   u8 *name;
 
+#if defined(__FreeBSD__) && defined(__x86_64__)
+  u8 m32_set = 0;
+#endif
+
   cc_params = ck_alloc((argc + 16) * sizeof(u8*));
 
   name = strrchr(argv[0], '/');
@@ -167,6 +171,10 @@ static void edit_params(u32 argc, char** argv) {
 
     if (!strcmp(cur, "-pipe")) continue;
 
+#if defined(__FreeBSD__) && defined(__x86_64__)
+    if (!strcmp(cur, "-m32")) m32_set = 1;
+#endif
+
     if (!strcmp(cur, "-fsanitize=address")) asan_set = 1;
 
     if (strstr(cur, "FORTIFY_SOURCE")) fortify_set = 1;
@@ -181,7 +189,6 @@ static void edit_params(u32 argc, char** argv) {
   if (clang_mode)
     cc_params[cc_par_cnt++] = "-no-integrated-as";
 
-  cc_params[cc_par_cnt++] = "-g";
 
   if (getenv("AFL_HARDEN")) {
 
@@ -204,8 +211,26 @@ static void edit_params(u32 argc, char** argv) {
 
   }
 
-  if (!getenv("AFL_DONT_OPTIMIZE"))
+  if (!getenv("AFL_DONT_OPTIMIZE")) {
+
+#if defined(__FreeBSD__) && defined(__x86_64__)
+
+    /* On 64-bit FreeBSD systems, clang -g -m32 is broken, but -m32 itself
+       works OK. This has nothing to do with us, but let's avoid triggering
+       that bug. */
+
+    if (!clang_mode || !m32_set)
+      cc_params[cc_par_cnt++] = "-g";
+
+#else
+
+      cc_params[cc_par_cnt++] = "-g";
+
+#endif
+
     cc_params[cc_par_cnt++] = "-O3";
+
+  }
 
   cc_params[cc_par_cnt] = NULL;
 
