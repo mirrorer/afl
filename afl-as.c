@@ -121,7 +121,9 @@ static void edit_params(int argc, char** argv) {
        a format we may not understand. This works around an issue compiling
        NSS. */
 
-    if (strncmp(input_file, tmp_dir, strlen(tmp_dir))) pass_thru = 1;
+    if (strncmp(input_file, tmp_dir, strlen(tmp_dir)) &&
+        strncmp(input_file, "/var/tmp", 8) &&
+        strncmp(input_file, "/tmp", 4)) pass_thru = 1;
 
   }
 
@@ -177,6 +179,10 @@ static void add_instrumentation(void) {
        of that in processed files. */
 
     if (line[0] == '\t' && line[1] == '.') {
+
+      /* OpenBSD puts jump tables directly inline with the code, which is
+         a bit annoying. They use a specific format of p2align directives
+         around them, so we use that as a signal. */
 
       if (!clang_mode && instr_ok && !strncmp(line + 2, "p2align ", 8) &&
           isdigit(line[10]) && line[11] == '\n') skip_next_label = 1;

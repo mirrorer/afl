@@ -3,7 +3,13 @@ Version 0.67b:
 --------------
 
   - Several more typos fixed, the project is now cartified 100% typo-free.
-    Thanks to Thomas Jarosch.
+    Thanks to Thomas Jarosch and Jakub Wilk.
+
+  - Write fuzzer_stats early on.
+
+  - Minor fix for MacOS X operation as root. Spotted by Tobias Ospelt.
+
+  - Make it possible to override -O3. Patch by Jakub Wilk.
 
 --------------
 Version 0.66b:

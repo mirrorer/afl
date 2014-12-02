@@ -342,10 +342,10 @@ static const u8* main_payload_32 =
   "\n";
 
 /* The OpenBSD hack is due to lahf and sahf not being recognized by some
-   versions os binutils: http://marc.info/?l=openbsd-cvs&m=141636589924400
+   versions of binutils: http://marc.info/?l=openbsd-cvs&m=141636589924400
 
-   The Apple code is a bit different when calling libc functions becuase
-   they are doing relocations differently from everbody else. We also need
+   The Apple code is a bit different when calling libc functions because
+   they are doing relocations differently from everybody else. We also need
    to work around the crash issue with .lcomm and the fact that they don't
    recognize .string. */
 

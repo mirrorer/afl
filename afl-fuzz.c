@@ -4799,6 +4799,8 @@ int main(int argc, char** argv) {
 
   if (stop_soon) goto stop_fuzzing;
 
+  write_stats_file();
+
   if (!not_on_tty) {
     sleep(4);
     start_time += 4000;

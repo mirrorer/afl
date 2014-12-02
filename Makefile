@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.66b
+VERSION     = 0.67b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -24,7 +24,8 @@ MISC_PATH   = $(PREFIX)/share/afl
 
 PROGS       = afl-gcc afl-as afl-fuzz afl-showmap
 
-CFLAGS     += -O3 -Wall -D_FORTIFY_SOURCE=2 -g -Wno-pointer-sign \
+CFLAGS     ?= -O3
+CFLAGS     += -Wall -D_FORTIFY_SOURCE=2 -g -Wno-pointer-sign \
 	      -DAFL_PATH=\"$(HELPER_PATH)\" -DDOC_PATH=\"$(DOC_PATH)\" \
 	      -DVERSION=\"$(VERSION)\"
 
@@ -64,7 +65,7 @@ afl-showmap: afl-showmap.c $(COMM_HDR) | test_x86
 
 test_build: afl-gcc afl-as afl-showmap
 	@echo "[*] Testing the CC wrapper and instrumentation output..."
-	AFL_QUIET=1 AFL_INST_RATIO=100 AFL_PATH=. ./$(TEST_CC) $(CFLAGS) test-instr.c -o test-instr
+	AFL_QUIET=1 AFL_INST_RATIO=100 AFL_PATH=. ./$(TEST_CC) $(CFLAGS) $(LDFLAGS) test-instr.c -o test-instr
 	echo 0 | AFL_SINK_OUTPUT=1 AFL_QUIET=1 ./afl-showmap ./test-instr 2>.test-instr0
 	echo 1 | AFL_SINK_OUTPUT=1 AFL_QUIET=1 ./afl-showmap ./test-instr 2>.test-instr1
 	@rm -f test-instr
