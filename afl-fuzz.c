@@ -1030,13 +1030,26 @@ static void init_forkserver(char** argv) {
 
     struct rlimit r;
 
+#ifdef RLIMIT_AS
+
     if (mem_limit) {
 
       r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
-
       setrlimit(RLIMIT_AS, &r); /* Ignore errors */
 
     }
+
+#else
+
+    /* Hmm, this is necessary to support OpenBSD. */
+
+#  warning "**** WARNING WARNING WARNING ****"
+#  warning "Your system does not appear to support RLIMIT_AS (aka ulimit -v)."
+#  warning "Memory limits will not be enforced. Fuzzing poorly-behaved binaries"
+#  warning "may lead to OOM conditions and system instability."
+#  warning "**** WARNING WARNING WARNING ****"
+
+#endif /* ^RLIMIT_AS */
 
     /* Dumping cores is slow and can lead to anomalies if SIGKILL is delivered
        before the dump is complete. */
@@ -1219,13 +1232,16 @@ static u8 run_target(char** argv) {
 
       struct rlimit r;
 
+#ifdef RLIMIT_AS
+
       if (mem_limit) {
 
         r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
-
         setrlimit(RLIMIT_AS, &r); /* Ignore errors */
 
       }
+
+#endif /* RLIMIT_AS */
 
       r.rlim_max = r.rlim_cur = 0;
 

@@ -240,7 +240,10 @@ Here are some of the most important caveats for AFL:
     afl-fuzz.
 
     As a simple example, a patch for libpng to bypass CRC checksums is provided 
-    in experimental/libpng_no_checksum/libpng-nocrc.patch.
+    in experimental/libpng_no_checksum/libpng-nocrc.patch. A more complex
+    real-world harness for fwknop can be found at:
+
+      https://github.com/mrash/fwknop/tree/master/test/afl
 
   - The included instrumentation (afl-as.h) currently supports x86. If you are
     feeling adventurous, an experimental ARM port can be found in

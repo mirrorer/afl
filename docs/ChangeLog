@@ -1,4 +1,18 @@
 --------------
+Version 0.57b:
+--------------
+
+  - Fixes to make things work on FreeBSD and OpenBSD: use_64bit is
+    inferred if not explicitly specified when calling afl-as, and
+    RLIMIT_AS is behind an #ifdef. Thanks to Fabian Keil and Jonathan Gray.
+
+  - Documentation is now installed, too (in /usr/local/share/doc/afl).
+
+  - Typo fix in status_screen.txt.
+
+  - Minor Makefile improvement suggested by Jakub Wilk.
+
+--------------
 Version 0.56b:
 --------------
 

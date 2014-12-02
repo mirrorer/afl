@@ -14,15 +14,12 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.56b
+VERSION     = 0.57b
 
-ifeq "$(PREFIX)" ""
-  BIN_PATH    = /usr/local/bin
-  HELPER_PATH = /usr/local/lib/afl
-else
-  BIN_PATH    = $(PREFIX)/bin
-  HELPER_PATH = $(PREFIX)/afl
-endif
+PREFIX     ?= /usr/local
+BIN_PATH    = $(PREFIX)/bin
+HELPER_PATH = $(PREFIX)/lib/afl
+DOC_PATH    = $(PREFIX)/share/doc/afl
 
 PROGS       = afl-gcc afl-as afl-fuzz afl-showmap
 
@@ -79,11 +76,12 @@ clean:
 	rm -rf out_dir
 
 install: all
-	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH)
+	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH) $${DESTDIR}$(DOC_PATH)
 	install -m 755 afl-gcc afl-fuzz afl-showmap $${DESTDIR}$(BIN_PATH)
 	for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $${DESTDIR}$(BIN_PATH)/$$i; done
 	install -m 755 afl-as $${DESTDIR}$(HELPER_PATH)
 	ln -sf afl-as $${DESTDIR}$(HELPER_PATH)/as
+	install -m 644 docs/README docs/ChangeLog docs/*.txt $${DESTDIR}$(DOC_PATH)
 
 publish: clean
 	test "`basename $$PWD`" = "afl" || exit 1

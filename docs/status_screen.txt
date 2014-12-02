@@ -119,7 +119,7 @@ hit, in proportion to how much the bitmap can hold. Be wary of extremes:
     that make heavy use of template-generated code. I've seen this just once,
     with ffmpeg. Because high bitmap density makes it harder for the fuzzer
     to discern new program states, I recommend recompiling the binary with
-    AFL_INSTR_RATIO=10 or so (see env_variables.txt).
+    AFL_INST_RATIO=10 or so (see env_variables.txt).
 
     The fuzzer will flag high percentages in red.
 

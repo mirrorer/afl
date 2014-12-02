@@ -44,10 +44,23 @@ static u8*  input_file;         /* Originally specified input file      */
 static u8*  modified_file;      /* Instrumented file for the real 'as'  */
 
 static u8   be_quiet,           /* Quiet mode (no stderr output)        */
-            clang_mode,         /* Running in clang mode?               */
-            use_64bit;          /* Output 64-bit instrumentation        */
+            clang_mode;         /* Running in clang mode?               */
 
 static u32  inst_ratio = 100;   /* Instrumentation probability (%)      */
+
+/* If we don't find --32 or --64 in the command-line, default to 
+   instrumentation for whichever mode we were cmpiled with. This is not
+   perfect, but should do the trick for almost all use cases. */
+
+#ifdef __x86_64__
+
+static u8   use_64bit = 1;
+
+#else
+
+static u8   use_64bit = 0;
+
+#endif /* ^__x86_64__ */
 
 
 /* Examine and modify parameters to pass to 'as'. Note that the file name
@@ -68,8 +81,12 @@ static void edit_params(int argc, char** argv) {
   as_params[0] = "as";
   as_params[argc] = 0;
 
-  for (i = 1; i < argc; i++)
+  for (i = 1; i < argc; i++) {
+
     if (!strcmp(as_params[i], "--64")) use_64bit = 1;
+    else if (!strcmp(as_params[i], "--32")) use_64bit = 0;
+
+  }
 
   input_file = as_params[argc - 1];
 
