@@ -26,7 +26,8 @@ Here's the list of stuff I want to implement in afl:
   - Support for DynamoRIO (or pin) for closed-source instrumentation in
     non-obfuscated binaries.
 
-I'm not particularly convinced about adding more exotic output modes, for
-example to send data to a TCP or UDP socket, or serve it off one. Ditto for
-supporting "remote" execution with execution code phoned back in by a
-harness. It's probably more effort than it's worth.
+I'm not particularly sold on adding more exotic output modes, for example to
+send data to a TCP or UDP socket, or serve it off one. Ditto for supporting
+"remote" execution with execution code phoned back in by a harness. It's
+probably more effort than it's worth, given that most network services can
+be easily modified to read from files.

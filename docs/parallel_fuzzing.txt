@@ -132,8 +132,8 @@ all the noteworthy paths discovered anywhere within the fleet. The slave
 sure that they are up.
 
 Keep in mind that crashing inputs are *not* automatically propagated to the
-master instance, so you may still want to monitor for crashes from within
-your synchronization or health checking scripts.
+master instance, so you may still want to monitor for crashes fleet-wide
+from within your synchronization or health checking scripts.
 
 5) Closing remarks
 ------------------

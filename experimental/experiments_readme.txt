@@ -2,11 +2,12 @@ Here's a quick overview of the stuff you can find in this directory:
 
   - arm_support         - a very experimental and unstable support for ARMv7.
 
-  - bash_harness        - a simple shell harness used for post-Shellshock bugs.
+  - bash_harness        - a simple shell harness used to find a bunch of
+                          post-Shellshock bugs.
 
   - canvas_harness      - a test harness used to find browser bugs with a 
-                          corpus generated with simpler image parsing binaries
-                          by afl-fuzz.
+                          corpus generated using simple image parsing 
+                          binaries & afl-fuzz.
 
   - crash_triage        - a very rudimentary example of how to annotate crashes
                           with additional gdb metadata.

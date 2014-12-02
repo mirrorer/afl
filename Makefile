@@ -14,10 +14,15 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.54b
+VERSION     = 0.55b
 
-BIN_PATH    = /usr/local/bin
-HELPER_PATH = /usr/local/lib/afl
+ifeq "$(PREFIX)" ""
+  BIN_PATH    = /usr/local/bin
+  HELPER_PATH = /usr/local/lib/afl
+else
+  BIN_PATH    = $(PREFIX)/bin
+  HELPER_PATH = $(PREFIX)/afl
+endif
 
 PROGS       = afl-gcc afl-as afl-fuzz afl-showmap
 

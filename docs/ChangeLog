@@ -1,8 +1,37 @@
 --------------
+Version 0.55b:
+--------------
+
+  - Smarter out_dir behavior, automatically deleting directories that
+    don't contain anything of special value. Requested by several folks,
+    including Hanno Boeck.
+
+  - Additional detail in fuzzer_stats (start time, run time, fuzzer PID).
+
+  - Configurable install prefixes in Makefile ($PREFIX), as requested by
+    Luca Barbato.
+
+  - You can now resume by doing -i <out_dir>, without having to specify
+    -i <out_dir>/queue/.
+
+--------------
 Version 0.54b:
 --------------
 
-  - A fix for warning messages (oops).
+  - A fix for -Wformat warning messages (oops, I thought this had been in
+    place for a while). It's an unfortunate corner case where the compiler
+    seems to be wrong. We use uint64_t (aliased to u64) for self-documenting,
+    definite-size integers. This is coupled with %llu as a format for printf().
+
+    The compiler always expects 'unsigned long long' for %llu. On 32-bit boxes,
+    uint64_t is defined in <bits/types.h> as 'unsigned long long', so everything
+    is peachy: the types match precisely.
+
+    On 64-bit systems, uint64_t is defined as 'unsigned long' via an #ifdef. Of
+    course, that happens to have the same size as 'unsigned long long' under
+    the circumstances, *but* the compiler still freaks out about format type
+    mismatch - presumably because that assertion would be not true on 32-bit
+    systems, so it's typically indicative of a bug.
 
 --------------
 Version 0.53b:
@@ -18,10 +47,11 @@ Version 0.53b:
 
     The middle ground currently used in afl-fuzz can be compared to looking
     at every line item in the stack trace and tagging crashes as unique if
-    we see any function name that we haven't seen before (or something that
-    we have *always* seen now disappears). We do the comparison without paying
-    any attention to ordering or hit counts. This can still cause some
-    crash inflation early on, but the problem will quickly taper off.
+    we see any function name that we haven't seen before (or if something that
+    we have *always* seen there suddenly disappears). We do the comparison
+    without paying any attention to ordering or hit counts. This can still
+    cause some crash inflation early on, but the problem will quickly taper
+    off. So, you may get 20 dupes instead of 5,000.
     
   - Bugfix for harmless but absurd trim ratios shown if the first exec in
     the trimmer timed out. Spotted by @EspenGx.

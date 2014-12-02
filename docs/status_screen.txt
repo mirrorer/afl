@@ -66,7 +66,7 @@ should be allowed to complete at least one cycle - and ideally, much more than
 that.
 
 As noted earlier, the first pass can take a couple of days, so sit back and
-relax :-) If you want get broader but more shallow coverage right away, try
+relax :-) If you want to get broader but more shallow coverage right away, try
 the -d option - it gives you a more familiar experience by skipping the
 deterministic fuzzing steps.
 
@@ -104,18 +104,16 @@ option in section 2 of this doc.
   +--------------------------------------+
 
 The section provides some trivia about the coverage observed by the
-instrumentation embedded in the target binary. It provides a rough indication
-of code coverage and can be useful for comparing several different fuzzing
-runs.
+instrumentation embedded in the target binary.
 
 The first line in the box tells you how many branch tuples we have already
 hit, in proportion to how much the bitmap can hold. Be wary of extremes:
 
-  - Absolute numbers below 200 or so suggests that the program is either
-    extremely simple, not instrumented properly (e.g., due to being linked
-    against the wrong copy of the library), or bailing out prematurely on
-    your input test cases. The fuzzer will try to mark this in pink, just
-    to make you aware.
+  - Absolute numbers below 200 or so suggests that the program is extremely
+    simple, or not instrumented properly (e.g., due to being linked against
+    the wrong copy of the library), or bailing out prematurely on your input
+    test cases. The fuzzer will try to mark this in pink, just to make you
+    aware.
 
   - Percentages over 70% may very rarely happen with very complex programs
     that make heavy use of template-generated code. I've seen this just once,
@@ -130,6 +128,9 @@ binary. In essence, if every taken branch is always taken a fixed number of
 times for all the inputs we have tried, this will read "1.00". As we manage
 to trigger other hit counts for every branch, the needle will start to move
 toward "8.00", but will probably never reach it.
+
+Together, the values can be useful for comparing the coverage of several
+different fuzzing jobs that rely on the same instrumented binary.
 
 5) Stage progress
 -----------------
@@ -200,9 +201,9 @@ things up.
 This gives you several metrics that are of interest mostly to complete nerds.
 The section includes the number of paths that the fuzzer likes the most based
 on a minimization algorithm baked into the code (these will get considerably
-more air time), the number of test cases that actually result in better edge
+more air time), and the number of test cases that actually result in better edge
 coverage (versus just pushing the branch hit counters up). There are also
-additional counters for crashes and hangs.
+additional, more detailed counters for crashes and hangs.
 
 7) Fuzzing strategy yields
 --------------------------
@@ -213,13 +214,13 @@ additional counters for crashes and hangs.
   | arithmetics : 53/2.54M, 0/537k, 0/55.2k             |
   |  known ints : 8/322k, 12/1.32M, 10/1.70M            |
   |       havoc : 1903/20.0M, 0/0                       |
-  |        trim : 139.4kB/9201 (20.31% gain)            |
+  |        trim : 139.4 kB/9201 (20.31% gain)           |
   +-----------------------------------------------------+
 
 This is just another nerd-targeted section keeping track of how many paths we
 have netted, in proportion to the number of execs attempted, for each of the
-fuzzing strategies discussed earlier on. This serves to scientifically validate
-assumptions about the usefulness of the approaches taken by afl-fuzz.
+fuzzing strategies discussed earlier on. This serves to convincingly validate
+assumptions about the usefulness of the various approaches taken by afl-fuzz.
 
 The trim strategy stats in this section are a bit different than the rest.
 That line shows the absolute count of removed bytes, the number of execs that
@@ -248,7 +249,7 @@ out of the instrumentation-guided approach taken by afl-fuzz.
 
 The next field shows you the number of inputs that have not gone through any
 fuzzing yet. The same stat is also given for "favored" entries that the fuzzer
-really wants to get in this queue cycle (the non-favored entries may have to
+really wants to get to in this queue cycle (the non-favored entries may have to
 wait).
 
 Next, we have the number of paths imported from other fuzzer instances when

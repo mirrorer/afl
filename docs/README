@@ -62,7 +62,7 @@ The overall algorithm can be summed up as:
   2) Take next input file from the queue,
 
   3) Attempt to trim the test case to the smallest size that doesn't alter
-     the observed behavior of the program,
+     the measured behavior of the program,
 
   4) Repeatedly mutate the file using a balanced and well-researched variety
      of traditional fuzzing strategies,
@@ -74,11 +74,11 @@ The overall algorithm can be summed up as:
   6) Go to 2.
 
 The discovered test cases are also periodically culled to eliminate ones that
-have been made obsolete by newer, higher-coverage finds.
+have been obsoleted by newer, higher-coverage finds.
 
 The strategies mentioned in step 4 are fairly straightforward, but go well
-beyond tools such as zzuf and honggfuzz and lead to additional finds; this is
-discussed in more detail at http://goo.gl/SoZJ47.
+beyond the functionality of  tools such as zzuf and honggfuzz and lead to
+additional finds; this is discussed in more detail at http://goo.gl/SoZJ47.
 
 As a side result of the fuzzing process, the tool creates a small,
 self-contained corpus of interesting test cases. These are extremely useful
@@ -99,8 +99,8 @@ The instrumentation has a fairly modest performance impact; in conjunction with
 other optimizations implemented by afl-fuzz, most programs can be fuzzed as fast
 or even faster than possible with traditional tools.
 
-The correct way to recompile the target program will vary depending on the
-specifics of the build process, but a common approach may be:
+The correct way to recompile the target program may vary depending on the
+specifics of the build process, but a nearly-universal approach would be:
 
 $ CC=/path/to/afl/afl-gcc ./configure
 $ make clean all
@@ -109,8 +109,7 @@ For C++ programs, you will want:
 
 $ CXX=/path/to/afl/afl-g++ ./configure
 
-The clang wrapper is used in a similar manner, by invoking afl-clang or
-afl-clang++.
+The clang wrappers (afl-clang and afl-clang++) are used in the same way.
 
 When testing libraries, it is essential to either link the tested executable
 against a static version of the instrumented library, or to set the right
@@ -153,13 +152,12 @@ The fuzzing process itself is carried out by the afl-fuzz utility. The program
 requires an input directory containing one or more initial test cases, plus a
 path to the binary to test.
 
-For tested programs that accept input directly from stdin, the usual syntax
-may be:
+For programs that accept input directly from stdin, the usual syntax may be:
 
 $ ./afl-fuzz -i input_dir -o output_dir /path/to/program [...params...]
 
 For programs that need to read input from a specific file, the appropriate
-path can be specified via the -f flag:
+location can be specified via the -f flag:
 
 $ ./afl-fuzz [...] -f testme.txt /path/to/program testme.txt
 
@@ -169,22 +167,18 @@ a fairly traditional fuzzer with a couple of nice testing strategies.
 You can use -t and -m to override the default timeout and memory limit for the
 executed process; this is seldom necessary, perhaps except for video decoders.
 
-The fuzzing process will continue until you press Ctrl-C. See the
-status_screen.txt file for information on how to interpret the status screen
-and monitor the health of the process.
-
 Tips for optimizing the performance of the process are discussed in
 perf_tips.txt. Note that the fuzzer starts by meticulously performing an array
 of deterministic fuzzing steps, which can take many hours or days. If you want
-more traditional behavior akin to zzuf or honggfuzz, use the -d option to skip
-that and get quick but less systematic and less in-depth results right away.
+more traditional behavior akin to zzuf or honggfuzz, use the -d option to get
+quick but less systematic and less in-depth results right away.
 
 6) Interpreting output
 ----------------------
 
-The fuzzer keeps going until aborted with Ctrl-C or killed with SIGINT or
-SIGTERM. The progress screen provides various useful stats. To understand what's
-going on, be sure to scan through the status_screen.txt file first.
+The fuzzing process will continue until you press Ctrl-C. See the
+status_screen.txt file for information on how to interpret the displayed stats
+and monitor the health of the process.
 
 There are three subdirectories created within the output directory and updated
 in real time:
@@ -209,9 +203,9 @@ inflated early on in the process, but this should quickly taper off.
 The file names for crashes and hangs should let you correlate them with the
 parent, non-faulting queue entries. This should help with debugging.
 
-The queue/ subdirectory can be also used to resume aborted jobs; simply do:
+Any existing output directory can be also used to resume aborted jobs; simply do:
 
-$ ./afl-fuzz -i old_output_dir/queue -o new_output_dir [...etc...]
+$ ./afl-fuzz -i old_output_dir -o new_output_dir [...etc...]
 
 Although the fuzzer does not perform any additional analysis of the discovered
 crashes, the coverage-based grouping usually makes it easy to triage new finds
@@ -222,8 +216,7 @@ provided in experimental/crash_triage/.
 -----------------------
 
 For tips on how to fuzz a common target on multiple cores or multiple networked
-machines, please refer to the parallel_fuzzing.txt file included with the source
-code of American Fuzzy Lop.
+machines, please refer to parallel_fuzzing.txt.
 
 8) Known limitations & areas for improvement
 --------------------------------------------
@@ -278,7 +271,8 @@ bug reports, or patches from:
   - Eberhard Mattes,
   - Padraig Brady,
   - Ben Laurie,
-  - @dronesec.
+  - @dronesec,
+  - Luca Barbato.
 
 Thank you!
 

@@ -911,6 +911,12 @@ static void read_testcases(void) {
   struct dirent **nl;
   s32 nl_cnt;
   u32 i;
+  u8* fn;
+
+  /* Auto-detect resumption attempts. */
+
+  fn = alloc_printf("%s/queue", in_dir);
+  if (!access(fn, F_OK)) in_dir = fn; else ck_free(fn);
 
   ACTF("Scanning '%s'...", in_dir);
 
@@ -942,21 +948,6 @@ static void read_testcases(void) {
     u8* dfn = alloc_printf("%s/.state/deterministic_done/%s", in_dir, nl[i]->d_name);
 
     u8  passed_det = 0;
-
-    if (!strcmp(nl[i]->d_name, "fuzz_bitmap")) {
-
-      SAYF("\n" cLRD "[-] " cRST
-           "Looks like you are trying to resume the fuzzer by using the top-level output\n"
-           "    directory created during an earlier run of afl-fuzz. That's *almost* what\n"
-           "    we need, but please point the -i parameter to the 'queue/' subdirectory,\n"
-           "    instead :-)\n\n"
-
-           "    (The fuzzer doesn't need the remaining subdirectories in the old output\n"
-           "    dir, so you may want to delete or archive them to save space.)\n");
-
-      FATAL("'fuzz_bitmap' found in the input directory");
-
-    }
 
     free(nl[i]); /* not tracked */
  
@@ -1921,7 +1912,10 @@ static void write_stats_file(void) {
 
   if (!f) PFATAL("fdopen() failed");
 
-  fprintf(f, "cycles_done    : %llu\n"
+  fprintf(f, "start_time     : %llu\n"
+             "last_update    : %llu\n"
+             "fuzzer_pid     : %u\n"
+             "cycles_done    : %llu\n"
              "execs_done     : %llu\n"
              "paths_total    : %u\n"
              "cur_path       : %u\n"
@@ -1930,11 +1924,206 @@ static void write_stats_file(void) {
              "variable_paths : %u\n"
              "unique_crashes : %llu\n"
              "unique_hangs   : %llu\n",
+             start_time / 1000, get_cur_time() / 1000, getpid(),
              queue_cycle - 1, total_execs, queued_paths, current_entry,
              pending_favored, pending_not_fuzzed, queued_variable,
              unique_crashes, unique_hangs);
 
   fclose(f);
+
+}
+
+
+/* A helper function for maybe_delete_out_dir(), deleting all prefixed
+   files in a directory. */
+
+static u8 delete_id_files(u8* path) {
+
+  DIR* d;
+  struct dirent* d_ent;
+
+  d = opendir(path);
+
+  if (!d) return 0;
+
+  while ((d_ent = readdir(d))) {
+
+    if (!strncmp(d_ent->d_name, "id:", 3)) {
+
+      u8* fname = alloc_printf("%s/%s", path, d_ent->d_name);
+      if (unlink(fname)) PFATAL("Unable to delete '%s'", fname);
+      ck_free(fname);
+
+    }
+
+  }
+
+  closedir(d);
+
+  return !!rmdir(path);
+
+}
+
+
+/* Another helper for cleaning up the .synced dir. */
+
+static u8 delete_in_subdirs(u8* path) {
+
+  DIR* d;
+  struct dirent* d_ent;
+
+  d = opendir(path);
+
+  if (!d) return 0;
+
+  while ((d_ent = readdir(d))) {
+
+    if (d_ent->d_name[0] != '.') {
+
+      u8* fname = alloc_printf("%s/%s", path, d_ent->d_name);
+      if (delete_id_files(fname)) return 1;
+      ck_free(fname);
+
+    }
+
+  }
+
+  closedir(d);
+
+  return !!rmdir(path);
+
+}
+
+
+/* Delete fuzzer output directory if we recognize it as ours, if the fuzzer
+   is not currently running, and if the last run time isn't too great. */
+
+static void maybe_delete_out_dir(void) {
+
+  FILE* f;
+  u8* fn = alloc_printf("%s/fuzzer_stats", out_dir);
+
+  f = fopen(fn, "r");
+
+  if (f) {
+
+    u64 start_time, last_update;
+    u32 fuzzer_pid;
+
+    if (fscanf(f, "start_time     : %llu\n"
+                  "last_update    : %llu\n"
+                  "fuzzer_pid     : %u\n", &start_time, &last_update,
+                  &fuzzer_pid) != 3) FATAL("Malformed data in '%s'", fn);
+
+    fclose(f);
+
+    /* First of all, let's see if the other fuzzer is still running. */
+
+    if (!kill(fuzzer_pid, 0) || errno != ESRCH) {
+
+      SAYF("\n" cLRD "[-] " cRST
+           "Looks like the job output directory is being actively used by another\n"
+           "    instance of afl-fuzz, running with PID %u. You will need to choose a\n"
+           "    different %s or stop the other process first.\n", fuzzer_pid,
+           sync_id ? "fuzzer ID" : "output location");
+
+       FATAL("Directory '%s' is in use", out_dir);
+
+    }
+
+    /* With this out of the way, let's see how much work is at stake. */
+
+    if (last_update - start_time > 60 * 60) {
+
+      SAYF("\n" cLRD "[-] " cRST
+           "The job output directory already exists and contains the results of more\n"
+           "    than an hour's worth of fuzzing. To avoid data loss, afl-fuzz will *NOT*\n"
+           "    automatically delete this data for you.\n\n"
+  
+           "    Please remove or rename the directory manually, or choose a different\n"
+           "    output location for this job.\n");
+
+       FATAL("At-risk data found in in '%s'", out_dir);
+
+    }
+
+  }
+
+  ck_free(fn);
+
+  OKF("Output directory exists but deemed OK to reuse.");
+  ACTF("Deleting old session data...");
+
+  // Okay, let's get the ball rolling! First, we need to get rid of the entries
+  // in <out_dir>/.synced/*/id:*, if any are present.
+
+  fn = alloc_printf("%s/.synced", out_dir);
+  if (delete_in_subdirs(fn)) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  // Next, we need to clean up <out_dir>/queue/.state/ subdirectories:
+
+  fn = alloc_printf("%s/queue/.state/deterministic_done", out_dir);
+  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/queue/.state/redundant_paths", out_dir);
+  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  // Then, get rid of the .state subdirectory itself (should be empty by now)
+  // and everything matching <out_dir>/queue/id:*.
+
+  fn = alloc_printf("%s/queue/.state", out_dir);
+  if (rmdir(fn) && errno != ENOENT) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/queue", out_dir);
+  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  // All right, let's do <out_dir>/crashes/id:* and <out_dir>/hangs/id:* next:
+
+  fn = alloc_printf("%s/crashes", out_dir);
+  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/hangs", out_dir);
+  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  // And now, for some finishing touches:
+
+  fn = alloc_printf("%s/.cur_input", out_dir);
+  if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/fuzz_bitmap", out_dir);
+  if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/fuzzer_stats", out_dir);
+  if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  OKF("Output dir cleanup successful.");
+
+  // Wow... is that all? If yes, celebrate!
+
+  return;
+
+dir_cleanup_failed:
+
+  SAYF("\n" cLRD "[-] " cRST
+       "Whoops, the fuzzer tied to reuse your output directory, but bumped into\n"
+       "    some files that shouldn't be there or that couldn't be removed - so it\n"
+       "    decided to abort! This happened while processing this path:\n\n"
+
+       "    %s\n\n"
+       "    Please examine and manually delete the files, or specify a different\n"
+       "    output location for the tool.\n", fn);
+
+  FATAL("Output directory cleanup failed");
 
 }
 
@@ -4083,70 +4272,44 @@ static void setup_dirs_fds(void) {
   if (sync_id && mkdir(sync_dir, 0700) && errno != EEXIST)
       PFATAL("Unable to create '%s'", sync_dir);
 
-  if (mkdir(out_dir, 0700) && errno != EEXIST)
-    PFATAL("Unable to create '%s'", out_dir);
+  if (mkdir(out_dir, 0700)) {
 
-  tmp = alloc_printf("%s/queue", out_dir);
+    if (errno != EEXIST) PFATAL("Unable to create '%s'", out_dir);
 
-  if (mkdir(tmp, 0700)) {
-
-    if (errno == EEXIST)
-
-      SAYF("\n" cLRD "[-] " cRST
-           "Oops, looks like the output directory already exists and isn't empty! You\n"
-           "    have two options:\n\n"
-
-           "    - To start over, delete the directory first. The fuzzer won't do this for\n"
-           "      you to void accidentally deleting days or weeks worth of work.\n\n"
-
-           "    - To resume the fuzzing session, use the queue/ subdirectory in the output\n"
-           "      dir as the *input* for the new session, and point the -o option\n"
-           "      to a brand new location. Good luck!\n");
-
-      PFATAL("Unable to create '%s'", tmp);
+    maybe_delete_out_dir();
 
   }
 
+  tmp = alloc_printf("%s/queue", out_dir);
+  if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
 
   tmp = alloc_printf("%s/queue/.state/", out_dir);
-
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
-
   ck_free(tmp);
 
   tmp = alloc_printf("%s/queue/.state/deterministic_done/", out_dir);
-
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
-
   ck_free(tmp);
 
   tmp = alloc_printf("%s/queue/.state/redundant_paths/", out_dir);
-
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
-
   ck_free(tmp);
 
   if (sync_id) {
 
     tmp = alloc_printf("%s/.synced/", out_dir);
-
     if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
-
     ck_free(tmp);
 
   }
 
   tmp = alloc_printf("%s/crashes", out_dir);
-
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
-
   ck_free(tmp);
 
   tmp = alloc_printf("%s/hangs", out_dir);
-
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
-
   ck_free(tmp);
 
   dev_null_fd = open("/dev/null", O_RDWR);
@@ -4392,6 +4555,9 @@ int main(int argc, char** argv) {
   check_asan_opts();
 
   if (sync_id) fix_up_sync();
+
+  if (!strcmp(in_dir, out_dir))
+    FATAL("Input and output directories can't be the same!");
 
   fix_up_banner(argv[optind]);
 

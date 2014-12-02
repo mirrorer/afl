@@ -5,8 +5,8 @@ Environmental variables
   (See README for the general instruction manual)
 
 Several components of American Fuzzy Lop make use of environmental variables
-to implement features that may be useful for power users or in scripting
-environments.
+to implement features that may be useful for power users or may come handy
+in scripting environments.
 
 1) Settings for afl-gcc, afl-clang, and afl-as
 ----------------------------------------------
@@ -14,9 +14,9 @@ environments.
   - Setting AFL_QUIET will prevent afl-cc and afl-as banners from being
     displayed during compilation, in case you find them distracting.
 
-  - AFL_PATH can be used to point to the location of afl-as. This is useful if
-    you have an older version of afl installed system-wide (doing 'make' should
-    tell you about that).
+  - AFL_PATH can be used to point to the location of afl-as, which is
+    especially useful if you have an older version installed system-wide, and
+    don't want to use that.
 
   - Setting AFL_HARDEN automatically adds code hardening options when invoking
     the downstream compiler. This currently includes -D_FORTIFY_SOURCE=2 and
@@ -60,3 +60,12 @@ environments.
 None at this point. Several user-serviceable settings (e.g., the use of
 terminal colors) can be adjusted via config.h.
 
+If these variables are not already present in the environment, the tool
+automatically sets LD_BIND_NOW to 1 and ASAN_OPTIONS to:
+
+  abort_on_error=1
+  detect_leaks=0
+  allocator_may_return_null=1
+
+Do not overrie abort_on_error=1 when using ASAN, since doing so would prevent
+out-of-bounds access bugs from being detected as such.

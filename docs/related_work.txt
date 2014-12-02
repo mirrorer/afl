@@ -74,14 +74,14 @@ solves several itches that seemed impossible to scratch with other tools:
    to find a bug, but runs 100x slower, your users getting a bad deal.
 
    The baseline that you will be competing against is a lot more impressive
-   than we may be willing to give it credit for; for example, check out this
-   work by Gynvael and Mateusz Jurczyk - essentially an application of "dumb"
-   fuzzing against ffmpeg, a security-critical component of modern browsers
-   and media players: http://goo.gl/L8DwWE
+   than we may be willing to acknowledge; for example, check out the work by
+   Gynvael and Mateusz Jurczyk - essentially an application of "dumb" fuzzing
+   against ffmpeg, a security-critical component of modern browsers and media
+   players: http://goo.gl/L8DwWE
 
-   To fix this, afl-fuzz is meant to let you fuzz most of the intended
-   targets at roughly their native speed - so even if it doesn't add value,
-   you do not lose much.
+   To avoid starting with a handicap, afl-fuzz is meant to let you fuzz most of
+   the intended targets at roughly their native speed - so even if it doesn't
+   add value, you do not lose much.
 
 2) It is even harder to compete with brute force if your approach is brittle
    and fails unexpectedly. Most of the approaches based on symbolic execution,
@@ -94,9 +94,9 @@ solves several itches that seemed impossible to scratch with other tools:
    data and the state of the program that they can't meaningfully prioritize
    their next steps.
 
-   In the end, the benchmark is simple: if less experienced users unfamiliar
-   with your fuzzing framework can't just grab the tool and have it work
-   properly against any program of their choice - say, OpenSSL, GnuPG,
+   In the end, the rule seems pretty simple: if less experienced users
+   unfamiliar with your fuzzing framework can't just grab the tool and have it
+   work properly against any program of their choice - say, OpenSSL, GnuPG,
    binutils, or ffmpeg - you may be doing more harm than good.
 
    In this spirit, afl-fuzz is designed to be rock solid and is kept as simple
@@ -119,14 +119,14 @@ solves several itches that seemed impossible to scratch with other tools:
    outline the probable causes and workarounds, and get you back on track
    right away.
 
-4) Fuzzing can get hard to pull off and very slow if you want to test programs
-   that are resource-hungry, require complex UI automation, or need non-trivial
-   testing harnesses to spot non-crashing bugs.
+4) Fuzzing can get hard to pull off and will be very slow if you want to test
+   programs that are resource-hungry, require complex UI automation, or need
+   non-trivial testing harnesses to prepare inputs or spot non-crashing bugs.
 
    Most fuzzing frameworks simply ignore the problem; afl-fuzz tries to solve
    it by automatically synthesizing a small corpus of really interesting test
-   cases that are compact enough to just process them manually or fed them to a
-   simple UI automation framework when dealing with browsers, office
+   cases that are compact enough to just process them manually or fed them to
+   a simple UI automation framework when dealing with browsers, office
    applications, and so on.
 
 But perhaps most importantly, afl-fuzz finds cool bugs.
