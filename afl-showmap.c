@@ -59,26 +59,37 @@ static u8  sink_output,               /* Sink program output               */
 
 /* Classify tuple counts. */
 
+#define AREP4(_sym) (_sym), (_sym), (_sym), (_sym)
+#define AREP8(_sym) AREP4(_sym), AREP4(_sym)
+#define AREP16(_sym) AREP8(_sym), AREP8(_sym)
+#define AREP32(_sym) AREP16(_sym), AREP16(_sym)
+#define AREP64(_sym) AREP32(_sym), AREP32(_sym)
+#define AREP128(_sym) AREP64(_sym), AREP64(_sym)
+
+static u8 count_class_lookup[256] = {
+
+  /* 0 - 3:       4 */ 0, 1, 2, 4,
+  /* 4 - 7:      +4 */ AREP4(8),
+  /* 8 - 15:     +8 */ AREP8(16),
+  /* 16 - 31:   +16 */ AREP16(32),
+  /* 32 - 127:  +96 */ AREP64(64), AREP32(64),
+  /* 128+:     +128 */ AREP128(128)
+
+};
+
 static void classify_counts(u8* mem) {
 
   u32 i = MAP_SIZE;
 
   while (i--) {
 
-    switch (*mem) {
-      case 3:           *mem = (1 << 2); break;
-      case 4 ... 7:     *mem = (1 << 3); break;
-      case 8 ... 15:    *mem = (1 << 4); break;
-      case 16 ... 31:   *mem = (1 << 5); break;
-      case 32 ... 127:  *mem = (1 << 6); break;
-      case 128 ... 255: *mem = (1 << 7); break;
-    }
-
+    *mem = count_class_lookup[*mem];
     mem++;
 
   }
 
 }
+
 
 /* Show all recorded tuples. */
 
