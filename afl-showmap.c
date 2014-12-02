@@ -81,10 +81,23 @@ static void classify_counts(u8* mem) {
 
   u32 i = MAP_SIZE;
 
-  while (i--) {
+  if (getenv("AFL_EDGES_ONLY")) {
 
-    *mem = count_class_lookup[*mem];
-    mem++;
+    while (i--) {
+
+      if (*mem) *mem = 1;
+      mem++;
+
+    }
+
+  } else {
+
+    while (i--) {
+
+      *mem = count_class_lookup[*mem];
+      mem++;
+
+    }
 
   }
 
@@ -247,8 +260,9 @@ static void usage(u8* argv0) {
 
        "Shows all instrumentation tuples recorded when executing a binary compiled\n"
        "with afl-gcc or afl-clang. You can set AFL_SINK_OUTPUT=1 to sink all output\n"
-       "from the executed program, or AFL_QUIET=1 to suppress non-fatal messages\n"
-       "from this tool.\n\n", argv0);
+       "from the executed program, AFL_QUIET=1 to suppress non-fatal messages from\n"
+       "this tool, or AFL_EDGES_ONLY to only display edges, not hit counts.\n\n",
+       argv0);
 
   exit(1);
 

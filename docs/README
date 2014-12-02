@@ -182,8 +182,8 @@ quick but less systematic and less in-depth results right away.
 
 The fuzzing process will continue until you press Ctrl-C. See the
 status_screen.txt file for information on how to interpret the displayed stats
-and monitor the health of the process. In general, you want to allow the fuzzer
-to complete at least one queue cycle, which may take a couple of days.
+and monitor the health of the process. At the *very* minimum, you want to allow
+the fuzzer to complete one queue cycle, which may take a day or so.
 
 There are three subdirectories created within the output directory and updated
 in real time:
@@ -254,8 +254,13 @@ Here are some of the most important caveats for AFL:
     particularly verbose, redundant verbiage - say, XHTML or JavaScript. In
     such cases, template- or ABNF-based generators tend to fare better.
 
+    (Well, that's the theory. With libxml2, afl-fuzz is known to be able to
+    pull <![CDATA[... out of thin air - even though it's technically not
+    supposed to.)
+
     Of course, if you want to modify the code to generate syntax-aware
     mutations, go ahead! You'd want to start with fuzz_one() in afl-fuzz.c.
+    Patches that refactor this code are welcome.
 
   - As with any other brute-force tool, the fuzzer offers limited coverage if
     encryption, checksums, cryptographic signatures, or compression are used to

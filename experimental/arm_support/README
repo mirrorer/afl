@@ -1,12 +1,20 @@
 This directory contains replacement files that should enable experimental
 ARMv7 instrumentation in place of the default x86 code. Several notes:
 
+  - This code is behind the "mainstream" version and lacks some of the
+    features and checks added recently.
+
   - The code is confirmed to work only in the sense that it allows libpng 
     and jpeg9c to be compiled with ./configure --disable-shared and run
-    without catching fire. A lot more testing is necessary to declare victory. 
+    without catching fire. 
 
   - In fact, something is known to go wrong when --disable-shared is *NOT*
-    specified; possibly a stack corruption bug. I need to investigate.
+    specified. The most likely explanation is that there is a jump table /
+    literal pool out there somewhere that we do not recognize and inject 
+    instrumentation into, breaking alignment.
+
+    Hard to troubleshoot because it only happens with big programs like
+    libpng. If you find smaller programs that misbehave, please let me know!
 
   - To compile on ARM, you need to take several manual steps:
 

@@ -54,6 +54,8 @@ in scripting environments.
     /dev/null, so that all you see is a list of tuples recorded by the
     instrumentation. Very useful for test case de-duplication scripts.
 
+  - Setting AFL_EDGES_ONLY makes the tool hide the edge hit count information.
+
 3) Settings for afl-fuzz
 ------------------------
 

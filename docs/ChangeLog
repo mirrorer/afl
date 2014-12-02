@@ -1,4 +1,12 @@
 --------------
+Version 0.79b:
+--------------
+
+  - Minor adjustment to path skipping logic.
+
+  - Several documentation updates to reflect the changes made yesterday.
+
+--------------
 Version 0.78b:
 --------------
 
@@ -28,8 +36,7 @@ Version 0.77b:
 
   - Typo fixes.
 
-  - A better warning for aborted runs.
-
+  - Warning for runs that are aborted early on.
 
 --------------
 Version 0.76b:
@@ -49,7 +56,7 @@ Version 0.75b:
 Version 0.74b:
 --------------
 
-  - More responsive exec speed averages an UI speed scaling.
+  - More responsive exec speed averages and better UI speed scaling.
 
   - Fix for interrupted reads on Solaris. Submitted by Martin Carpenter.
 

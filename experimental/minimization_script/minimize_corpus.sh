@@ -26,6 +26,10 @@
 # cmdline parameters; very simple edits are required to support other use
 # cases.
 #
+# If you set AFL_EDGES_ONLY beforehand, the afl-showmap utility will only
+# report branch hit information, not hit counts, producing a more traditional
+# and smaller corpus that more directly maps to edge coverage.
+#
 
 echo "corpus minimization tool for afl-fuzz by <lcamtuf@google.com>"
 echo

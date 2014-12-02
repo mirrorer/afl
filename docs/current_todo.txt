@@ -4,42 +4,55 @@ TODO
 
   (See README for the general instruction manual)
 
-Here's the list of stuff I want to implement in afl:
+Here's the list of stuff I'm thinking about:
 
-  - Better offloading of local fuzzing work between parallel instances?
+  - Better distribution of work between the master instance and slaves
+    when doing parallel fuzzing.
 
-  - Test 8192 as an "interesting" integer,
+  - Possible inclusion of 8192 as an "interesting" integer (needs testing).
 
-  - Investigate x86 hardware branch tracing via the perf tracing API,
+  - Investigation of x86 hardware branch tracing (Via the Linux perf API?)
+    as an alternative to injected instrumentation.
 
-  - More test cases (see testcases/wishlist.txt).
+  - More test cases! Contributions welcome - see testcases/wishlist.txt.
 
-  - Detect multi-thread / execve() binaries and warn user about trade-offs?
+  - Detection of multi-threaded apps or apps that call execve(), to tell
+    the user about trade-offs.
 
-  - Special-cased expansion for strcmp() & similar functions to replace
-    them with an instrumented loop - on a trial basis.
+  - Special-cased expansion of strcmp() and related functions to replace
+    them with instrumented loops; see experimental/instrumented_cmp/.
 
-  - Perhaps a rewrite of the fork server code in C that gets precompiled
-    with -S and then appended alongside with the instrumentation.
+  - A rewrite of the fork server code in C, converted to assembly as a part
+    of the build process.
 
-  - A second part of Jann's fork server patch, which allows us to skip setup
-    steps for certain slow programs.
+  - Incorporation of the second part of Jann's fork server patch, allowing
+    afl to skip over program initialization steps and stop precisely at first
+    read.
 
-  - A pluggable version of fuzz_one(), so that people can write syntax-aware
-    mutators or filters more easily.
+  - A pluggable version of fuzz_one() to make it easy to write syntax-aware
+    mutators without navigating a huge blob of code.
 
-  - Perhaps afl-fuzz.c broken into several smaller files for aesthetic
-    purposes.
+  - Breaking up afl-fuzz.c into several smaller files, for aesthetic purposes.
 
-  - Proper support for threads, with prev_loc traced on a per-tid basis?
-    (This may be slow.)
+  - Proper support for threads, which would probably entail keeping track of
+    prev_loc on a per-tid basis (may be slow).
 
-  - Support for DynamoRIO (or pin) for closed-source instrumentation in
-    non-obfuscated binaries.
+  - Support for DynamoRIO (or PIN) for closed-source instrumentation of
+    non-obfuscated binaries. Should be pretty easy, just not a top priority
+    right now. Contributions welcome.
 
-I'm not particularly sold on adding more exotic output modes, for example to
-send data to a TCP or UDP socket, or serve it off one. Ditto for supporting
-"remote" execution with execution code phoned back in by a harness. It's
-probably more effort than it's worth, because network services have so many
-different process models, etc, and you don't even necessarily know where
-to watch for crashes or how to reset them to initial state.
+There is also one thing I get asked to do but am a bit unconvinced about:
+support for fuzzing network services. When you want to fuzz a non-modified
+daemon, you need to deal with multiple different process models, e.g.:
+
+  - One-shot (inetd-style),
+  - Single process (traditional UDP services),
+  - accept-fork (traditional TCP services),
+  - Worker pool (Apache),
+  - Privilege-separated stuff (OpenSSH).
+
+So, it's difficult to even understand which process needs to be monitored and
+how to reset it to the original state for every new connection. The
+implementation would be very messy and still probably fail more often than
+it should. Your best bet is just to hack the code a bit to make it read from
+stdin an exit when done.

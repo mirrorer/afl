@@ -47,7 +47,7 @@ patterns), crashes, and hangs.
 
 When it comes to timing: there is no hard rule, but most fuzzing jobs should be
 expected to run for days or weeks; in fact, for a moderately complex project, the
-first pass will probably take a couple of days. Every now and then, some jobs
+first pass will probably take a day or so. Every now and then, some jobs
 will be allowed to run for months.
 
 There's one important thing to watch out for: if the tool is not finding new

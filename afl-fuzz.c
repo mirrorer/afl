@@ -2475,7 +2475,7 @@ static void show_stats(void) {
     if (queue_cycle == 1) strcpy(tmp, cMGN); else
 
     /* Subsequent cycles, but we're still making finds. */
-    if (!cycles_wo_finds) strcpy(tmp, cYEL); else
+    if (cycles_wo_finds < 3) strcpy(tmp, cYEL); else
 
     /* No finds for a long time and no test cases to try. */
     if (cycles_wo_finds > 20 && !pending_not_fuzzed) strcpy(tmp, cLGN);
@@ -3105,7 +3105,8 @@ static u8 fuzz_one(char** argv) {
 
     /* Otherwise, still possibly skip non-favored cases, albeit less often. */
 
-    if (!queue_cur->favored && UR(100) < SKIP_NFAV_PROB) return 1;
+    if (!queue_cur->favored && queued_paths > 10 &&
+        UR(100) < SKIP_NFAV_PROB) return 1;
 
   }
 

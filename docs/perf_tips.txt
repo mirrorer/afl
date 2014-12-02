@@ -61,7 +61,8 @@ some compile-time features that aren't really needed for the job (try
 calling other utilities via exec*(), popen(), system(), or equivalent calls.
 
 Last but not least, if you are using ASAN and the performance is unacceptable,
-consider turning it off.
+consider turning it off and running with ASAN against the generated corpus
+later on.
 
 4) Avoid instrumenting ALL THE THINGS
 -------------------------------------
@@ -70,29 +71,14 @@ Instrument just the libraries you actually want to stress-test right now, one
 at a time. Trying to simultaneously instrument glibc, zlib, gmp, OpenSSL,
 and libxml2 to test a single program is an overkill.
 
-5) Parallelize your fuzzers...
-------------------------------
+5) Parallelize your fuzzers
+---------------------------
 
 The fuzzer is designed to need ~1 core per job. This means that on an 8-core
 system, you can easily run eight parallel fuzzing jobs with relatively little
 performance hit. For tips on how to do that, see parallel_fuzzing.txt.
 
-6) ...within the limits of reason
----------------------------------
-
-Of course, avoid running too many fuzzers on a single machine, and stay away
-from systems that are low on physical memory, are under heavy CPU load, or
-use NFS.
-
-Oh, here's a pro tip - on many Linux systems, you can get a slight performance
-boost with afl-fuzz by doing this:
-
-echo 1 >/proc/sys/kernel/sched_child_runs_first
-echo 1 >/proc/sys/kernel/sched_autogroup_enabled
-echo 50000000 >/proc/sys/kernel/sched_migration_cost_ns
-echo 250000000 >/proc/sys/kernel/sched_latency_ns
-
-7) Keep memory use and timeouts in check
+6) Keep memory use and timeouts in check
 ----------------------------------------
 
 If you have increased the -m or -t limits more than truly necessary, consider
@@ -102,6 +88,34 @@ Keep in mind that some programs end up spending a lot of time allocating and
 initializing megabytes of memory to accommodate pathological inputs. Low -m
 values can make them give up sooner - long before hitting the "hard" time
 limit defined with -t - without necessarily sacrificing coverage.
+
+7) Check OS configuration
+-------------------------
+
+There are several OS-level factors that may affect fuzzing speed:
+
+  - High system load. Use idle machines where possible.
+
+  - Network filesystems, either used for fuzzer input / output, or accessed by
+    the fuzzed binary to read configuration files (pay special attention to the
+    home directory).
+
+  - On-demand CPU scaling. The Linux 'ondemand' governor runs on a specific
+    schedule and is known to underestimate the cost of short-lived processes
+    spawned by afl-fuzz (or any other fuzzer). On Linux, this can be fixed with:
+
+    cd /sys/devices/system/cpu\n
+    echo performance | tee cpu*/cpufreq/scaling_governor
+
+    On other systems, the impact and potential solutions may be different.
+
+  - Suboptimal scheduling strategies. On my Linux system, you can get few
+    percent extra by doing:
+
+    echo 1 >/proc/sys/kernel/sched_child_runs_first
+    echo 1 >/proc/sys/kernel/sched_autogroup_enabled
+    echo 50000000 >/proc/sys/kernel/sched_migration_cost_ns
+    echo 250000000 >/proc/sys/kernel/sched_latency_ns
 
 8) If all other options fail, use -d
 ------------------------------------
