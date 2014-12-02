@@ -14,17 +14,19 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.58b
+VERSION     = 0.59b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
 HELPER_PATH = $(PREFIX)/lib/afl
 DOC_PATH    = $(PREFIX)/share/doc/afl
+MISC_PATH   = $(PREFIX)/share/afl
 
 PROGS       = afl-gcc afl-as afl-fuzz afl-showmap
 
 CFLAGS     += -O3 -Wall -D_FORTIFY_SOURCE=2 -g -Wno-pointer-sign \
-	      -DAFL_PATH=\"$(HELPER_PATH)\" -DVERSION=\"$(VERSION)\"
+	      -DAFL_PATH=\"$(HELPER_PATH)\" -DDOC_PATH=\"$(DOC_PATH)\" \
+	      -DVERSION=\"$(VERSION)\"
 
 ifneq "$(shell echo $$HOSTNAME)" "raccoon"
   CFLAGS   += -Wno-format
@@ -76,12 +78,13 @@ clean:
 	rm -rf out_dir
 
 install: all
-	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH) $${DESTDIR}$(DOC_PATH)
+	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH) $${DESTDIR}$(DOC_PATH) $${DESTDIR}$(MISC_PATH)
 	install -m 755 afl-gcc afl-fuzz afl-showmap $${DESTDIR}$(BIN_PATH)
 	for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $${DESTDIR}$(BIN_PATH)/$$i; done
 	install -m 755 afl-as $${DESTDIR}$(HELPER_PATH)
 	ln -sf afl-as $${DESTDIR}$(HELPER_PATH)/as
 	install -m 644 docs/README docs/ChangeLog docs/*.txt $${DESTDIR}$(DOC_PATH)
+	cp -r testcases/ $${DESTDIR}$(MISC_PATH)
 
 publish: clean
 	test "`basename $$PWD`" = "afl" || exit 1

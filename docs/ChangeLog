@@ -1,4 +1,14 @@
 --------------
+Version 0.59b:
+--------------
+
+  - make install now installs test cases, too.
+
+  - Better pointers to installed README in afl-fuzz.
+
+  - More work on RLIMIT_AS for OpenBSD.
+
+--------------
 Version 0.58b:
 --------------
 

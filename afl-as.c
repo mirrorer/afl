@@ -48,8 +48,8 @@ static u8   be_quiet,           /* Quiet mode (no stderr output)        */
 
 static u32  inst_ratio = 100;   /* Instrumentation probability (%)      */
 
-/* If we don't find --32 or --64 in the command-line, default to 
-   instrumentation for whichever mode we were cmpiled with. This is not
+/* If we don't find --32 or --64 in the command line, default to 
+   instrumentation for whichever mode we were compiled with. This is not
    perfect, but should do the trick for almost all use cases. */
 
 #ifdef __x86_64__

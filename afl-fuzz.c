@@ -59,7 +59,8 @@ static u8 *in_dir,                    /* Directory with initial testcases */
           *sync_dir,                  /* Synchronization directory        */
           *sync_id,                   /* Fuzzer ID                        */
           *use_banner,                /* Display banner                   */
-          *in_bitmap;                 /* Input bitmap                     */
+          *in_bitmap,                 /* Input bitmap                     */
+          *doc_path;                  /* Path to documentation dir        */
 
 static u32 exec_tmout = EXEC_TIMEOUT; /* Configurable exec timeout (ms)   */
 static u64 mem_limit = MEM_LIMIT;     /* Memory cap for child (MB)        */
@@ -75,7 +76,7 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            resuming_fuzz,             /* Resuming an older fuzzing job?   */
            timeout_given,             /* Specific timeout given?          */
            not_on_tty;                /* stdout is not a tty              */
-
+            
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
            dev_null_fd,               /* Persistent fd for /dev/null      */
@@ -1042,13 +1043,9 @@ static void init_forkserver(char** argv) {
 
 #else
 
-      /* Hmm, this is necessary to support OpenBSD. */
-
-#  warning "**** WARNING WARNING WARNING ****"
-#  warning "Your system does not appear to support RLIMIT_AS (aka ulimit -v). We'll"
-#  warning "use RLIMIT_DATA (ulimit -d), but it's not nearly as robust. Be careful"
-#  warning "with poorly-behaved binaries (or brace for OOM conditions)."
-#  warning "**** WARNING WARNING WARNING ****"
+      /* This takes care of OpenBSD, which doesn't have RLIMIT_AS, but
+         according to reliable sources, RLIMIT_DATA covers anonymous
+         maps - so we should be getting good protection against OOM bugs. */
 
       setrlimit(RLIMIT_DATA, &r); /* Ignore errors */
 
@@ -1168,14 +1165,15 @@ static void init_forkserver(char** argv) {
          "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
-         "      For binaries compiled with ASAN, please see notes_for_asan.txt.\n\n"
+         "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
 
          "    - The binary always crashes when executed for some intrinsic reason beyond\n"
          "      our control. If so, you probably need to fix the underlying problem or\n"
          "      find a more suitable replacement.\n\n"
 
          "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
-         "      fail, poke <lcamtuf@coredump.cx>.\n", DMS(mem_limit << 20), mem_limit);
+         "      fail, poke <lcamtuf@coredump.cx>.\n",
+         DMS(mem_limit << 20), mem_limit, doc_path);
 
     FATAL("Fork server crashed with signal %d", WTERMSIG(status));
 
@@ -1191,8 +1189,8 @@ static void init_forkserver(char** argv) {
 
        "    - The binary is not instrumented. The fuzzer depends on compile-time\n"
        "      instrumentation to find interesting test cases. For more info on this,\n"
-       "      and for instructions on how to instrument binaries, please consult the\n"
-       "      README.\n\n"
+       "      and for instructions on how to instrument binaries, please consult\n"
+       "      %s/README.\n\n"
 
        "      (In some cases, you may want to use afl-fuzz as a traditional, \"dumb\"\n"
        "      fuzzer. If that's the intent, specify the -n option - but expect it to\n"
@@ -1209,10 +1207,11 @@ static void init_forkserver(char** argv) {
        "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
-       "      For binaries compiled with ASAN, please see notes_for_asan.txt.\n\n"
+       "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
 
        "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
-       "      fail, poke <lcamtuf@coredump.cx>.\n", DMS(mem_limit << 20), mem_limit);
+       "      fail, poke <lcamtuf@coredump.cx>.\n",
+       doc_path, DMS(mem_limit << 20), mem_limit, doc_path);
 
   FATAL("No instrumentation detected or fork server fault");
 
@@ -1655,10 +1654,11 @@ static void perform_dry_run(char** argv) {
              "      ( ulimit -Sd $[%llu << 20]; /path/to/binary [...] <testcase )\n\n"
 #endif /* ^RLIMIT_AS */
 
-             "      For binaries compiled with ASAN, please see notes_for_asan.txt.\n\n"
+             "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
 
              "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
-             "      fail, poke <lcamtuf@coredump.cx>.\n", DMS(mem_limit << 20), mem_limit);
+             "      fail, poke <lcamtuf@coredump.cx>.\n",
+             DMS(mem_limit << 20), mem_limit, doc_path);
 
         FATAL("Test case '%s' results in a crash", fn);
 
@@ -2520,7 +2520,7 @@ static void show_stats(void) {
     double cur_runnable = get_runnable_processes();
     u32 cur_utilization = cur_runnable * 100 / cpu_core_count;
 
-    u8* cpu_color = cNOR;
+    u8* cpu_color = cCYA;
 
     /* If we could still run two or more processes, use green. */
 
@@ -2571,16 +2571,17 @@ static void show_init_stats(void) {
   SAYF("\n");
 
   if (avg_us > 10000) 
-    WARNF(cLRD "The target binary is pretty slow! See perf_tips.txt for help.");
+    WARNF(cLRD "The target binary is pretty slow! See %s/perf_tips.txt.",
+          doc_path);
 
   if (!resuming_fuzz) {
 
     if (max_len > 50 * 1024)
-      WARNF(cLRD "Some test cases are huge (%s) - see perf_tips.txt for help!",
-            DMS(max_len));
+      WARNF(cLRD "Some test cases are huge (%s) - see %s/perf_tips.txt!",
+            DMS(max_len), doc_path);
     else if (max_len > 10 * 1024)
-      WARNF("Some test cases are big (%s) - see perf_tips.txt for advice.",
-            DMS(max_len));
+      WARNF("Some test cases are big (%s) - see %s/perf_tips.txt.",
+            DMS(max_len), doc_path);
 
     if (useless_at_start)
       WARNF(cLRD "Some test cases look useless. Consider using a smaller set.");
@@ -4376,9 +4377,9 @@ static void usage(u8* argv0) {
        "  -T text       - show a specific text banner on the screen\n"
        "  -M / -S id    - distributed mode (see parallel_fuzzing.txt)\n\n"
 
-       "For additional tips, please consult the README.\n\n",
+       "For additional tips, please consult %s/README.\n\n",
 
-       argv0, EXEC_TIMEOUT, MEM_LIMIT);
+       argv0, EXEC_TIMEOUT, MEM_LIMIT, doc_path);
 
   exit(1);
 
@@ -4524,7 +4525,7 @@ static void count_cores(void) {
 
       } else if (cur_runnable + 1 <= cpu_core_count) {
 
-        OKF("Try parallelizing for optimal performance. See parallel_fuzzing.txt.");
+        OKF("Try parallel jobs - see %s/parallel_fuzzing.txt.", doc_path);
   
       }
 
@@ -4609,6 +4610,8 @@ int main(int argc, char** argv) {
 
   signal(SIGTSTP, SIG_IGN);
   signal(SIGPIPE, SIG_IGN);
+
+  doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 
   while ((opt = getopt(argc,argv,"+i:o:f:m:t:T:dnB:S:M:")) > 0)
 

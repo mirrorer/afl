@@ -232,9 +232,10 @@ static void usage(u8* argv0) {
 
   SAYF("\n%s /path/to/traced_app [ ... ]\n\n"
 
-       "Shows all instrumentation tuples recorded when executing the target binary.\n"
-       "You can set AFL_SINK_OUTPUT=1 to sink all output from the executed program,\n" 
-       "or AFL_QUIET=1 to suppress non-fatal messages from this tool.\n\n", argv0);
+       "Shows all instrumentation tuples recorded when executing a binary compiled\n"
+       "with afl-gcc or afl-clang. You can set AFL_SINK_OUTPUT=1 to sink all output\n"
+       "from the executed program, or AFL_QUIET=1 to suppress non-fatal messages\n"
+       "from this tool.\n\n", argv0);
 
   exit(1);
 
