@@ -158,7 +158,8 @@ struct queue_entry {
       passed_det,                     /* Deterministic stages passed?     */
       has_new_cov,                    /* Triggers new coverage?           */
       var_behavior,                   /* Variable behavior?               */
-      favored;                        /* Currently favored?               */
+      favored,                        /* Currently favored?               */
+      fs_redundant;                   /* Marked as redundant in the fs?   */
 
   u32 bitmap_size;                    /* Number of bits set in bitmap     */
 
@@ -476,18 +477,52 @@ static u8* DTD(u64 cur_ms, u64 event_ms) {
    .state file to avoid repeating deterministic fuzzing when resuming aborted
    scans. */
 
-static void add_passed_det(struct queue_entry* q) {
+static void mark_as_det_done(struct queue_entry* q) {
 
   u8* fn = strrchr(q->fname, '/');
   s32 fd;
 
-  fn = alloc_printf("%s/queue/.state/%s", out_dir, fn + 1);
+  fn = alloc_printf("%s/queue/.state/deterministic_done/%s", out_dir, fn + 1);
 
   fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
   if (fd < 0) PFATAL("Unable to create '%s'", fn);
   close(fd);
 
+  ck_free(fn);
+
   q->passed_det = 1;
+
+}
+
+
+/* Mark / unmark as redundant. This is not used for restoring state, but may
+   be useful for post-processing datasets. */
+
+static void mark_as_redundant(struct queue_entry* q, u8 state) {
+
+  u8* fn;
+  s32 fd;
+
+  if (state == q->fs_redundant) return;
+
+  q->fs_redundant = state;
+
+  fn = strrchr(q->fname, '/');
+  fn = alloc_printf("%s/queue/.state/redundant_paths/%s", out_dir, fn + 1);
+
+  if (state) {
+
+    fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (fd < 0) PFATAL("Unable to create '%s'", fn);
+    close(fd);
+
+  } else {
+
+    if (unlink(fn)) PFATAL("Unable to remove '%s'", fn);
+
+  }
+
+  ck_free(fn);
 
 }
 
@@ -498,10 +533,10 @@ static void add_to_queue(u8* fname, u32 len, u8 passed_det) {
 
   struct queue_entry* q = ck_alloc(sizeof(struct queue_entry));
 
-  q->fname      = fname;
-  q->len        = len;
-  q->depth      = cur_depth + 1;
-  q->passed_det = passed_det;
+  q->fname        = fname;
+  q->len          = len;
+  q->depth        = cur_depth + 1;
+  q->passed_det   = passed_det;
 
   if (q->depth > max_depth) max_depth = q->depth;
 
@@ -784,10 +819,10 @@ static void cull_queue(void) {
 
   memset(temp_v, 255, MAP_SIZE);
 
-  q = queue;
-
   queued_favored  = 0;
   pending_favored = 0;
+
+  q = queue;
 
   while (q) {
     q->favored = 0;
@@ -816,6 +851,13 @@ static void cull_queue(void) {
       }
 
     }
+
+  q = queue;
+
+  while (q) {
+    mark_as_redundant(q, !q->favored);
+    q = q->next;
+  }
 
 }
 
@@ -887,8 +929,10 @@ static void read_testcases(void) {
   for (i = 0; i < nl_cnt; i++) {
 
     struct stat st;
+
     u8* fn = alloc_printf("%s/%s", in_dir, nl[i]->d_name);
-    u8* dfn = alloc_printf("%s/.state/%s", in_dir, nl[i]->d_name);
+    u8* dfn = alloc_printf("%s/.state/deterministic_done/%s", in_dir, nl[i]->d_name);
+
     u8  passed_det = 0;
 
     if (!strcmp(nl[i]->d_name, "fuzz_bitmap")) {
@@ -1660,7 +1704,7 @@ static void pivot_inputs(void) {
 
     /* Make sure that the passed_det value carries over, too. */
 
-    if (q->passed_det) add_passed_det(q);
+    if (q->passed_det) mark_as_det_done(q);
 
     q = q->next;
     id++;
@@ -3259,7 +3303,7 @@ skip_interest:
      we're properly done with deterministic steps and can mark it as such
      in the .state/ directory. */
 
-  if (!queue_cur->passed_det) add_passed_det(queue_cur);
+  if (!queue_cur->passed_det) mark_as_det_done(queue_cur);
 
   /****************
    * RANDOM HAVOC *
@@ -4115,6 +4159,18 @@ static void setup_dirs_fds(void) {
 
   ck_free(tmp);
 
+  tmp = alloc_printf("%s/queue/.state/deterministic_done/", out_dir);
+
+  if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
+
+  ck_free(tmp);
+
+  tmp = alloc_printf("%s/queue/.state/redundant_paths/", out_dir);
+
+  if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
+
+  ck_free(tmp);
+
   if (sync_id) {
 
     tmp = alloc_printf("%s/.synced/", out_dir);
@@ -4430,7 +4486,6 @@ int main(int argc, char** argv) {
       cur_skipped_paths = 0;
       queue_cur         = queue;
 
-      write_stats_file();
       show_stats();
 
       if (not_on_tty) 
@@ -4450,6 +4505,8 @@ int main(int argc, char** argv) {
     }
 
     skipped_fuzz = fuzz_one(argv + optind);
+
+    write_stats_file();
 
     if (stop_soon) break;
 
@@ -4472,8 +4529,6 @@ int main(int argc, char** argv) {
 stop_fuzzing:
 
   SAYF(cLRD "\n+++ Testing aborted by user +++\n" cRST);
-
-  write_bitmap();
 
   destroy_queue();
   alloc_report();

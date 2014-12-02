@@ -141,10 +141,10 @@ two basic rules:
 You can find quite a few good examples of starting files in the testcases/
 subdirectory that comes with this tool.
 
-If a large corpus of data is available for screening, you can use the
-afl-showmap utility to compare instrumentation output for each one of them.
-Input files that not produce any previously-unseen tuples can be rejected.
-The fuzzer also performs basic internal de-duplication on its own.
+If a large corpus of data is available for screening, you may want to use the
+afl-showmap utility to compare instrumentation output and reject redundant
+files. See experimental/minimization_script/ for an example of how to implement
+this.
 
 5) Fuzzing instrumented binaries
 --------------------------------

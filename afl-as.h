@@ -64,6 +64,12 @@
    - popf is *awfully* slow, which is why we're doing the lahf / sahf +
      overflow test trick.
 
+   - Preforking one child a bit sooner, and then waiting for the "go" command
+     from within the child, doesn't offer major performance gains; fork() seems
+     to be relatively inexpensive these days. Preforking multiple children does
+     help, but badly breaks the "~1 core per fuzzer" design, making it harder to
+     scale up. Maybe there is some middle ground.
+
    Perhaps of note: in the 64-bit version, the instrumentation is done slightly
    differently than on 32-bit, with __afl_prev_loc and __afl_area_ptr being
    local to the object file (.lcomm), rather than global (.comm). This is to

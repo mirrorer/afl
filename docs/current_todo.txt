@@ -6,9 +6,12 @@ TODO
 
 Here's the list of stuff I want to implement in afl:
 
-  - Better crash deduplication.
+  - Better crash deduplication. Doing some experiments right now.
 
   - More test cases (see testcases/wishlist.txt).
+
+  - Perhaps a rewrite of the fork server code in C that gets precompiled
+    with -S and then appended alongside with the instrumentation.
 
   - A second part of Jann's fork server patch, which allows us to skip setup
     steps for certain slow programs.

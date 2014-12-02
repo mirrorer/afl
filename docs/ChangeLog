@@ -1,4 +1,16 @@
 --------------
+Version 0.52b:
+--------------
+
+  - Added a quick summary of the contents in experimental/.
+
+  - Fix to the process of writing fuzzer_stats.
+
+  - Slight reorganization of the .state/ directory, now recording
+    redundant paths, too. Note that this breaks the ability to 
+    properly resume older sessions - sorry about that.
+
+--------------
 Version 0.51b:
 --------------
 
@@ -9,6 +21,8 @@ Version 0.51b:
     a novelty.
 
   - Moar typos!
+
+  - test_prev target fix, as reported by Ozzy Johnson.
 
 --------------
 Version 0.50b:
