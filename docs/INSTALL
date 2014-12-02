@@ -57,13 +57,22 @@ ARMv7 is not officially supported. You can try an unofficial patch, but
 expect to run into some issues. Please refer to experimental/arm_support/README
 for compilation and usage tips.
 
-5) Other platforms
+5) Solaris (x86)
+----------------
+
+The fuzzer reportedly works on Solaris without any special tweaks; you will need
+to use GNU make and GCC or clang.
+
+6) Everything else
 ------------------
 
-Platforms other than x86 and ARMv7 will not work and support for them is not
-currently planned (due to limited practical benefits and zero user interest).
-The same goes for Cygwin.
+CPU architectures other than x86 and ARMv7 will not work and support for them is
+not planned. There are no intrinsic benefits of fuzzing on exotic hardware and
+practically no user interest in doing so, so I'm prioritizing other work.
 
-Getting the tool to work on non-POSIX-compliant unix systems may be doable,
-but will probably require more effort than its worth; try it at your own
-risk :-)
+More exotic unix-like systems on x86 may turn out to be working, but they are
+not officially supported and have not been tested.
+
+The fuzzer will not work under Cygwin; it could be ported fairly easily, but
+doing so is probably a bad idea: you will get much better results with a Linux
+machine or a hardware-accelerated VM.

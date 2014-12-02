@@ -61,6 +61,10 @@ in scripting environments.
     and shell scripts. This is useful mostly if you develop your own
     instrumentation or so.
 
+  - Setting AFL_SKIP_CPUFREQ skips the check for CPU scaling policy. This is
+    useful if you can't change the defaults and are OK with some performance
+    loss.
+
   - By default, LD_BIND_NOW is set to 1 to speed up fuzzing, but you can,
     theoretically, override it. I don't think there's any reason to.
 

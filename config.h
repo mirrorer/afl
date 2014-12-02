@@ -201,11 +201,11 @@
 #define CAL_TMOUT_PERC      150
 
 /* Map size for the traced binary (2^MAP_SIZE_POW2). Must be greater than
-   2; keep it under 17 or so for performance reasons. You need to recompile
+   2; keep it under 18 or so for performance reasons. You need to recompile
    the target binary after changing this - otherwise, SEGVs may ensue. */
 
-#define MAP_SIZE_POW2       15
-#define MAP_SIZE            (1<<MAP_SIZE_POW2)
+#define MAP_SIZE_POW2       16
+#define MAP_SIZE            (1 << MAP_SIZE_POW2)
 
 /* Maximum allocator request size (keep well under INT_MAX): */
 

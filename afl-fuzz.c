@@ -93,6 +93,7 @@ static s32 forksrv_pid,               /* PID of the fork server           */
            child_pid = -1;            /* PID of the fuzzed program        */
 
 static u8* trace_bits;                /* SHM with instrumentation bitmap  */
+
 static u8  virgin_bits[MAP_SIZE],     /* Regions yet untouched by fuzzing */
            virgin_hang[MAP_SIZE],     /* Bits we haven't seen in hangs    */
            virgin_crash[MAP_SIZE];    /* Bits we haven't seen in crashes  */
@@ -182,7 +183,7 @@ struct queue_entry {
       handicap,                       /* Number of queue cycles behind    */
       depth;                          /* Path depth                       */
 
-  u8* trace_bits;                     /* Trace bits, if kept              */
+  u8* trace_mini;                     /* Trace bytes, if kept             */
   u32 tc_ref;                         /* Trace bits ref count             */
 
   struct queue_entry *next,           /* Next element, if any             */
@@ -196,7 +197,7 @@ static struct queue_entry *queue,     /* Fuzzing queue (linked list)      */
                           *queue_p1k; /* Previous 1k marker               */
 
 static struct queue_entry*
-  top_rated[MAP_SIZE << 3];           /* Top entries for every bitmap bit */
+  top_rated[MAP_SIZE];                /* Top entries for bitmap bytes     */
 
 /* Interesting values, as per config.h */
 
@@ -510,8 +511,8 @@ static void mark_as_det_done(struct queue_entry* q) {
 }
 
 
-/* Mark / unmark as redundant. This is not used for restoring state, but may
-   be useful for post-processing datasets. */
+/* Mark / unmark as redundant (edge-only). This is not used for restoring state,
+   but may be useful for post-processing datasets. */
 
 static void mark_as_redundant(struct queue_entry* q, u8 state) {
 
@@ -523,7 +524,7 @@ static void mark_as_redundant(struct queue_entry* q, u8 state) {
   q->fs_redundant = state;
 
   fn = strrchr(q->fname, '/');
-  fn = alloc_printf("%s/queue/.state/redundant_paths/%s", out_dir, fn + 1);
+  fn = alloc_printf("%s/queue/.state/redundant_edges/%s", out_dir, fn + 1);
 
   if (state) {
 
@@ -587,7 +588,7 @@ static void destroy_queue(void) {
 
     n = q->next;
     ck_free(q->fname);
-    ck_free(q->trace_bits);
+    ck_free(q->trace_mini);
     ck_free(q);
     q = n;
 
@@ -635,7 +636,10 @@ static inline void read_bitmap(u8* fname) {
 /* Check if the current execution path brings anything new to the table.
    Update virgin bits to reflect the finds. Returns 1 if the only change is
    the hit-count for a particular tuple; 2 if there are new tuples seen. 
-   Updates the map, so subsequent calls will always return 0. */
+   Updates the map, so subsequent calls will always return 0.
+
+   This function is called after every exec() on a fairly large buffer, so
+   it needs to be fast. */
 
 static inline u8 has_new_bits(u8* virgin_map) {
 
@@ -646,6 +650,9 @@ static inline u8 has_new_bits(u8* virgin_map) {
   u8   ret = 0;
 
   while (i--) {
+
+    /* Optimize for *current == ~*virgin, since this will almost always be the
+       case. */
 
     if (*current & *virgin) {
 
@@ -661,6 +668,7 @@ static inline u8 has_new_bits(u8* virgin_map) {
       }
 
       *virgin &= ~*current;
+
     }
 
     current++;
@@ -675,8 +683,8 @@ static inline u8 has_new_bits(u8* virgin_map) {
 }
 
 
-/* Count the number of bits set in the provided bitmap. This is used just
-   for the status screen, not called very often. */
+/* Count the number of bits set in the provided bitmap. Used for the status
+   screen, does not have to be fast. */
 
 static inline u32 count_bits(u8* mem) {
 
@@ -688,9 +696,17 @@ static inline u32 count_bits(u8* mem) {
 
     u32 v = *(ptr++);
 
+    /* This gets called on the inverse, virgin bitmap; optimize for sparse
+       data. */
+
+    if (v == 0xffffffff) {
+      ret += 32;
+      continue;
+    }
+
     v -= ((v >> 1) & 0x55555555);
     v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-    ret += (((v + (v >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
+    ret += (((v + (v >> 4)) & 0xF0F0F0F) * 0x01010101) >> 24;
 
   }
 
@@ -699,23 +715,65 @@ static inline u32 count_bits(u8* mem) {
 }
 
 
-/* Count the number of non-255 bytes in the provided bitmap. Likewise,
-   just a helper function to help with the visuals, not called very 
-   often. */
+/* Count the number of bytes set in the bitmap. Called fairly sporadically,
+   mostly to calibrate and examine confirmed new paths. */
 
-static inline u32 count_non_255_bytes(u8* mem) {
+static inline u32 count_bytes(u8* mem) {
 
-  u32 i  = MAP_SIZE;
-  u32 ret = 0;
+  u32* ptr = (u32*)mem;
+  u32  i   = (MAP_SIZE >> 2);
+  u32  ret = 0;
 
-  while (i--) if (*(mem++) != 255) ret++;
+  while (i--) {
+
+    u32 v = *(ptr++);
+
+    if (!v) continue;
+    if (v & 0x000000ff) ret++;
+    if (v & 0x0000ff00) ret++;
+    if (v & 0x00ff0000) ret++;
+    if (v & 0xff000000) ret++;
+
+  }
 
   return ret;
 
 }
 
 
-/* Destructively simplify trace by eliminating hit count information. */
+/* Count the number of non-255 bytes set in the bitmap. Used strictly for the
+   status screen. */
+
+static inline u32 count_non_255_bytes(u8* mem) {
+
+  u32* ptr = (u32*)mem;
+  u32  i   = (MAP_SIZE >> 2);
+  u32  ret = 0;
+
+  while (i--) {
+
+    u32 v = *(ptr++);
+
+    /* This is called on the virgin bitmap, so optimize for the most likely
+       case. */
+
+    if (v == 0xffffffff) continue;
+    if ((v & 0x000000ff) != 0x000000ff) ret++;
+    if ((v & 0x0000ff00) != 0x0000ff00) ret++;
+    if ((v & 0x00ff0000) != 0x00ff0000) ret++;
+    if ((v & 0xff000000) != 0xff000000) ret++;
+
+  }
+
+  return ret;
+
+}
+
+
+/* Destructively simplify trace by eliminating hit count information
+   and replacing it with 0x80 or 0x01 depending on whether the tuple
+   is hit or not. Called on every new crash or hang, should be
+   reasonably fast. */
 
 #define AREP4(_sym) (_sym), (_sym), (_sym), (_sym)
 #define AREP8(_sym) AREP4(_sym), AREP4(_sym)
@@ -734,12 +792,25 @@ static u8 simplify_lookup[256] = {
   /* +128 */ AREP128(128)
 };
 
-static void simplify_trace(u8* mem) {
+static void simplify_trace(u32* mem) {
 
-  u32 i = MAP_SIZE;
+  u32 i = MAP_SIZE >> 2;
 
   while (i--) {
-    *mem = simplify_lookup[*mem];
+
+    /* Optimize for sparse bitmaps. */
+
+    if (*mem) {
+
+      u8* mem8 = (u8*)mem;
+
+      mem8[0] = simplify_lookup[mem8[0]];
+      mem8[1] = simplify_lookup[mem8[1]];
+      mem8[2] = simplify_lookup[mem8[2]];
+      mem8[3] = simplify_lookup[mem8[3]];
+
+    } else *mem = 0x01010101;
+
     mem++;
   }
 
@@ -747,9 +818,8 @@ static void simplify_trace(u8* mem) {
 
 
 /* Destructively classify execution counts in a trace. This is used as a
-   preprocessing step for any newly acquired traces. We put tuple hit counts
-   into several buckets: 1, 2, 3, 4 to 7, 8 to 15, 16 to 31, 32 to 127, and
-   128+. */
+   preprocessing step for any newly acquired traces. Called on every exec,
+   must be fast. */
 
 static u8 count_class_lookup[256] = {
 
@@ -762,13 +832,25 @@ static u8 count_class_lookup[256] = {
 
 };
 
-static void classify_counts(u8* mem) {
+static void classify_counts(u32* mem) {
 
-  u32 i = MAP_SIZE;
+  u32 i = MAP_SIZE >> 2;
 
   while (i--) {
 
-    *mem = count_class_lookup[*mem];
+    /* Optimize for sparse bitmaps. */
+
+    if (*mem) {
+
+      u8* mem8 = (u8*)mem;
+
+      mem8[0] = count_class_lookup[mem8[0]];
+      mem8[1] = count_class_lookup[mem8[1]];
+      mem8[2] = count_class_lookup[mem8[2]];
+      mem8[3] = count_class_lookup[mem8[3]];
+
+    }
+
     mem++;
 
   }
@@ -779,7 +861,27 @@ static void classify_counts(u8* mem) {
 /* Get rid of shared memory (atexit handler). */
 
 static void remove_shm(void) {
+
   shmctl(shm_id, IPC_RMID, NULL);
+
+}
+
+
+/* Compact trace bytes into a smaller bitmap. We effectively just drop the
+   count information here. This is called only sporadically, for some
+   new paths. */
+
+static void minimize_bits(u8* dst, u8* src) {
+
+  u32 i = 0;
+
+  while (i < MAP_SIZE) {
+
+    if (*(src++)) dst[i >> 3] |= 1 << (i & 7);
+    i++;
+
+  }
+
 }
 
 
@@ -790,18 +892,19 @@ static void remove_shm(void) {
    the rest.
 
    The first step of the process is to maintain a list of top_rated[] entries
-   for every position in the bitmap. We win that slot if there is no previous
-   contender, or if the contender has fewer trace_bits[] set when we do. */
+   for every byte in the bitmap. We win that slot if there is no previous
+   contender, or if the contender has an overall smaller bitmap than we do. */
 
 static void update_bitmap_score(struct queue_entry* q) {
 
   u32 i;
 
-  /* For every bit set in trace_bits[], see if there are any other hits
-     and how they compare. */
+  /* For every byte set in trace_bits[], see if there is a previous winner,
+     and how it compares to us. */
 
-  for (i = 0; i < (MAP_SIZE << 3); i++)
-    if (trace_bits[i >> 3] & (1 << (i & 7))) {
+  for (i = 0; i < MAP_SIZE; i++)
+
+    if (trace_bits[i]) {
 
        if (top_rated[i]) {
 
@@ -811,8 +914,8 @@ static void update_bitmap_score(struct queue_entry* q) {
             previous winner, discard its trace_bits[] if necessary. */
 
          if (!--top_rated[i]->tc_ref) {
-           ck_free(top_rated[i]->trace_bits);
-           top_rated[i]->trace_bits = 0;
+           ck_free(top_rated[i]->trace_mini);
+           top_rated[i]->trace_mini = 0;
          }
 
        }
@@ -822,9 +925,9 @@ static void update_bitmap_score(struct queue_entry* q) {
        top_rated[i] = q;
        q->tc_ref++;
 
-       if (!q->trace_bits) {
-         q->trace_bits = ck_alloc(MAP_SIZE);
-         memcpy(q->trace_bits, trace_bits, MAP_SIZE);
+       if (!q->trace_mini) {
+         q->trace_mini = ck_alloc(MAP_SIZE >> 3);
+         minimize_bits(q->trace_mini, trace_bits);
        }
 
        score_changed = 1;
@@ -835,22 +938,22 @@ static void update_bitmap_score(struct queue_entry* q) {
 
 
 /* The second part of the mechanism discussed above is a routine that
-   goes over top_rated[] entries and adds their trace_bits[] to a temporary
-   bitmap. Entries that bring something to the table are marked as "favored",
-   at least until the next run. The rest is deprioritized for subsequent
-   fuzzing rounds. */
+   goes over top_rated[] entries, and then sequentially grabs winners for
+   previously-unseen bytes (temp_v) and marks them as favored, at least
+   until the next run. The favored entries are given more air time during
+   all fuzzing steps. */
 
 static void cull_queue(void) {
 
   struct queue_entry* q;
-  static u8 temp_v[MAP_SIZE];
+  static u8 temp_v[MAP_SIZE >> 3];
   u32 i;
 
   if (dumb_mode || !score_changed) return;
 
   score_changed = 0;
 
-  memset(temp_v, 255, MAP_SIZE);
+  memset(temp_v, 255, MAP_SIZE >> 3);
 
   queued_favored  = 0;
   pending_favored = 0;
@@ -862,26 +965,24 @@ static void cull_queue(void) {
     q = q->next;
   }
 
-  /* For every bit of the bitmap, see if the temp_v[] is still in its
-     virgin state. If yes, and if it has a top_rated[] contender,
-     mark that entry as favored and register all its trace_bits[] in
-     temp_v[]. If no, tough luck. */
+  /* Let's see if anything in the bitmap isn't captured in temp_v.
+     If yes, and if it has a top_rated[] contender, let's use it. */
 
-  for (i = 0; i < (MAP_SIZE << 3); i++)
+  for (i = 0; i < MAP_SIZE; i++)
     if (top_rated[i] && (temp_v[i >> 3] & (1 << (i & 7)))) {
 
-      u32 j = MAP_SIZE;
+      u32 j = MAP_SIZE >> 3;
 
-      while (j--) temp_v[j] &= ~top_rated[i]->trace_bits[j];
+      /* Remove all bits belonging to the current entry from temp_v. */
 
-      if (!top_rated[i]->favored) {
+      while (j--) 
+        if (top_rated[i]->trace_mini[j])
+          temp_v[j] &= ~top_rated[i]->trace_mini[j];
 
-        top_rated[i]->favored = 1;
-        queued_favored++;
+      top_rated[i]->favored = 1;
+      queued_favored++;
 
-        if (!top_rated[i]->was_fuzzed) pending_favored++;
-
-      }
+      if (!top_rated[i]->was_fuzzed) pending_favored++;
 
     }
 
@@ -1390,7 +1491,7 @@ static u8 run_target(char** argv) {
 
   setitimer(ITIMER_REAL, &it, NULL);
 
-  classify_counts(trace_bits);
+  classify_counts((u32*)trace_bits);
 
   total_execs++;
 
@@ -1511,7 +1612,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
 
     u8 hnb;
 
-    if (!count_bits(trace_bits)) {
+    if (!count_bytes(trace_bits)) {
       fault = FAULT_NOINST;
       goto abort_calibration;
     }
@@ -1572,7 +1673,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
 
   q->exec_us = (stop_us - start_us) / cal_cycles;
 
-  q->bitmap_size = count_bits(trace_bits);
+  q->bitmap_size = count_bytes(trace_bits);
   q->handicap    = handicap;
   q->cal_done    = 1;
 
@@ -1621,6 +1722,22 @@ abort_calibration:
 }
 
 
+/* Examine map coverage. Called once, for first test case. */
+
+static void check_map_coverage(void) {
+
+  u32 i;
+
+  if (count_bytes(trace_bits) < 100) return;
+
+  for (i = (1 << (MAP_SIZE_POW2 - 1)); i < MAP_SIZE; i++)
+    if (trace_bits[i]) return;
+
+  WARNF("Recompile binary with newer version of afl to improve coverage!");
+
+}
+
+
 /* Perform dry run of all test cases to confirm that the app is working as
    expected. This is done only for the initial inputs, and only once. */
 
@@ -1657,6 +1774,8 @@ static void perform_dry_run(char** argv) {
     switch (res) {
 
       case FAULT_NONE:
+
+        if (q == queue) check_map_coverage();
 
         if (crash_mode) FATAL("Test case '%s' does *NOT* crash", fn);
         break;
@@ -1917,7 +2036,7 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
       queued_with_cov++;
     }
 
-    queue_top->bitmap_size = count_bits(trace_bits);
+    queue_top->bitmap_size = count_bytes(trace_bits);
     update_bitmap_score(queue_top);      
 
     fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
@@ -1944,7 +2063,7 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
       if (!dumb_mode) {
 
-        simplify_trace(trace_bits);
+        simplify_trace((u32*)trace_bits);
 
         if (!has_new_bits(virgin_hang)) return keeping;
 
@@ -1970,7 +2089,7 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
       if (!dumb_mode) {
 
-        simplify_trace(trace_bits);
+        simplify_trace((u32*)trace_bits);
 
         if (!has_new_bits(virgin_crash)) return keeping;
 
@@ -2192,7 +2311,7 @@ static void maybe_delete_out_dir(void) {
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
-  fn = alloc_printf("%s/queue/.state/redundant_paths", out_dir);
+  fn = alloc_printf("%s/queue/.state/redundant_edges", out_dir);
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
@@ -4504,7 +4623,7 @@ static void setup_dirs_fds(void) {
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
 
-  tmp = alloc_printf("%s/queue/.state/redundant_paths/", out_dir);
+  tmp = alloc_printf("%s/queue/.state/redundant_edges/", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
 
@@ -4583,9 +4702,65 @@ static void check_coredumps(void) {
 }
 
 
+/* Check CPU governor. */
+
+static void check_cpu_governor(void) {
+
+  FILE* f;
+  u8 tmp[128];
+  u64 min = 0, max = 0;
+
+  if (getenv("AFL_SKIP_CPUFREQ")) return;
+
+  f = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", "r");
+  if (!f) return;
+
+  ACTF("Checking CPU scaling governor...");
+
+  if (!fgets(tmp, 128, f)) PFATAL("fgets() failed");
+
+  fclose(f);
+
+  if (!strncmp(tmp, "perf", 4)) return;
+
+  f = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq", "r");
+
+  if (f) {
+    if (fscanf(f, "%llu", &min) != 1) min = 0;
+    fclose(f);
+  }
+
+  f = fopen("/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq", "r");
+
+  if (f) {
+    if (fscanf(f, "%llu", &max) != 1) max = 0;
+    fclose(f);
+  }
+
+  if (min == max) return;
+
+  SAYF("\n" cLRD "[-] " cRST
+       "Whoops, your system uses on-demand CPU frequency scaling, adjusted\n"
+       "    between %llu and %llu MHz. Unfortunately, the scaling algorithm in the\n"
+       "    kernel is imperfect and can miss the short-lived processes spawned by\n"
+       "    afl-fuzz. To keep things moving, run these commands as root:\n\n"
+
+       "    cd /sys/devices/system/cpu\n"
+       "    echo performance | tee cpu*/cpufreq/scaling_governor\n\n"
+
+       "    You can later go back to the original state by replacing 'performance' with\n"
+       "    'ondemand'. If you don't want to change the settings, set AFL_SKIP_CPUFREQ\n"
+       "    to make afl-fuzz skip this check - but expect some performance drop.\n",
+       min / 1024, max / 1024);
+
+  FATAL("Suboptimal CPU scaling governor");
+
+}
+
+
 /* Count the number of logical CPU cores. */
 
-static void count_cores(void) {
+static void get_core_count(void) {
 
   FILE* f = fopen("/proc/stat", "r");
   u8 tmp[1024];
@@ -4860,15 +5035,12 @@ int main(int argc, char** argv) {
       case 'B':
 
         /* This is a secret undocumented option! It is useful if you find
-           an interesting test case during a normal fuzzing process, and you
-           want to start a new process seeded just with that case - but you
-           don't want the fuzzer to re-invent new test cases for paths already
-           discovered by the earlier run.
+           an interesting test case during a normal fuzzing process, and want
+           to mutate it without rediscovering any of the test cases already
+           found during an earlier run.
 
-           In essence, specifying -B and using fuzz_bitmap from the earlier
-           run will cause the fuzzer to consider all paths reflected in that
-           map to be uninteresting, and look only for the stuff that isn't
-           in that bitmap yet. */
+           You need to point -B to the fuzz_bitmap produced by an earlier run
+           for the exact same binary... and that's it. */
 
         in_bitmap = optarg;
         read_bitmap(in_bitmap);
@@ -4908,16 +5080,15 @@ int main(int argc, char** argv) {
   if (!strcmp(in_dir, out_dir))
     FATAL("Input and output directories can't be the same!");
 
-  if (crash_mode && dumb_mode)
-    FATAL("-C and -n are mutually exclusive");
+  if (dumb_mode && crash_mode) FATAL("-C and -n are mutually exclusive");
 
   fix_up_banner(argv[optind]);
 
   check_terminal();
 
-  count_cores();
-
+  get_core_count();
   check_coredumps();
+  check_cpu_governor();
 
   setup_shm();
 
@@ -5012,8 +5183,13 @@ stop_fuzzing:
 
   /* Running for more than 10 minutes but still doing first cycle? */
 
-  if (queue_cycle == 1 && get_cur_time() - start_time > 10 * 60 * 1000 )
-    WARNF("Stopped during first cycle, results may be incomplete.");
+  if (queue_cycle == 1 && get_cur_time() - start_time > 10 * 60 * 1000) {
+
+    SAYF("\n" cYEL "[!] " cRST
+           "Stopped during the first cycle, results may be incomplete.\n"
+           "    (For info on resuming, see %s/README.)\n", DOC_PATH);
+
+  }
 
   destroy_queue();
   alloc_report();

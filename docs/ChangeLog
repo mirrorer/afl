@@ -1,4 +1,25 @@
 --------------
+Version 0.78b:
+--------------
+
+  - CPU governor check. Problem spotted by Joe Zbiciak.
+
+  - Favored paths are now selected strictly based on new edges, not hit
+    counts. This speeds up the first pass by a factor of 3-6x without
+    significantly impacting ultimate coverage (tested with libgif, libpng,
+    libjpeg).
+
+    It also allows some performance & memory usage improvements by making
+    some of the in-memory bitmaps much smaller.
+
+  - Multiple significant performance improvements to bitmap checking functions,
+    plus a switch to a faster hash.
+
+  - Owing largely to these optimizations, bitmap size is bumped to 64 kB
+    and a warning is added to detect older binaries that rely on smaller
+    bitmaps.
+
+--------------
 Version 0.77b:
 --------------
 
@@ -8,6 +29,7 @@ Version 0.77b:
   - Typo fixes.
 
   - A better warning for aborted runs.
+
 
 --------------
 Version 0.76b:

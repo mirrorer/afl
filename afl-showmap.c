@@ -111,25 +111,16 @@ static inline void show_tuples(void) {
 }
 
 
-/* Count the number of bits set in the bitmap. */
+/* See if any bytes are set in the bitmap. */
 
-static inline u32 count_bits(void) {
+static inline u8 anything_set(void) {
 
   u32* ptr = (u32*)trace_bits;
   u32  i   = (MAP_SIZE >> 2);
-  u32  ret = 0;
 
-  while (i--) {
+  while (i--) if (*(ptr++)) return 1;
 
-    u32 v = *(ptr++);
-
-    v -= ((v >> 1) & 0x55555555);
-    v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-    ret += (((v + (v >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24;
-
-  }
-
-  return ret;
+  return 0;
 
 }
 
@@ -289,7 +280,7 @@ int main(int argc, char** argv) {
   if (!be_quiet && !sink_output)
     SAYF("-- Program output ends --\n");  
 
-  if (!count_bits()) FATAL("No instrumentation data recorded");
+  if (!anything_set()) FATAL("No instrumentation data recorded");
 
   if (!be_quiet) SAYF(cBRI "\nTuples recorded:\n\n" cRST);
 
