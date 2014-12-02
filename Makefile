@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.50b
+VERSION     = 0.51b
 
 BIN_PATH    = /usr/local/bin
 HELPER_PATH = /usr/local/lib/afl
@@ -36,7 +36,7 @@ endif
 
 COMM_HDR    = alloc-inl.h config.h debug.h types.h
 
-all: test_x86 $(PROGS) test_build test_prev all_done
+all: test_x86 $(PROGS) test_build all_done
 
 test_x86:
 	@echo "[*] Checking for the ability to compile x86 code..."

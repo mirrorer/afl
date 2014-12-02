@@ -284,10 +284,8 @@ int main(int argc, char** argv) {
 
   if (inst_ratio_str) {
 
-    inst_ratio = atoi(inst_ratio_str);
-
-    if (!inst_ratio || inst_ratio > 100)
-      FATAL("Bad value of AFL_INST_RATIO (must be between 1 and 100)");
+    if (sscanf(inst_ratio_str, "%u", &inst_ratio) != 1 || inst_ratio > 100) 
+      FATAL("Bad value of AFL_INST_RATIO (must be between 0 and 100)");
 
   }    
 

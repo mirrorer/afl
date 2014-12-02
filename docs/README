@@ -35,14 +35,14 @@ These techniques can be divided into three broad groups:
     running the code.
 
 The first technique is surprisingly powerful when used to pre-select initial test
-cases from a massive corpus of valid data. Unfortunately, such corpuses are not
+cases from a massive corpus of valid data. Unfortunately, such corpora are not
 always available. On top of this, coverage measurements provide only a very
 simplistic view of the internal state of the program, making them less suited
 for guiding the fuzzing process later on.
 
 The latter two techniques are extremely promising in experimental settings, but
 in real-world applications, they frequently suffer from reliability problems or
-irreductible complexity. Most of the high-value targets have enough internal
+irreducible complexity. Most of the high-value targets have enough internal
 states and possible execution paths to make such tools fall apart and perform
 strictly worse than their traditional counterparts.
 

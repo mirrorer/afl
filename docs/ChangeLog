@@ -5,6 +5,11 @@ Version 0.51b:
   - afl-as search order changed to avoid the problem with older copies;
     this also means that I can remove the Makefile check for that.
 
+  - Slight refactoring to allow instrumentation ratio of 0%, mostly as
+    a novelty.
+
+  - Moar typos!
+
 --------------
 Version 0.50b:
 --------------
@@ -15,13 +20,17 @@ Version 0.50b:
     based on the feedback from Alexander Cherepanov.
 
   - Added AFL_INST_RATIO to afl-as. The only case where this comes handy is
-    ffmpeg, at least as far as I can tell.
+    ffmpeg, at least as far as I can tell. (Trivia: the current version of 
+    ffmpeg ./configure also ignores CC and --cc, probably unintentionally).
 
   - Added documentation for all environmental variables (env_variables.txt).
 
   - Visual warning for excessive or insufficient bitmap density.
 
   - -O3 is now added by default; use AFL_DONT_OPTIMIZE if you don't like that.
+    Big speed gain for ffmpeg, so seems like a good idea.
+
+  - Minor fix to afl-as to ignore .LBB labels in gcc mode.
 
 --------------
 Version 0.49b:

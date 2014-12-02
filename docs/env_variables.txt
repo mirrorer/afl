@@ -27,16 +27,16 @@ environments.
     unlikely case this causes problems, set AFL_DONT_OPTIMIZE.
 
   - Setting AFL_USE_ASAN automatically enables ASAN, provided that your
-    compuler supports that. Note that fuzzing with ASAN is problematic - see
+    compiler supports that. Note that fuzzing with ASAN is problematic - see
     notes_for_asan.txt.
 
   - Setting AFL_CC and AFL_CXX lets you use alternate downstream compilers,
     rather than the default 'clang' or 'gcc' binary in your $PATH.
 
-  - Setting AFL_INST_RATIO to a percentage between 1 and 100% controls the
+  - Setting AFL_INST_RATIO to a percentage between 0 and 100% controls the
     probability of instrumenting every branch. This is (very rarely) useful
     when dealing with exceptionally complex programs that saturate the output
-    bitmap.
+    bitmap. 
 
     (If this ever happens, afl-fuzz will warn you ahead of the time by
     displaying the "bitmap density" field in fiery red.)
