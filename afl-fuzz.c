@@ -1033,6 +1033,7 @@ static void init_forkserver(char** argv) {
        doing extra work post-fork(). */
 
     setenv("LD_BIND_NOW", "1", 0);
+    setenv("ASAN_OPTIONS", "abort_on_error=1", 0);
 
     execvp(argv[0], argv);
 
@@ -4225,6 +4226,16 @@ static void handle_resize(int sig) {
 }
 
 
+/* Check ASAN options. */
+
+static void check_asan_opts(void) {
+  u8* x = getenv("ASAN_OPTIONS");
+
+  if (x && !strstr(x, "abort_on_error=1"))
+    FATAL("Custom ASAN_OPTIONS set without abort_on_error=1 - please fix!");
+
+} 
+
 
 /* Main entry point */
 
@@ -4358,6 +4369,8 @@ int main(int argc, char** argv) {
     }
 
   if (optind == argc || !in_dir || !out_dir) usage(argv[0]);
+
+  check_asan_opts();
 
   if (sync_id) fix_up_sync();
 

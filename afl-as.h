@@ -46,7 +46,8 @@
    rough notes that may help with the task:
 
    - Only the trampoline_fmt and the non-setup __afl_maybe_log code paths are
-     really worth optimizing; the setup / fork server stuff matters a lot less.
+     really worth optimizing; the setup / fork server stuff matters a lot less
+     and should be mostly just kept readable.
 
    - Interestingly, instrumented execution isn't a lot faster if we store a
      variable pointer to the setup, log, or return routine and then do a reg
@@ -391,6 +392,10 @@ static const u8* main_payload_64 =
   "  pushq %rcx\n"
   "  pushq %rdi\n"
   "  pushq %rsi\n"
+  "  pushq %r8\n"
+  "  pushq %r9\n"
+  "  pushq %r10\n"
+  "  pushq %r11\n"
   "\n"
   "  leaq .AFL_SHM_ID(%rip), %rdi\n"
   "  call getenv@PLT\n"
@@ -418,6 +423,10 @@ static const u8* main_payload_64 =
   "  movq %rax, (%rdx)\n"
   "  movq %rax, %rdx\n"
   "\n"
+  "  popq %r11\n"
+  "  popq %r10\n"
+  "  popq %r9\n"
+  "  popq %r8\n"
   "  popq %rsi\n"
   "  popq %rdi\n"
   "  popq %rcx\n"
@@ -432,6 +441,10 @@ static const u8* main_payload_64 =
   "  pushq %rdx\n"
   "  pushq %rdi\n"
   "  pushq %rsi\n"
+  "  pushq %r8\n"
+  "  pushq %r9\n"
+  "  pushq %r10\n"
+  "  pushq %r11\n"
   "\n"
   "  /* Phone home and tell the parent that we're OK. (Note that signals with\n"
   "     no SA_RESTART will mess it up). If this fails, assume that the fd is\n"
@@ -501,6 +514,10 @@ static const u8* main_payload_64 =
   "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi\n"
   "  call close@plt\n"
   "\n"
+  "  popq %r11\n"
+  "  popq %r10\n"
+  "  popq %r9\n"
+  "  popq %r8\n"
   "  popq %rsi\n"
   "  popq %rdi\n"
   "  popq %rdx\n"
@@ -519,6 +536,10 @@ static const u8* main_payload_64 =
   "     shmget() / shmat() over and over again. */\n"
   "\n"
   "  incb __afl_setup_failure(%rip)\n"
+  "  popq %r11\n"
+  "  popq %r10\n"
+  "  popq %r9\n"
+  "  popq %r8\n"
   "  popq %rsi\n"
   "  popq %rdi\n"
   "  popq %rcx\n"

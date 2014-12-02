@@ -179,7 +179,7 @@ It is possible to fuzz non-instrumented code using the -n flag. This gives you
 a fairly traditional fuzzer with a couple of nice testing strategies.
 
 You can use -t and -m to override the default timeout and memory limit for the
-executed process; this is seldom necessary.
+executed process; this is seldom necessary, perhaps except for video decoders.
 
 The fuzzing process itself is relatively simple. It consists of several types
 of sequential, deterministic operations (bitflips, injection of interesting
@@ -285,8 +285,30 @@ Here are some of the most important caveats for AFL:
   - There are some unfortunate trade-offs with ASAN and 64-bit binaries
     that aren't in our control; see notes_for_asan.txt for more.
 
-9) Contact
-----------
+9) Special thanks
+-----------------
+
+Many of the improvements to afl-fuzz wouldn't be possible without feedback,
+bug reports, or patches from:
+
+  - Jann Horn,
+  - Hanno Boeck,
+  - Felix Groebert,
+  - Jakub Wilk,
+  - Richard W. M. Jones,
+  - Alexander Cherepanov,
+  - Tom Ritter,
+  - Hovik Manucharyan,
+  - Sebastian Roschke,
+  - Eberhard Mattes,
+  - Padraig Brady,
+  - Ben Laurie,
+  - @dronesec.
+
+Thank you!
+
+10) Contact
+-----------
 
 Questions? Concerns? Bug reports? The author can be usually reached at
 <lcamtuf@google.com>.

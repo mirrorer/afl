@@ -1,12 +1,27 @@
 --------------
+Version 0.48b:
+--------------
+
+  - ASAN_OPTIONS=abort_on_error=1 is now force-set. Reported by Hanno Boeck.
+
+  - Makefile mkdir improvements, as suggested by Hanno Boeck.
+
+  - Properly save r8-r11 registers in the x86 setup code (this could cause rare
+    problems when running without instrumentation when the first function called
+    in a particular .o file has 5+ parameters). No impact on code running under
+    afl-fuzz or afl-showmap. Reported by Padraig Brady.
+
+--------------
 Version 0.47b:
 --------------
 
-  - Another minor fix for parallel builds of afl.
+  - Another minor fix for parallel builds of afl, suggested by
+    Richard W. M. Jones.
 
   - Support for suffixes for -m.
 
-  - Documentation updates, notes_for_asan.txt.
+  - Documentation updates, notes_for_asan.txt. Based on feedback from
+    Hanno Boeck, Ben Laurie, and others.
 
   - Move to http://lcamtuf.coredump.cx/afl/.
 
@@ -14,14 +29,17 @@ Version 0.47b:
 Version 0.46b:
 --------------
 
-  - Makefile dependencies cleaned up for parallel builds.
+  - Makefile dependencies cleaned up for parallel builds. Requested by 
+    Richard W. M. Jones.
 
-  - Support for DESTDIR in Makefile.
+  - Support for DESTDIR in Makefile. Ditto.
 
-  - Removed all the USE_64BIT stuff, just auto-detect compilation mode.
+  - Removed all the USE_64BIT stuff, just auto-detect compilation mode,
+    due to popular demand.
 
   - Fix for rare problems with code with manually written assembly that
-    switches between .code32 and .code64.
+    switches between .code32 and .code64. Fixes a problem reported by
+    Hanno Boeck with compiling ToT gdb.
 
 --------------
 Version 0.45b:
@@ -32,13 +50,15 @@ Version 0.45b:
 
   - Better warning for input directories.
 
-  - Test and warning for older copies.
+  - Test and warning for older copies, based on counterintuitive behavior
+    noticed by Hovik Manucharyan.
 
-  - Added fuzzer_stats file for status monitoring.
+  - Added fuzzer_stats file for status monitoring. Suggested by @dronesec.
 
   - Typo fixes, thanks to Alexander Cherepanov.
 
-  - Better warnings about ASAN memory requirements.
+  - Better warnings about ASAN memory requirements, based on feedback from
+    several users.
 
   - Saner support for non-tty stdout (less output generated).
 
@@ -51,7 +71,7 @@ Version 0.44b:
   - Option combination -S -D replaced with -M for simplicity.
 
   - Extra check for .section .text; lack of this prevented main() from
-    getting instrumented for some users.
+    getting instrumented for some users. Reported by Tom Ritter.
 
   - Reorganization of the testcases/ directory.
 
@@ -65,26 +85,27 @@ Version 0.43b:
 
   - Fix for 64-bit gcc -shared reloc bug.
 
-  - echo -e removed from Makefile for compatibility with dash (reported by jwilk).
+  - echo -e removed from Makefile for compatibility with dash. Suggested
+    by Jakub Wilk.
 
   - Added status_screen.txt.
 
   - Added canvas_harness.
 
-  - Minor change to the GCC check.
+  - Minor change to the GCC check. Suggested by Hanno Boeck.
 
 --------------
 Version 0.42b:
 --------------
 
-  - Red zone fix for 64-bit (oops!).
+  - Red zone fix for 64-bit (oops!). Problem reported by Felix Groebert.
 
   - Horribly experimental ARM support in experimental/arm_support.
 
   - Several improvements to error messages.
 
   - Added AFL_QUIET to silence afl-gcc and afl-as when using wonky build
-    systems.
+    systems. Reported by Hanno Boeck.
 
   - Improved check for 64-bit compilation, plus several sanity checks
     in Makefile.
@@ -95,9 +116,10 @@ Version 0.41b:
 
   - Fork server fix for processes that call execve().
 
-  - Minor compatibility fixes to Makefile, afl-gcc (reported by jwilk).
+  - Minor compatibility fixes to Makefile, afl-gcc; suggested by Jakub
+    Wilk.
 
-  - Fixes to triage_crashes.sh (ditto).
+  - Fixes to triage_crashes.sh. Suggested by Jakub Wilk.
 
   - Multiple instrumentation performance improvements.
 
@@ -111,7 +133,8 @@ Version 0.41b:
 Version 0.40b:
 --------------
 
-  - Proper support for parallelized fuzzing.
+  - Proper support for parallelized fuzzing. Inspired by earlier patch
+    from Sebastian Roschke.
 
   - Added an example in experimental/distributed_fuzzing/
 
@@ -205,7 +228,7 @@ Version 0.33b:
 Version 0.32b:
 --------------
 
-  - Another take at fixing the C++ exception thing.
+  - Another take at fixing the C++ exception thing. Reported by Jakub Wilk.
 
 --------------
 Version 0.31b:
@@ -276,7 +299,7 @@ Version 0.25b:
   - Switched from readdir() to scandir() + alphasort() to preserve ordering of
     test cases.
 
-  - Splicing strategy,
+  - Splicing strategy.
 
   - Display improvements and several other bugfixes.
 
@@ -302,7 +325,7 @@ Version 0.22b:
 
   - More proper handling of long bitflips and some swaps.
 
-  - Fix for the handling of gcc -pipe.
+  - Fix for the handling of gcc -pipe, thanks to anonymous reporter.
 
 --------------
 Version 0.21b:
