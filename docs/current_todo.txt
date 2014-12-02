@@ -6,6 +6,8 @@ TODO
 
 Here's the list of stuff I want to implement in afl:
 
+  - Better offloading of local fuzzing work between parallel instances?
+
   - Test 8192 as an "interesting" integer,
 
   - Investigate x86 hardware branch tracing via the perf tracing API,
@@ -38,5 +40,6 @@ Here's the list of stuff I want to implement in afl:
 I'm not particularly sold on adding more exotic output modes, for example to
 send data to a TCP or UDP socket, or serve it off one. Ditto for supporting
 "remote" execution with execution code phoned back in by a harness. It's
-probably more effort than it's worth, given that most network services can
-be easily modified to read from files.
+probably more effort than it's worth, because network services have so many
+different process models, etc, and you don't even necessarily know where
+to watch for crashes or how to reset them to initial state.

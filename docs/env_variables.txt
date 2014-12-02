@@ -44,8 +44,8 @@ in scripting environments.
   - TMPDIR is used by afl-as for temporary files; if this variable is not set,
     the tool defaults to /tmp.
 
-2) Settings for afl-showap
---------------------------
+2) Settings for afl-showmap
+---------------------------
 
   - Setting AFL_QUIET inhibits the banner and other non-essential messages
     from the tool.
@@ -57,15 +57,19 @@ in scripting environments.
 3) Settings for afl-fuzz
 ------------------------
 
-None at this point. Several user-serviceable settings (e.g., the use of
-terminal colors) can be adjusted via config.h.
+  - Setting AFL_SKIP_CHECKS skips the checks to detect instrumented binaries
+    and shell scripts. This is useful mostly if you develop your own
+    instrumentation or so.
 
-If these variables are not already present in the environment, the tool
-automatically sets LD_BIND_NOW to 1 and ASAN_OPTIONS to:
+  - By default, LD_BIND_NOW is set to 1 to speed up fuzzing, but you can,
+    theoretically, override it. I don't think there's any reason to.
 
-  abort_on_error=1
-  detect_leaks=0
-  allocator_may_return_null=1
+  - By default, ASAN_OPTIONS are set to:
 
-Do not overrie abort_on_error=1 when using ASAN, since doing so would prevent
-out-of-bounds access bugs from being detected as such.
+    abort_on_error=1
+    detect_leaks=0
+    allocator_may_return_null=1
+
+    If you want to set your own options, be sure to include abort_on_error=1 -
+    otherwise, the fuzzer will not be able to detect crashes in the tested
+    app.

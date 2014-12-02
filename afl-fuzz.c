@@ -4309,6 +4309,8 @@ static void check_binary(u8* fname) {
 
   }
 
+  if (getenv("AFL_SKIP_CHECKS")) return;
+
   fd = open(target_path, O_RDONLY);
 
   if (fd < 0) PFATAL("Unable to open '%s'", target_path);
@@ -5008,10 +5010,15 @@ stop_fuzzing:
 
   SAYF(cLRD "\n+++ Testing aborted by user +++\n" cRST);
 
+  /* Running for more than 10 minutes but still doing first cycle? */
+
+  if (queue_cycle == 1 && get_cur_time() - start_time > 10 * 60 * 1000 )
+    WARNF("Stopped during first cycle, results may be incomplete.");
+
   destroy_queue();
   alloc_report();
 
-  OKF("We're done here. Have a nice day!");
+  OKF("We're done here. Have a nice day!\n");
 
   exit(0);
 

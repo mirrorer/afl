@@ -1,4 +1,15 @@
 --------------
+Version 0.77b:
+--------------
+
+  - Added AFL_SKIP_CHECKS to bypass binary checks when really warranted.
+    Requested by Jakub Wilk.
+
+  - Typo fixes.
+
+  - A better warning for aborted runs.
+
+--------------
 Version 0.76b:
 --------------
 

@@ -34,7 +34,7 @@ typedef uint32_t u32;
    'unsigned long long' in <bits/types.h>, so everything checks out.
 
    But on 64-bit systems, it is #ifdef'ed in the same file as 'unsigned long'.
-   Now, it only happens in circumnstances where the type happens to have the
+   Now, it only happens in circumstances where the type happens to have the
    expected bit width, *but* the compiler does not know that... and complains
    about 'unsigned long' being unsafe to pass to %llu.
 
