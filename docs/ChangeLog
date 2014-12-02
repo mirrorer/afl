@@ -1,4 +1,12 @@
 --------------
+Version 0.70b:
+--------------
+
+  - Explicit detection of ASAN.
+
+  - Patches to compile on Solaris. Contributed by Martin Carpenter.
+
+--------------
 Version 0.69b:
 --------------
 

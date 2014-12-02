@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <dirent.h>
+#include <fcntl.h>
 
 #include <sys/fcntl.h>
 #include <sys/wait.h>

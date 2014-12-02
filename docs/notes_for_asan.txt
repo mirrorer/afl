@@ -4,9 +4,32 @@ Notes for using ASAN with afl-fuzz
 
   (See README for the general instruction manual)
 
-The afl CC wrapper lets you build ASAN-enabled binaries with clang or with
-GCC 4.8+. To do this automatically, you can specify AFL_USE_ASAN=1 in the
-environment when building the instrumented program.
+1) Short version
+----------------
+
+ASAN on 64-bit systems uses a lot of memory in a way that can't be easily
+distinguished from a misbehaving program that could crash your system.
+
+Because of this, fuzzing with ASAN is recommended in two cases:
+
+  - If you are using a 32-bit system, or can compile the target binary with
+    the -m32 flag. In this case, we can still enforce reasonable memory
+    limits.
+
+  - On 64-bit, only if you trust the target binary to be well-behaved and not
+    attempt to use up all physical memory on the host OS.
+
+To compile with ASAN, set USE_ASAN=1 before calling 'make clean all'. The
+afl-gcc / afl-clang wrappers will pick that up and add the appropriate flags.
+
+For 32-bit targets, you will need to run afl-fuzz with '-m 800' or so to give
+ASAN some breathing room. For 64-bit targets, you need to use '-m none'.
+
+There is also the option of generating a corpus using a non-ASAN binary, and
+then feeding it to an ASAN-instrumented one to check for bugs.
+
+2) Long version
+---------------
 
 ASAN allocates a huge region of virtual address space for bookkeeping purposes.
 Most of this is never actually accessed, so the OS never has to allocate any
@@ -14,7 +37,7 @@ real pages of memory for the process, and the memory grabbed by ASAN is
 essentially "free" - but the mapping counts against the OS-enforced limit
 of virtual memory (RLIMIT_AS, aka ulimit -v).
 
-At the same time, afl-fuzz tries to protect you from processes that go off-rails
+On our end, afl-fuzz tries to protect you from processes that go off-rails
 and start consuming all the available memory in a vain attempt to parse a
 malformed input file. This happens surprisingly often, so enforcing such a limit
 is important for almost any fuzzer: the alternative is for the kernel OOM
@@ -44,9 +67,9 @@ hesitant to make afl-fuzz require root permissions just for that.
 
 So, we have no nice, portable way to avoid counting the ASAN allocation toward
 the limit. On 32-bit systems, or for binaries compiled in 32-bit mode (-m32),
-this is not a big deal: ASAN needs around 540 MB or so, depending on the
-compiler - so all you need to do is to specify -m that is about 50 MB higher
-than that.
+this is not a big deal: ASAN needs around 600-800 MB or so, depending on the
+compiler - so all you need to do is to specify -m that is a bit higher than
+that.
 
 On 64-bit systems, the situation is more murky, because the ASAN allocation
 is completely outlandish - around 17.5 TB in older versions, and closer to

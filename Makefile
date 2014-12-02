@@ -1,6 +1,6 @@
 #
-# american fuzzy lop - make wrapper
-# ---------------------------------
+# american fuzzy lop - makefile
+# -----------------------------
 #
 # Written and maintained by Michal Zalewski <lcamtuf@google.com>
 # 
@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.69b
+VERSION     = 0.70b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -69,7 +69,7 @@ test_build: afl-gcc afl-as afl-showmap
 	echo 0 | AFL_SINK_OUTPUT=1 AFL_QUIET=1 ./afl-showmap ./test-instr 2>.test-instr0
 	echo 1 | AFL_SINK_OUTPUT=1 AFL_QUIET=1 ./afl-showmap ./test-instr 2>.test-instr1
 	@rm -f test-instr
-	@diff -qs .test-instr0 .test-instr1; DR="$$?"; rm -f .test-instr0 .test-instr1; if [ "$$DR" = "0" ]; then echo; echo "Oops, the instrumentation does not seem to be behaving correctly!"; echo; echo "Please ping <lcamtuf@google.com> to troubleshoot the issue."; echo; exit 1; fi
+	@cmp -s .test-instr0 .test-instr1; DR="$$?"; rm -f .test-instr0 .test-instr1; if [ "$$DR" = "0" ]; then echo; echo "Oops, the instrumentation does not seem to be behaving correctly!"; echo; echo "Please ping <lcamtuf@google.com> to troubleshoot the issue."; echo; exit 1; fi
 	@echo "[+] All right, the instrumentation seems to be working!"
 
 all_done: test_build

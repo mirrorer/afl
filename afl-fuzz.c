@@ -39,6 +39,7 @@
 #include <signal.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <fcntl.h>
 
 #include <sys/fcntl.h>
 #include <sys/wait.h>
@@ -49,6 +50,7 @@
 #include <sys/resource.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <sys/termios.h>
 
 
 /* Lots of globals, but mostly for the status UI and other things where it
@@ -78,6 +80,7 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            resuming_fuzz,             /* Resuming an older fuzzing job?   */
            timeout_given,             /* Specific timeout given?          */
            not_on_tty,                /* stdout is not a tty              */
+           uses_asan,                 /* Target uses ASAN?                */
            crash_mode;                /* Crash mode! Yeah!                */
     
 static s32 out_fd,                    /* Persistent fd for out_file       */
@@ -1161,30 +1164,39 @@ static void init_forkserver(char** argv) {
 
   if (WIFSIGNALED(status)) {
 
-    SAYF("\n" cLRD "[-] " cRST
-         "Whoops, the target binary crashed suddenly, before receiving any input\n"
-         "    from the fuzzer! There are three probable causes of this:\n\n"
+    if (mem_limit && mem_limit < 500 && uses_asan) {
 
-         "    - The current memory limit (%s) is too restrictive, causing the\n"
-         "      target to hit an OOM condition in the dynamic linker. Try bumping up\n"
-         "      the limit with the -m setting in the command line. A simple way confirm\n"
-         "      this diagnosis would be:\n\n"
+      SAYF("\n" cLRD "[-] " cRST
+           "Whoops, the target binary crashed suddenly, before receiving any input\n"
+           "    from the fuzzer! Since it seems to be built with ASAN and you have a\n"
+           "    restrictive memory limit configured, this is expected; please read\n"
+           "    %s/notes_for_asan.txt for help.\n", doc_path);
+
+    } else {
+
+      SAYF("\n" cLRD "[-] " cRST
+           "Whoops, the target binary crashed suddenly, before receiving any input\n"
+           "    from the fuzzer! There are three probable explanations:\n\n"
+
+           "    - The current memory limit (%s) is too restrictive, causing the\n"
+           "      target to hit an OOM condition in the dynamic linker. Try bumping up\n"
+           "      the limit with the -m setting in the command line. A simple way confirm\n"
+           "      this diagnosis would be:\n\n"
 
 #ifdef RLIMIT_AS
-         "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+           "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
 #else
-         "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+           "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
-         "      You will also see this error when trying to use ASAN. For tips on that,\n"
-         "      please see %s/notes_for_asan.txt.\n\n"
+           "    - The binary is just buggy and explodes entirely on its own. If so, you\n"
+           "      need to fix the underlying problem or find a better replacement.\n\n"
 
-         "    - The binary is just buggy and explodes entirely on its own. If so, you\n"
-         "      need to fix the underlying problem or find a better replacement.\n\n"
+           "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
+           "      fail, poke <lcamtuf@coredump.cx>.\n",
+           DMS(mem_limit << 20), mem_limit);
 
-         "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
-         "      fail, poke <lcamtuf@coredump.cx>.\n",
-         DMS(mem_limit << 20), mem_limit, doc_path);
+    }
 
     FATAL("Fork server crashed with signal %d", WTERMSIG(status));
 
@@ -1194,26 +1206,35 @@ static void init_forkserver(char** argv) {
   if (WEXITSTATUS(status) == EXEC_FAIL)
     FATAL("Unable to execute target application ('%s')", argv[0]);
 
-  SAYF("\n" cLRD "[-] " cRST
-       "Hmm, looks like the target binary terminated before we could complete a\n"
-       "    handshake with the injected code. There are two probable explanations:\n\n"
+  if (mem_limit && mem_limit < 500 && uses_asan) {
 
-       "    - The current memory limit (%s) is too restrictive, causing an OOM\n"
-       "      fault in the dynamic linker. This can be fixed with the -m option. A\n"
-       "      simple way to confirm the diagnosis may be:\n\n"
+    SAYF("\n" cLRD "[-] " cRST
+           "Hmm, looks like the target binary terminated before we could complete a\n"
+           "    handshake with the injected code. Since it seems to be built with ASAN and\n"
+           "    you have a restrictive memory limit configured, this is expected; please\n"
+           "    read %s/notes_for_asan.txt for help.\n", doc_path);
+
+  } else {
+
+    SAYF("\n" cLRD "[-] " cRST
+         "Hmm, looks like the target binary terminated before we could complete a\n"
+         "    handshake with the injected code. There are two probable explanations:\n\n"
+
+         "    - The current memory limit (%s) is too restrictive, causing an OOM\n"
+         "      fault in the dynamic linker. This can be fixed with the -m option. A\n"
+         "      simple way to confirm the diagnosis may be:\n\n"
 
 #ifdef RLIMIT_AS
-       "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+         "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
 #else
-       "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+         "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
-       "      You will also see this error when trying to use ASAN. For tips on that,\n"
-       "      please see %s/notes_for_asan.txt.\n\n"
+         "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
+         "      fail, poke <lcamtuf@coredump.cx>.\n",
+         DMS(mem_limit << 20), mem_limit);
 
-       "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
-       "      fail, poke <lcamtuf@coredump.cx>.\n",
-       DMS(mem_limit << 20), mem_limit, doc_path);
+  }
 
   FATAL("Fork server handshake failed");
 
@@ -1246,7 +1267,6 @@ static u8 run_target(char** argv) {
     if (!child_pid) {
 
       struct rlimit r;
-
 
       if (mem_limit) {
 
@@ -4305,6 +4325,8 @@ static void check_binary(u8* fname) {
     FATAL("No instrumentation detected");
 
   }
+
+  if (memmem(f_data, f_len, "libasan.so", 10)) uses_asan = 1;
 
   if (munmap(f_data, f_len)) PFATAL("unmap() failed");
 
