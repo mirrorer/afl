@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.49b
+VERSION     = 0.50b
 
 BIN_PATH    = /usr/local/bin
 HELPER_PATH = /usr/local/lib/afl
@@ -45,9 +45,7 @@ test_x86:
 
 afl-gcc: afl-gcc.c $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
-	ln -s afl-gcc afl-g++ 2>/dev/null || true
-	ln -s afl-gcc afl-clang 2>/dev/null || true
-	ln -s afl-gcc afl-clang++ 2>/dev/null || true
+	for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $$i; done
 
 afl-as: afl-as.c afl-as.h $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
@@ -61,17 +59,14 @@ afl-showmap: afl-showmap.c $(COMM_HDR) | test_x86
 
 test_build: afl-gcc afl-as afl-showmap
 	@echo "[*] Testing the CC wrapper and instrumentation output..."
-	AFL_QUIET=1 AFL_PATH=. ./$(TEST_CC) $(CFLAGS) test-instr.c -o test-instr
+	AFL_QUIET=1 AFL_INST_RATIO=100 AFL_PATH=. ./$(TEST_CC) $(CFLAGS) test-instr.c -o test-instr
 	echo 0 | AFL_SINK_OUTPUT=1 AFL_QUIET=1 ./afl-showmap ./test-instr 2>.test-instr0
 	echo 1 | AFL_SINK_OUTPUT=1 AFL_QUIET=1 ./afl-showmap ./test-instr 2>.test-instr1
 	@rm -f test-instr
 	@diff -qs .test-instr0 .test-instr1; DR="$$?"; rm -f .test-instr0 .test-instr1; if [ "$$DR" = "0" ]; then echo; echo "Oops, the instrumentation does not seem to be behaving correctly!"; echo; echo "Please ping <lcamtuf@google.com> to troubleshoot the issue."; echo; exit 1; fi
 	@echo "[+] All right, the instrumentation seems to be working!"
 
-test_prev: test_build
-	@test -f "$(HELPER_PATH)/as"; TR="$$?"; if [ "$$TR" = "0" ]; then echo "[!] NOTE: You seem to have another copy of afl installed in $(HELPER_PATH)."; echo "    To avoid bugs, use 'make install' or set AFL_PATH to point to the new binaries."; else echo "[+] No previously-installed build detected, no need to replace anything."; fi
-
-all_done: test_prev
+all_done: test_build
 	@echo "[+] All done! Be sure to review README - it's pretty short and useful."
 
 clean:
@@ -80,9 +75,10 @@ clean:
 
 install: all
 	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH)
-	for i in afl-gcc afl-g++ afl-clang afl-clang++ afl-fuzz afl-showmap; do cp -df $$i $${DESTDIR}$(BIN_PATH)/; done
-	for i in afl-as as; do cp -df $$i $${DESTDIR}$(HELPER_PATH)/; done
-	chmod 755 $${DESTDIR}$(BIN_PATH)/afl-{gcc,fuzz,showmap} $${DESTDIR}$(HELPER_PATH)/afl-as
+	install -m 755 afl-gcc afl-fuzz afl-showmap $${DESTDIR}$(BIN_PATH)
+	for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $${DESTDIR}$(BIN_PATH)/$$i; done
+	install -m 755 afl-as $${DESTDIR}$(HELPER_PATH)
+	ln -sf afl-as $${DESTDIR}$(HELPER_PATH)/as
 
 publish: clean
 	test "`basename $$PWD`" = "afl" || exit 1
@@ -93,4 +89,5 @@ publish: clean
 	cat docs/README >~/www/afl/README.txt
 	cat docs/status_screen.txt >~/www/afl/status_screen.txt
 	cat docs/related_work.txt >~/www/afl/related_work.txt
+	cat docs/ChangeLog >~/www/afl/ChangeLog.txt
 	echo -n "$(VERSION)" >~/www/afl/version.txt

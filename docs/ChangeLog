@@ -1,4 +1,29 @@
 --------------
+Version 0.51b:
+--------------
+
+  - afl-as search order changed to avoid the problem with older copies;
+    this also means that I can remove the Makefile check for that.
+
+--------------
+Version 0.50b:
+--------------
+
+  - Additional improvements to the installation script. Patch by Padraig Brady.
+
+  - Various documentation improvements, especially around perf_tips.txt;
+    based on the feedback from Alexander Cherepanov.
+
+  - Added AFL_INST_RATIO to afl-as. The only case where this comes handy is
+    ffmpeg, at least as far as I can tell.
+
+  - Added documentation for all environmental variables (env_variables.txt).
+
+  - Visual warning for excessive or insufficient bitmap density.
+
+  - -O3 is now added by default; use AFL_DONT_OPTIMIZE if you don't like that.
+
+--------------
 Version 0.49b:
 --------------
 
@@ -24,7 +49,7 @@ Version 0.48b:
   - Makefile mkdir improvements, as suggested by Hanno Boeck.
 
   - Properly save r8-r11 registers in the x86 setup code (this could cause rare
-    problems when running without instrumentation when the first function called
+    problems running *without* instrumentation when the first function called
     in a particular .o file has 5+ parameters). No impact on code running under
     afl-fuzz or afl-showmap. Reported by Padraig Brady.
 
@@ -49,13 +74,13 @@ Version 0.46b:
   - Makefile dependencies cleaned up for parallel builds. Requested by 
     Richard W. M. Jones.
 
-  - Support for DESTDIR in Makefile. Ditto.
+  - Support for DESTDIR in Makefile. Suggested by Richard W. M. Jones.
 
-  - Removed all the USE_64BIT stuff, just auto-detect compilation mode,
-    due to popular demand.
+  - Removed all the USE_64BIT stuff; we now just auto-detect compilation mode.
+    As requested by many callers to the show.
 
-  - Fix for rare problems with code with manually written assembly that
-    switches between .code32 and .code64. Fixes a problem reported by
+  - Fix for rare problems with programs that use snippets of assembly and
+    switch between .code32 and .code64. Fixes a problem reported by
     Hanno Boeck with compiling ToT gdb.
 
 --------------
@@ -77,7 +102,7 @@ Version 0.45b:
   - Better warnings about ASAN memory requirements, based on feedback from
     several users.
 
-  - Saner support for non-tty stdout (less output generated).
+  - Saner support for non-tty stdout (less output generated, no ANSI art).
 
 --------------
 Version 0.44b:

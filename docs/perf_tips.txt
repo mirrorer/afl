@@ -4,57 +4,111 @@ Tips for performance optimization
 
   (See README for the general instruction manual)
 
+This file provides some tips for troubleshooting slow or wasteful fuzzing
+jobs.
+
+1) Keep your test cases small
+-----------------------------
+
+This is probably the single most important step to take! Large test cases do
+not merely need more time and memory to be parsed by the fuzzer binary, but
+they also make the fuzzing process dramatically less efficient in other ways.
+
+To illustrate, let's say that you're randomly flipping bits in a file, one bit
+at a time. If you flip bit #47, you will hit a security bug; flipping any
+other bit just results in an invalid document.
+
+If your starting test case is 100 bytes long, you will have a 71% chance of
+triggering the bug within 1,000 execve() calls. Alas, if the test case is
+1 kB long, the probability that we will ever randomly pick that bit goes
+down to 11%. And if it has 10 kB of non-essential cruft, it plunges to 1%.
+
+In practice, this means that you shouldn't fuzz image parsers with your
+vacation photos. Generate a tiny 16x16 picture instead, and run it through
+jpegtran or pngcrunch for good measure. The same goes for most other types
+of documents.
+
+There's plenty of small starting test cases in ../testcases/* - try them out
+or submit new ones!
+
+2) Use a simpler target
+-----------------------
+
+Consider using a simpler target binary in your fuzzing work. For example, for
+image formats, bundled utilities such as djpeg, readpng, or gifhisto are
+considerably faster than the convert tool from ImageMagick.
+
+Remember that you can always use such simple tools to generate a corpus that
+will be then fed to a more resource-hungry program later on.
+
+3) Have a closer look at the binary
+-----------------------------------
+
+Check for any parameters or settings that obviously improve performance. For
+example, the djpeg utility that comes with IJG jpeg and libjpeg-turbo can be
+called with:
+
+  -dct fast -nosmooth -onepass -dither none -scale 1/4
+
+...and that will speed things up. There is a corresponding drop in the quality
+of decoded images, but it's probably not something you care about.
+
+You may also want to use strace -tt or an equivalent profiling tool to see if
+the targeted binary is doing anything unnecessarily slow. Sometimes, you can
+speed things up simply by specifying /dev/null as the config file, or disabling
+some compile-time features that aren't really needed for the job (try
+./configure --help).
+
+Last but not least, if you are using ASAN or AFL_HARDEN, consider turning it
+off.
+
+4) Avoid instrumenting ALL THE THINGS
+-------------------------------------
+
+Instrument just the libraries you actually want to stress-test right now, one
+at a time. Trying to simultaneously instrument glibc, zlib, gmp, OpenSSL,
+and libxml2 to test a single program is an overkill.
+
+5) Parallelize your fuzzers...
+------------------------------
+
 The fuzzer is designed to need ~1 core per job. This means that on an 8-core
-system, you can easily run eight different fuzzing jobs with relatively little
-performance hit. When running more than that, the performance should degrade
-fairly linearly.
+system, you can easily run eight parallel fuzzing jobs with relatively little
+performance hit. For tips on how to do that, see parallel_fuzzing.txt.
 
-If the fuzzing process is slow, there are several things to try:
+6) ...within the limits of reason
+---------------------------------
 
-  - First and foremost, choose simple and small initial test cases. Input
-    files under 1 kB are ideal whenever possible.
+Of course, avoid running too many fuzzers on a single machine, and stay away
+from systems that are low on physical memory, are under heavy CPU load, or
+use NFS.
 
-    In practical terms - say, if you are fuzzing image parsers, don't start
-    with a folder of your vacation photos - generate a tiny 16x16 picture and 
-    run it through jpegtran or pngcrunch. The same goes for videos or audio.
-    There's plenty of small starting test cases in ../testcases/* - try them
-    out or submit new ones!
-
-  - Consider using a simpler target binary. For example, for image formats,
-    bundled utilities such as djpeg, readpng, or gifhisto are considerably
-    faster than the convert tool from ImageMagick.
-
-  - Lower the memory limit (-m) a bit. Some programs end up spending a lot of
-    time allocating and initializing megabytes of memory for some pathological
-    inputs; low -m values can make them give up sooner without necessarily
-    sacrificing coverage.
-
-  - Check for any parameters or settings that obviously improve performance. For
-    example, djpeg can be called with -dct fast -nosmooth -onepass -dither none
-    -scale 1/4 to speed things up; there is a corresponding drop in the quality
-    of decoded images, but it's probably not something you care about.
-
-  - See if the targeted binary is doing anything obviously slow (try strace -tt).
-    Perhaps it will run faster if you specify /dev/null as a config file,
-    if you disable some features on compile time (./configure --help), or if you
-    change the command line a bit?
-
-  - Compile without AFL_HARDEN, ASAN, or any other similar tweaks.
-
-  - Parallelize the process - see parallel_fuzzing.txt.
-
-  - Avoid fuzzing on systems that are low on free physical memory, under heavy
-    CPU load, or that are using NFS.
-
-  - Avoid instrumenting everything. Instrument the libraries / binaries you
-    actually want to stress-test right now, one at a time. Simultaneously
-    building against instrumented libc, zlib, and OpenSSL is an overkill.
-
-If you're just hoping to gain few percent more execs per second, the following
-Linux scheduler tweaks may help on x86:
+Oh, here's a pro tip - on many Linux systems, you can get a slight performance
+boost with afl-fuzz by doing this:
 
 echo 1 >/proc/sys/kernel/sched_child_runs_first
 echo 1 >/proc/sys/kernel/sched_autogroup_enabled
 echo 50000000 >/proc/sys/kernel/sched_migration_cost_ns
 echo 250000000 >/proc/sys/kernel/sched_latency_ns
 
+7) Keep memory use and timeouts in check
+----------------------------------------
+
+If you have increased the -m or -t limits more than truly necessary, consider
+dialing them back down.
+
+Keep in mind that some programs end up spending a lot of time allocating and
+initializing megabytes of memory to accommodate pathological inputs. Low -m
+values can make them give up sooner - long before hitting the "hard" time
+limit defined with -t - without necessarily sacrificing coverage.
+
+8) If all other options fail, use -d
+------------------------------------
+
+For programs that are genuinely slow, in cases where you really can't escape
+using huge input files, or if you simply want to get quick and dirty results
+early on, you can always resort to the -d mode.
+
+The mode causes afl-fuzz to skip all the deterministic fuzzing steps, which
+makes output a lot less neat and makes the testing a bit less in-depth, but
+it will give you an experience more familiar from other fuzzing tools.

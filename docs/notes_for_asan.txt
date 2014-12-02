@@ -10,9 +10,9 @@ environment when building the instrumented program.
 
 ASAN allocates a huge region of virtual address space for bookkeeping purposes.
 Most of this is never actually accessed, so the OS never has to allocate any
-real pages of memory for the process, and the hack used by ASAN is essentially
-"free" - but the mapping counts against the OS-enforced limit of virtual
-memory (RLIMIT_AS, aka ulimit -v).
+real pages of memory for the process, and the memory grabbed by ASAN is
+essentially "free" - but the mapping counts against the OS-enforced limit
+of virtual memory (RLIMIT_AS, aka ulimit -v).
 
 At the same time, afl-fuzz tries to protect you from processes that go off-rails
 and start consuming all the available memory in a vain attempt to parse a
@@ -44,16 +44,20 @@ hesitant to make afl-fuzz require root permissions just for that.
 
 So, we have no nice, portable way to avoid counting the ASAN allocation toward
 the limit. On 32-bit systems, or for binaries compiled in 32-bit mode (-m32),
-this is not a big deal: ASAN needs around 540 MB, so all you need to do is to
-specify -m 600 or so when calling afl-fuzz.
+this is not a big deal: ASAN needs around 540 MB or so, depending on the
+compiler - so all you need to do is to specify -m that is about 50 MB higher
+or so.
 
 On 64-bit systems, the situation is more murky, because the ASAN allocation
-is completely outlandish - around 17.5 TB. The actual amount of memory on
-your system is (probably) just a tiny fraction of that - so unless you dial
-the limit in extremely precisely, you will get no protection from OOM bugs.
+is completely outlandish - around 17.5 TB with gcc, and closer to 20 TB with
+clang. The actual amount of memory on your system is (probably) just a tiny
+fraction of that - so unless you dial the limit in extremely precisely, you
+will get no protection from OOM bugs.
 
-On my system, the exact amount of memory grabbed by ASAN is 17,825,850 MB;
-if so, perhaps -m 17825900 is a safe value, but use it at your own risk.
+On my system, the amount of memory grabbed by ASAN in GCC is around
+17,825,850 MB; for clang, it's 20,971,600. But there is no guarantee that
+these numbers are stable, and if you get them wrong by "just" a couple gigs
+or so, you will be at risk.
 
 In other words, use of ASAN is generally *not* recommended when fuzzing
 64-bit binaries, unless you are confident that they are robust and enforce

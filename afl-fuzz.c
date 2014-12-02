@@ -1957,7 +1957,7 @@ static void show_stats(void) {
 
   s64 cur_ms   = get_cur_time();
   s64 run_time = cur_ms - start_time;
-  double avg_exec;
+  double avg_exec, t_byte_ratio;
 
   if (not_on_tty) return;
 
@@ -2086,9 +2086,12 @@ static void show_stats(void) {
 
   SAYF(bV bSTOP "  now processing : " cNOR "%-17s " bSTG bV bSTOP, tmp);
 
-  sprintf(tmp, "%s (%0.02f%%)", DI(t_bytes), ((double)t_bytes * 100) / MAP_SIZE);
+  t_byte_ratio = ((double)t_bytes * 100) / MAP_SIZE;
 
-  SAYF("    map density : " cNOR "%-21s " bSTG bV "\n", tmp);
+  sprintf(tmp, "%s (%0.02f%%)", DI(t_bytes), t_byte_ratio);
+
+  SAYF("    map density : %s%-21s " bSTG bV "\n", t_byte_ratio > 70 ? cLRD : 
+       ((t_bytes < 200 && !dumb_mode) ? cPIN : cNOR), tmp);
 
   sprintf(tmp, "%s (%0.02f%%)", DI(cur_skipped_paths),
           ((double)cur_skipped_paths * 100) / queued_paths);
@@ -2255,22 +2258,25 @@ static void show_init_stats(void) {
   SAYF("\n");
 
   if (avg_us > 10000) 
-    WARNF(cLRD "The targeted binary is pretty slow! Consider using -d.");
+    WARNF(cLRD "The target binary is pretty slow! See perf_tips.txt for help.");
 
   if (!resuming_fuzz) {
 
     if (max_len > 50 * 1024)
-      WARNF(cLRD "Some test cases are huge (%s) - reduce size%s!", DMS(max_len),
-            skip_deterministic ? "" : " or use -d");
+      WARNF(cLRD "Some test cases are huge (%s) - see perf_tips.txt for help!",
+            DMS(max_len));
     else if (max_len > 10 * 1024)
-      WARNF("Some test cases are big (%s) - try trimming down%s.", DMS(max_len),
-            skip_deterministic ? "" : " or using -d");
+      WARNF("Some test cases are big (%s) - see perf_tips.txt for advice.",
+            DMS(max_len));
 
     if (useless_at_start)
       WARNF(cLRD "Some test cases look useless. Consider using a smaller set.");
 
-    if (queued_paths > 20)
-      WARNF("You have a lot of starting files; more isn't always better.");
+    if (queued_paths > 100)
+      WARNF(cLRD "You probably have far too many input files! Consider trimming down.");
+    else if (queued_paths > 20)
+      WARNF("You have lots of input files; try starting small.");
+
 
   }
 
@@ -4049,13 +4055,13 @@ static void usage(u8* argv0) {
       
        "Fuzzing behavior settings:\n\n"
 
-       "  -d            - skip all deterministic fuzzing stages\n"
-       "  -n            - fuzz non-instrumented binaries (dumb mode)\n\n"
+       "  -d            - quick & dirty mode (skips deterministic steps)\n"
+       "  -n            - fuzz without instrumentation (dumb mode)\n\n"
 
        "Other stuff:\n\n"
 
        "  -T text       - show a specific text banner on the screen\n"
-       "  -S id         - distributed mode (see parallel_fuzzing.txt)\n\n"
+       "  -M / -S id    - distributed mode (see parallel_fuzzing.txt)\n\n"
 
        "For additional tips, please consult the README.\n\n",
 
@@ -4311,13 +4317,9 @@ int main(int argc, char** argv) {
           switch (suffix) {
 
             case 'T': mem_limit *= 1024 * 1024; break;
-
             case 'G': mem_limit *= 1024; break;
-
             case 'k': mem_limit /= 1024; break;
-
-            case 'M':
-            case '0' ... '9': break;
+            case 'M': break;
 
             default:  FATAL("Unsupported suffix or bad syntax for -m");
 

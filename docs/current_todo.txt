@@ -2,7 +2,13 @@
 TODO
 ====
 
+  (See README for the general instruction manual)
+
 Here's the list of stuff I want to implement in afl:
+
+  - Better crash deduplication.
+
+  - More test cases (see testcases/wishlist.txt).
 
   - A second part of Jann's fork server patch, which allows us to skip setup
     steps for certain slow programs.

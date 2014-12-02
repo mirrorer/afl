@@ -115,7 +115,27 @@ It is *not* advisable to skip the synchronization script and run the fuzzers
 directly on a network filesystem; unexpected latency and unkillable I/O
 wait processes can mess things up.
 
-4) Closing remarks
+4) Remote monitoring and data collection
+----------------------------------------
+
+You can use screen, nohup, or something equivalent to run remote instances of
+afl-fuzz. If you redirect the program's output to a file, it will automatically
+switch from a fancy UI to more limited status reports. There is also basic
+machine-readable information always written to the fuzzer_stats file in the
+output directory.
+
+Use the status screen of the master (-M) instance to monitor the overall
+fuzzing progress and decide when to stop. You can also rely on that
+instance's output directory to collect the synthesized corpus that covers
+all the noteworthy paths discovered anywhere within the fleet. The slave
+(-S) instances do not require any special monitoring, other than just making
+sure that they are up.
+
+Keep in mind that crashing inputs are *not* automatically propagated to the
+master instance, so you may still want to monitor for crashes from within
+your synchronization or health checking scripts.
+
+5) Closing remarks
 ------------------
 
 It is perhaps worth noting that all of the following is permitted:
@@ -134,9 +154,4 @@ It is perhaps worth noting that all of the following is permitted:
     different starting test cases (e.g., progressive and standard JPEG).
     The synchronization mechanism ensures that the test sets will get
     fairly homogeneous over time, but it introduces some initial variability.
-
-Oh, one more thing: on the status screen of every fuzzer, you can keep track
-of the number of paths imported from other instances. For unattended operation,
-you can also monitor basic vital signs via the fuzzer_stats file in the output
-directory of every instance of afl-fuzz.
 

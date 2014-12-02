@@ -203,7 +203,7 @@ static void run_target(char** argv) {
   close(st_pipe[1]);
 
   if (write(ctl_pipe[1], &status, 4) != 4) 
-    FATAL("No instrumentation detected");
+    FATAL("No instrumentation detected or fork server fault");
 
   /* The fork server will send us a "hi mom" message first, then the PID,
      then the actual exec status once the child process exits. */
@@ -212,7 +212,7 @@ static void run_target(char** argv) {
       read(st_pipe[0], &child_pid, 4) != 4 || child_pid <= 0 ||
       read(st_pipe[0], &status, 4) != 4) {
 
-    FATAL("No instrumentation detected");
+    FATAL("No instrumentation detected or fork server fault");
 
   }
 
@@ -230,7 +230,12 @@ static void run_target(char** argv) {
 
 static void usage(u8* argv0) {
 
-  SAYF("\n%s /path/to/traced_app [ ... ]\n\n", argv0);
+  SAYF("\n%s /path/to/traced_app [ ... ]\n\n"
+
+       "Shows all instrumentation tuples recorded when executing the target binary.\n"
+       "You can set AFL_SINK_OUTPUT=1 to sink all output from the executed program,\n" 
+       "or AFL_QUIET=1 to suppress non-fatal messages from this tool.\n\n", argv0);
+
   exit(1);
 
 }
@@ -261,7 +266,7 @@ int main(int argc, char** argv) {
   if (!be_quiet && !sink_output)
     SAYF("-- Program output ends --\n");  
 
-  if (!count_bits()) FATAL("No instrumentation data found");
+  if (!count_bits()) FATAL("No instrumentation data recorded");
 
   if (!be_quiet) SAYF(cBRI "\nTuples recorded:\n\n" cRST);
 

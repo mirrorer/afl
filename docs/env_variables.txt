@@ -1,0 +1,62 @@
+=======================
+Environmental variables
+=======================
+
+  (See README for the general instruction manual)
+
+Several components of American Fuzzy Lop make use of environmental variables
+to implement features that may be useful for power users or in scripting
+environments.
+
+1) Settings for afl-gcc, afl-clang, and afl-as
+----------------------------------------------
+
+  - Setting AFL_QUIET will prevent afl-cc and afl-as banners from being
+    displayed during compilation, in case you find them distracting.
+
+  - AFL_PATH can be used to point to the location of afl-as. This is useful if
+    you have an older version of afl installed system-wide (doing 'make' should
+    tell you about that).
+
+  - Setting AFL_HARDEN automatically adds code hardening options when invoking
+    the downstream compiler. This currently includes -D_FORTIFY_SOURCE=2 and
+    -fstack-protector-all. The option is useful for catching non-crashing
+    memory bugs at the expense of a very slight (sub-5%) performance loss.
+
+  - By default, the wrapper appends -O3 to optimize builds. In the exceedingly
+    unlikely case this causes problems, set AFL_DONT_OPTIMIZE.
+
+  - Setting AFL_USE_ASAN automatically enables ASAN, provided that your
+    compuler supports that. Note that fuzzing with ASAN is problematic - see
+    notes_for_asan.txt.
+
+  - Setting AFL_CC and AFL_CXX lets you use alternate downstream compilers,
+    rather than the default 'clang' or 'gcc' binary in your $PATH.
+
+  - Setting AFL_INST_RATIO to a percentage between 1 and 100% controls the
+    probability of instrumenting every branch. This is (very rarely) useful
+    when dealing with exceptionally complex programs that saturate the output
+    bitmap.
+
+    (If this ever happens, afl-fuzz will warn you ahead of the time by
+    displaying the "bitmap density" field in fiery red.)
+
+  - TMPDIR is used by afl-as for temporary files; if this variable is not set,
+    the tool defaults to /tmp.
+
+2) Settings for afl-showap
+--------------------------
+
+  - Setting AFL_QUIET inhibits the banner and other non-essential messages
+    from the tool.
+
+  - Setting AFL_SINK_OUTPUT redirects all output from the tested program to
+    /dev/null, so that all you see is a list of tuples recorded by the
+    instrumentation. Very useful for test case de-duplication scripts.
+
+3) Settings for afl-fuzz
+------------------------
+
+None at this point. Several user-serviceable settings (e.g., the use of
+terminal colors) can be adjusted via config.h.
+

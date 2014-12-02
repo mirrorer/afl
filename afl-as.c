@@ -13,12 +13,9 @@
      http://www.apache.org/licenses/LICENSE-2.0
 
    The sole purpose of this wrapper is to preprocess assembly files generated
-   by GCC and inject the instrumentation bits included from afl-as.h. It is
-   automatically invoked by the toolchain when compiling programs using
-   afl-gcc.
-
-   If AFL_QUIET is set, non-essential messages will not be shown. This is
-   useful when dealing with wonky build systems.
+   by GCC / clang and inject the instrumentation bits included from afl-as.h. It
+   is automatically invoked by the toolchain when compiling programs using
+   afl-gcc / afl-clang.
 
  */
 
@@ -46,10 +43,11 @@ static u8** as_params;          /* Parameters passed to the real 'as'   */
 static u8*  input_file;         /* Originally specified input file      */
 static u8*  modified_file;      /* Instrumented file for the real 'as'  */
 
-static u32  rand_seed;          /* Random seed used for instrumentation */
-
 static u8   be_quiet,           /* Quiet mode (no stderr output)        */
+            clang_mode,         /* Running in clang mode?               */
             use_64bit;          /* Output 64-bit instrumentation        */
+
+static u32  inst_ratio = 100;   /* Instrumentation probability (%)      */
 
 
 /* Examine and modify parameters to pass to 'as'. Note that the file name
@@ -153,40 +151,69 @@ static void add_instrumentation(void) {
        names or conditional labels. This is a bit messy, but in essence,
        we want to catch:
 
-         ^main:      - function entry point
+         ^main:      - function entry point (always instrumented)
          ^.L0:       - GCC branch label
-         ^.LBB0_0:   - clang branch label
+         ^.LBB0_0:   - clang branch label (but only in clang mode)
          ^\tjnz foo  - conditional branches
 
        ...but not:
 
          ^# BB#0:    - clang comments
+         ^ # BB#0:   - ditto
          ^.Ltmp0:    - clang non-branch labels
          ^.LC0       - GCC non-branch labels
          ^\tjmp foo  - non-conditional jumps
 
      */
 
-    if (!force_inhibit && now_instr && line[0] != '#' && (
-        !strncmp(line, ".LBB", 4) ||
-        (strstr(line, ":\n") && (line[0] == '.' ? isdigit(line[2]) : 1)) ||
-        (line[0] == '\t' && line[1] == 'j' && line[2] != 'm'))) {
+    if (force_inhibit || !now_instr || line[0] == '#' || line[0] == ' ')
+      continue;
 
-      /* Every function name and conditional label is given a random ID.
-         This ID, XORed with the ID of the previously executed one, is used
-         to selected a byte in the execution bitmap that is updated by the
-         runtime instrumentation.
+    /* Conditional branch instruction (jnz, etc). */
 
-         All of this forms an almost-unique identifier of a particular state
-         transition in program's control flow.
+    if (line[0] == '\t') {
 
-         If COVERAGE_ONLY is set, the instrumentation will use the current
-         location only, and skip the XOR part. */
+      if (line[1] == 'j' && line[2] != 'm' && R(100) < inst_ratio) {
 
-      fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
-              R(MAP_SIZE));
+        fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
+                R(MAP_SIZE));
 
-      ins_lines++;
+        ins_lines++;
+
+      }
+
+      continue;
+
+    }
+
+    /* Label of some sort. */
+
+    if (strstr(line, ":")) {
+
+      if (line[0] == '.') {
+
+        /* .L0: or LBB0_0: style jump destination */
+
+        if ((isdigit(line[2]) || (clang_mode && !strncmp(line + 1, "LBB", 3)))
+            && R(100) < inst_ratio) {
+
+          fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
+                  R(MAP_SIZE));
+
+          ins_lines++;
+
+        }
+
+      } else {
+
+        /* Function label (always instrumented) */
+
+        fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
+                R(MAP_SIZE));
+
+        ins_lines++;
+    
+      }
 
     }
 
@@ -201,10 +228,10 @@ static void add_instrumentation(void) {
   if (!be_quiet) {
 
     if (!ins_lines) WARNF("No instrumentation targets found.");
-    else OKF("Instrumented %u locations (%s-bit, %s mode, seed 0x%08x).",
+    else OKF("Instrumented %u locations (%s-bit, %s mode, ratio %u%%).",
              ins_lines, use_64bit ? "64" : "32",
              getenv("AFL_HARDEN") ? "hardened" : "non-hardened",
-             rand_seed);
+             inst_ratio);
  
   }
 
@@ -216,10 +243,14 @@ static void add_instrumentation(void) {
 int main(int argc, char** argv) {
 
   s32 pid;
+  u32 rand_seed;
   int status;
+  u8* inst_ratio_str = getenv("AFL_INST_RATIO");
 
   struct timeval tv;
   struct timezone tz;
+
+  clang_mode = !!getenv("__AFL_CLANG_MODE");
 
   if (isatty(2) && !getenv("AFL_QUIET")) {
 
@@ -232,8 +263,12 @@ int main(int argc, char** argv) {
 
     SAYF("\n"
          "This is a helper application for afl-fuzz. It is a wrapper around GNU 'as',\n"
-         "executed by the toolchain whenever using afl-gcc. You probably don't want to\n"
-         "run this program directly.\n\n");
+         "executed by the toolchain whenever using afl-gcc or afl-clang. You probably\n"
+         "don't want to run this program directly.\n\n"
+
+         "Rarely, when dealing with extremely complex projects, it may be advisable to\n"
+         "set AFL_INST_RATIO to a value less than 100 in order to reduce the odds of\n"
+         "instrumenting every discovered branch.\n\n");
 
     exit(1);
 
@@ -246,6 +281,15 @@ int main(int argc, char** argv) {
   srandom(rand_seed);
 
   edit_params(argc, argv);
+
+  if (inst_ratio_str) {
+
+    inst_ratio = atoi(inst_ratio_str);
+
+    if (!inst_ratio || inst_ratio > 100)
+      FATAL("Bad value of AFL_INST_RATIO (must be between 1 and 100)");
+
+  }    
 
   add_instrumentation();
 

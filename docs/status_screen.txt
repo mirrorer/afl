@@ -4,6 +4,20 @@ Understanding the status screen
 
   (See README for the general instruction manual)
 
+0) A note about colors
+----------------------
+
+The status screen and error messages use colors to keep things readable and
+attract your attention to the most important details. Unfortunately, the UI
+will render correctly only if your terminal is using traditional un*x palette
+(white text on black background).
+
+If you are using inverse video, you may want to either change your settings,
+or edit config.h to comment out USE_COLORS (and then recompile the fuzzer).
+
+I'm not aware of any other simple way to make this work without causing
+other side effects - sorry about that.
+
 1) Process timing
 -----------------
 
@@ -29,8 +43,8 @@ paths within several minutes of starting, you're probably not invoking the
 target binary correctly and it never gets to parse the input files we're
 throwing at it; another possible explanations are that the default memory limit
 (-m) is too restrictive, and the program exits after failing to allocate a
-buffer very early on; or that the input files are patently invalid and fail a
-basic header check.
+buffer very early on; or that the input files are patently invalid and always
+fail a basic header check.
 
 If there are no new paths showing up for a while, you will eventually see a big
 red warning in this section, too :-)
@@ -49,8 +63,12 @@ The first field in this section gives you the count of queue passes done so far
 - that is, the number of times the fuzzer went over all the interesting test
 cases discovered so far, fuzzed them, and looped back. Every fuzzing session
 should be allowed to complete at least one cycle - and ideally, much more than
-that. As noted earlier, the first pass can take a couple of days, so sit back
-and relax :-)
+that.
+
+As noted earlier, the first pass can take a couple of days, so sit back and
+relax :-) If you want get broader but more shallow coverage right away, try
+the -d option - it gives you a more familiar experience by skipping the
+deterministic fuzzing steps.
 
 To help make the call on when to hit Ctrl-C, the value is color-coded. It is
 shown in magenta during the first pass, progresses to yellow if new finds are
@@ -74,6 +92,9 @@ This box tells you how far along the fuzzer is with the current queue cycle: the
 ID of the test case it is currently working on, plus the number of inputs it
 decided to ditch because they were persistently timing out.
 
+If you feel that the fuzzer is progressing too slowly, see the note about the -d
+option in section 2 of this doc.
+
 4) Map coverage
 ---------------
 
@@ -83,15 +104,28 @@ decided to ditch because they were persistently timing out.
   +--------------------------------------+
 
 The section provides some trivia about the coverage observed by the
-instrumentation embedded in the target binary. It can be useful, for example,
-for comparing the merits of two simultaneous fuzzing jobs started with two
-different input files.
+instrumentation embedded in the target binary. It provides a rough indication
+of code coverage and can be useful for comparing several different fuzzing
+runs.
 
 The first line in the box tells you how many branch tuples we have already
-hit, in proportion to how much the bitmap can hold; the more the better, but
-please drop me a mail if you're seeing extreme values (below 1% or above 50%).
+hit, in proportion to how much the bitmap can hold. Be wary of extremes:
 
-The other field deals with the variability in tuple hit counts seen in the
+  - Absolute numbers below 200 or so suggests that the program is either
+    extremely simple, not instrumented properly (e.g., due to being linked
+    against the wrong copy of the library), or bailing out prematurely on
+    your input test cases. The fuzzer will try to mark this in pink, just
+    to make you aware.
+
+  - Percentages over 70% may very rarely happen with very complex programs
+    that make heavy use of template-generated code. I've seen this just once,
+    with ffmpeg. Because high bitmap density makes it harder for the fuzzer
+    to discern new program states, I recommend recompiling the binary with
+    AFL_INSTR_RATIO=10 or so (see env_variables.txt).
+
+    The fuzzer will flag high percentages in red.
+
+The other line deals with the variability in tuple hit counts seen in the
 binary. In essence, if every taken branch is always taken a fixed number of
 times for all the inputs we have tried, this will read "1.00". As we manage
 to trigger other hit counts for every branch, the needle will start to move
@@ -110,36 +144,36 @@ toward "8.00", but will probably never reach it.
 This part gives you an in-depth peek at what the fuzzer is actually doing right
 now. It tells you about the current stage, which can be any of:
 
-  * init - if you see this, you're pretty amazing; it flashes on the screen for
+  - init - if you see this, you're pretty amazing; it flashes on the screen for
     a millisecond or so =)
 
-  * calibration - a pre-fuzzing stage where the execution path is examined
+  - calibration - a pre-fuzzing stage where the execution path is examined
     to detect anomalies, establish baseline execution speed, and so on.
 
-  * trim L/S - another pre-fuzzing stage where the test case is trimmed to the
+  - trim L/S - another pre-fuzzing stage where the test case is trimmed to the
     shortest form that still produces the same execution path. The length (L)
     and stepover (S) are chosen in general relationship to file size.
 
-  * bitflip L/S - deterministic bit flips. There are L bits toggled at any given
+  - bitflip L/S - deterministic bit flips. There are L bits toggled at any given
     time, walking the input file with S-bit increments. The current L/S variants
     are: 1/1, 2/1, 4/1, 8/8, 16/8, 32/8.
 
-  * arith L/8 - deterministic arithmetics. The fuzzer tries to subtract or add
+  - arith L/8 - deterministic arithmetics. The fuzzer tries to subtract or add
     small integers to 8-, 16-, and 32-bit values. The steopver is always 8 bits.
 
-  * interest L/8 - deterministic value overwrite. The fuzzer has a list of known
+  - interest L/8 - deterministic value overwrite. The fuzzer has a list of known
     "interesting" 8-, 16-, and 32-bit values to try. The stepover is 8 bits.
 
-  * havoc - a sort-of-fixed-length cycle with stacked random tweaks. The
+  - havoc - a sort-of-fixed-length cycle with stacked random tweaks. The
     operations attempted during this stage include bit flips, overwrites with
     random and "interesting" integers, block deletion, and block duplication.
 
-  * splice - a last-resort strategy that kicks in after the first full queue
+  - splice - a last-resort strategy that kicks in after the first full queue
     cycle with no new paths. It is equivalent to 'havoc', except that it first
     splices together two random inputs from the queue at some arbitrarily
     selected midpoint.
 
-  * sync - a stage used only when -S is set (see parallel_fuzzing.txt). No real
+  - sync - a stage used only when -S is set (see parallel_fuzzing.txt). No real
     fuzzing is involved, but the tool scans the output from other fuzzers and
     imports test cases as necessary.
 
@@ -225,17 +259,20 @@ uncovered after completing the initial pass over the queue.
 The bit about variable paths is actually fairly interesting. There are three
 quasi-common explanations for variable behavior of the tested program:
 
-  * Use of uninitialized memory in conjunction with some intrinsic sources of
+  - Use of uninitialized memory in conjunction with some intrinsic sources of
     entropy in the tested binary. This can be indicative of a security bug.
 
-  * Multiple threads executing at once. To avoid problems, it's best to
-    restrict instrumented programs to a single thread. Check compile- and
-    run-time options - for example, with ImageMagick, this can be done with
-    MAGICK_THREAD_LIMIT=1.
+  - Multiple threads executing at once in semi-random order. To avoid hiccups,
+    it's best to restrict instrumented programs to a single thread. Check
+    compile-time options or run-time flags.
 
-  * Attempts to overwrite files left over after previous runs. This is harmless,
-    but you may want to instruct the targeted program to write to stdout or to
-    /dev/null to avoid surprises.
+    As far as I know, the only cases where this is a (minor) issue are
+    ImageMagick (remedied with ./configure --without-threads) and ffmpeg
+    (fixed with ./configure --disable-pthreads).
+
+  - Attempts to create files that were already created during previous runs.
+    This is harmless, but you may want to instruct the targeted program to
+    write to stdout or to /dev/null to avoid surprises.
 
 Less likely causes may include running out of disk space, SHM handles, or other
 globally limited resources; or the program being intentionally designed to
