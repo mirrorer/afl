@@ -4307,8 +4307,17 @@ static void check_binary(u8* fname) {
 
   }
 
+#ifndef __APPLE__
+
   if (f_data[0] != 0x7f || memcmp(f_data + 1, "ELF", 3))
     FATAL("Program '%s' is not an ELF binary", target_path);
+
+#else
+
+  if (f_data[0] != 0xCF || f_data[1] != 0xFA || f_data[2] != 0xED)
+    FATAL("Program '%s' is not a Mach-O binary", target_path);
+
+#endif /* ^!__APPLE__ */
 
   if (!dumb_mode && !memmem(f_data, f_len, SHM_ENV_VAR, strlen(SHM_ENV_VAR) + 1)) {
 

@@ -1,4 +1,10 @@
 --------------
+Version 0.71b:
+--------------
+
+  - A fix for the nonsensical MacOS ELF check.
+
+--------------
 Version 0.70b:
 --------------
 
