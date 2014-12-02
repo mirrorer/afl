@@ -196,7 +196,8 @@ static void edit_params(u32 argc, char** argv) {
     if (!strcmp(cur, "-m32")) m32_set = 1;
 #endif
 
-    if (!strcmp(cur, "-fsanitize=address")) asan_set = 1;
+    if (!strcmp(cur, "-fsanitize=address") ||
+        !strcmp(cur, "-fsanitize=memory")) asan_set = 1;
 
     if (strstr(cur, "FORTIFY_SOURCE")) fortify_set = 1;
 
@@ -209,7 +210,6 @@ static void edit_params(u32 argc, char** argv) {
 
   if (clang_mode)
     cc_params[cc_par_cnt++] = "-no-integrated-as";
-
 
   if (getenv("AFL_HARDEN")) {
 

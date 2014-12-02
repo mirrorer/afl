@@ -305,10 +305,14 @@ If the value is shown in green, you are using fewer CPU cores than available on
 your system and can probably parallelize to improve performance; for tips on
 how to do that, see parallel_fuzzing.txt.
 
-If the value is shown in red, your CPU is probably oversubscribed, and running
-additional fuzzers may not give you any benefits. Of course, there are many
-other, complex factors at play, especially when using virtualized systems - so
-treat this number only as a rough guideline.
+If the value is shown in red, your CPU is *probably* oversubscribed, and
+running additional fuzzers may not give you any benefits; you can try, but mind
+the executions per second metric shown on the screen.
+
+Of course, this benchmark is very simplistic; it tells you how many processes
+are ready to run, but not how resource-hungry they may be. It also doesn't
+distinguish between physical cores, logical cores, and virtualized CPUs; the
+performance characteristics of each of these will differ quite a bit.
 
 10) Addendum: status file
 -------------------------

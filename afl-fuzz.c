@@ -2579,7 +2579,7 @@ static void show_stats(void) {
 
     /* If we're clearly oversubscribed, use red. */
 
-    if (cur_utilization >= 125) cpu_color = cLRD;
+    if (cur_utilization >= 150) cpu_color = cLRD;
 
     SAYF(SP20 SP20 SP20 SP5 cGRA "    [cpu:%s%3u%%" cGRA "]\r" cRST,
          cpu_color, cur_utilization < 999 ? cur_utilization : 999);
@@ -4603,9 +4603,9 @@ static void count_cores(void) {
 
     if (cpu_core_count > 1) {
 
-      if (cur_runnable * 0.8 > cpu_core_count) {
+      if (cur_runnable > cpu_core_count * 1.5) {
 
-        WARNF("System under heavy load, performance may be spotty.");
+        WARNF("System under apparent load, performance may be spotty.");
 
       } else if (cur_runnable + 1 <= cpu_core_count) {
 

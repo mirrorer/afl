@@ -23,7 +23,28 @@
 typedef uint8_t  u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
+
+/*
+
+   Ugh. There is an unintended compiler / glibc #include glitch caused by
+   combining the u64 type an %llu in format strings, necessitating a workaround.
+
+   In essence, the compiler is always looking for 'unsigned long long' for %llu.
+   On 32-bit systems, the u64 type (aliased to uint64_t) is expanded to
+   'unsigned long long' in <bits/types.h>, so everything checks out.
+
+   But on 64-bit systems, it is #ifdef'ed in the same file as 'unsigned long'.
+   Now, it only happens in circumnstances where the type happens to have the
+   expected bit width, *but* the compiler does not know that... and complains
+   about 'unsigned long' being unsafe to pass to %llu.
+
+ */
+
+#ifdef __x86_64__
+typedef unsigned long long u64;
+#else
 typedef uint64_t u64;
+#endif /* ^sizeof(...) */
 
 typedef int8_t   s8;
 typedef int16_t  s16;

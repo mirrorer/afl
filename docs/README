@@ -83,7 +83,8 @@ additional finds; this is discussed in more detail at http://goo.gl/SoZJ47.
 As a side result of the fuzzing process, the tool creates a small,
 self-contained corpus of interesting test cases. These are extremely useful
 for seeding other, labor- or resource-intensive testing regimes - for example,
-for stress-testing browsers, office applications, or graphics suites.
+for stress-testing browsers, office applications, graphics suites, or
+closed-source tools.
 
 The fuzzer is thoroughly tested to deliver coverage far superior to blind
 fuzzing or coverage-only tools without the need to dial in any settings or

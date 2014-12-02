@@ -1,4 +1,12 @@
 --------------
+Version 0.75b:
+--------------
+
+  - A slightly more "elegant" kludge for the %llu glitch (see types.h).
+
+  - CPU load warnings relaxed a bit.
+
+--------------
 Version 0.74b:
 --------------
 
@@ -224,19 +232,7 @@ Version 0.54b:
 --------------
 
   - A fix for -Wformat warning messages (oops, I thought this had been in
-    place for a while). It's an unfortunate corner case where the compiler
-    seems to be wrong. We use uint64_t (aliased to u64) for self-documenting,
-    definite-size integers. This is coupled with %llu as a format for printf().
-
-    The compiler always expects 'unsigned long long' for %llu. On 32-bit boxes,
-    uint64_t is defined in <bits/types.h> as 'unsigned long long', so everything
-    is peachy: the types match precisely.
-
-    On 64-bit systems, uint64_t is defined as 'unsigned long' via an #ifdef. Of
-    course, that happens to have the same size as 'unsigned long long' under
-    the circumstances, *but* the compiler still freaks out about format type
-    mismatch - presumably because that assertion would be not true on 32-bit
-    systems, so it's typically indicative of a bug.
+    place for a while).
 
 --------------
 Version 0.53b:
