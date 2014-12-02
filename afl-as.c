@@ -105,6 +105,13 @@ static void edit_params(int argc, char** argv) {
 
     }
 
+    /* In Xcode 6, -no-integrated-as may be broken and requires the -Q flag to
+       be removed if present. Note that -Q / -q have some other meaning for
+       GNU assembler, so let's hope that nothing explodes under normal
+       circumstances. */
+
+    if (!strcmp(as_params[i], "-Q")) as_params[i] = "-q";
+
 #endif /* __APPLE__ */
 
   }

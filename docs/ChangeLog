@@ -1,3 +1,17 @@
+
+NOTE: Lowest currently recommended version is 0.78b. If it works for you, you
+can keep it. If you have an older release, upgrade is *strongly* advisable.
+
+--------------
+Version 0.81b:
+--------------
+
+  - Xcode 6 -Q flag workaround. Patch by Ryan Govostes.
+
+  - Improved Solaris build instructions, via Martin Carpenter.
+
+  - Fix for a slightly busted path scoring conditional. Minor practical impact.
+
 --------------
 Version 0.80b:
 --------------
