@@ -61,9 +61,10 @@ wrong by "just" a couple gigs or so, you will be at risk.
 
 In other words, use of ASAN is generally *not* recommended when fuzzing
 64-bit binaries, unless you are confident that they are robust and enforce
-reasonable memory limits, or unless you get the -m value adjusted very
-precisely. A good alternative is to generate a corpus without ASAN, and then
-examine the test cases with ASAN, Valgrind, or other heavy-duty tools.
+reasonable memory limits (in which case, you can specify '-m none' when
+calling afl-fuzz), or unless you get the -m value adjusted very precisely.
 
-Of course, you can also always compile stuff with -m32 if your system
-supports that.
+There are two decent alternatives: build a corpus of test cases using a
+non-ASAN binary, and then examine them with ASAN, Valgrind, or other
+heavy-duty tools in a more controlled setting; or compile the target program
+with -m32 (32-bit mode) if your system supports that.

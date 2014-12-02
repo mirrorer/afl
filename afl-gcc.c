@@ -108,7 +108,7 @@ static void find_as(u8* argv0) {
 
 static void edit_params(u32 argc, char** argv) {
 
-  u8 fortify_set = 0;
+  u8 fortify_set = 0, asan_set = 0;
   u8 *name;
 
   cc_params = ck_alloc((argc + 16) * sizeof(u8*));
@@ -122,22 +122,31 @@ static void edit_params(u32 argc, char** argv) {
 
     setenv("__AFL_CLANG_MODE", "1", 1);
 
-    if (strcmp(name, "afl-clang++")) {
-      u8* alt_cc = getenv("AFL_CC");
-      cc_params[0] = alt_cc ? alt_cc : (u8*)"clang";
-    } else {
+    if (!strcmp(name, "afl-clang++")) {
       u8* alt_cxx = getenv("AFL_CXX");
       cc_params[0] = alt_cxx ? alt_cxx : (u8*)"clang++";
+    } else {
+      u8* alt_cc = getenv("AFL_CC");
+      cc_params[0] = alt_cc ? alt_cc : (u8*)"clang";
     }
 
   } else {
 
-    if (strcmp(name, "afl-g++")) {
-      u8* alt_cc = getenv("AFL_CC");
-      cc_params[0] = alt_cc ? alt_cc : (u8*)"gcc";
-    } else {
+    /* With GCJ and Eclipse installed, you can actually compile Java! The
+       instrumentation will work (amazingly). Alas, unhandled exceptions do
+       not call abort(), so afl-fuzz would need to be modified to equate
+       non-zero exit codes with crash conditions when working with Java
+       binaries. Meh. */
+
+    if (!strcmp(name, "afl-g++")) {
       u8* alt_cxx = getenv("AFL_CXX");
       cc_params[0] = alt_cxx ? alt_cxx : (u8*)"g++";
+    } else if (!strcmp(name, "afl-gcj")) {
+      u8* alt_cc = getenv("AFL_GCJ");
+      cc_params[0] = alt_cc ? alt_cc : (u8*)"gcj";
+    } else {
+      u8* alt_cc = getenv("AFL_CC");
+      cc_params[0] = alt_cc ? alt_cc : (u8*)"gcc";
     }
 
   }
@@ -157,6 +166,8 @@ static void edit_params(u32 argc, char** argv) {
     if (!strcmp(cur, "-integrated-as")) continue;
 
     if (!strcmp(cur, "-pipe")) continue;
+
+    if (!strcmp(cur, "-fsanitize=address")) asan_set = 1;
 
     if (strstr(cur, "FORTIFY_SOURCE")) fortify_set = 1;
 
@@ -181,8 +192,17 @@ static void edit_params(u32 argc, char** argv) {
 
   }
 
-  if (getenv("AFL_USE_ASAN"))
+  if (asan_set) {
+
+    /* Pass this on to afl-as to adjust map density. */
+
+    setenv("AFL_USE_ASAN", "1", 1);
+
+  } else if (getenv("AFL_USE_ASAN")) {
+
     cc_params[cc_par_cnt++] = "-fsanitize=address";
+
+  }
 
   if (!getenv("AFL_DONT_OPTIMIZE"))
     cc_params[cc_par_cnt++] = "-O3";

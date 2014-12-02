@@ -1,4 +1,14 @@
 --------------
+Version 0.56b:
+--------------
+
+  - Probabilistic instrumentation density reduction in ASAN mode. This
+    compensates for ASAN-specific branches in a crude but probably viable
+    way.
+
+  - Updated notes_for_asan.txt.
+
+--------------
 Version 0.55b:
 --------------
 

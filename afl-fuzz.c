@@ -1030,9 +1030,13 @@ static void init_forkserver(char** argv) {
 
     struct rlimit r;
 
-    r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
+    if (mem_limit) {
 
-    setrlimit(RLIMIT_AS, &r); /* Ignore errors */
+      r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
+
+      setrlimit(RLIMIT_AS, &r); /* Ignore errors */
+
+    }
 
     /* Dumping cores is slow and can lead to anomalies if SIGKILL is delivered
        before the dump is complete. */
@@ -1215,9 +1219,13 @@ static u8 run_target(char** argv) {
 
       struct rlimit r;
 
-      r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
+      if (mem_limit) {
 
-      setrlimit(RLIMIT_AS, &r); /* Ignore errors */
+        r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
+
+        setrlimit(RLIMIT_AS, &r); /* Ignore errors */
+
+      }
 
       r.rlim_max = r.rlim_cur = 0;
 
@@ -4485,6 +4493,13 @@ int main(int argc, char** argv) {
       case 'm': {
 
           u8 suffix = 'M';
+
+          if (!strcmp(optarg, "none")) {
+
+            mem_limit = 0;
+            break;
+
+          }
 
           if (sscanf(optarg, "%llu%c", &mem_limit, &suffix) < 1)
             FATAL("Bad syntax used for -m");

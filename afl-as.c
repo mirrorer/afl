@@ -289,6 +289,12 @@ int main(int argc, char** argv) {
 
   }    
 
+  /* When compiling with ASAN, we don't have a particularly elegant way to skip
+     ASAN-specific branches. But we can probabilistically compensate for
+     that... */
+
+  if (getenv("AFL_USE_ASAN")) inst_ratio /= 3;
+
   add_instrumentation();
 
   if (!(pid = fork())) {
