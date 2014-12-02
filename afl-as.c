@@ -171,12 +171,14 @@ static void add_instrumentation(void) {
 
       if (!strncmp(line + 2, "text\n", 5) ||
           !strncmp(line + 2, "section\t.text", 13) ||
-          !strncmp(line + 2, "section\t__TEXT,__text,", 22)) {
+          !strncmp(line + 2, "section\t__TEXT,__text", 21) ||
+          !strncmp(line + 2, "section __TEXT,__text", 21)) {
         instr_ok = 1;
         continue; 
       }
 
       if (!strncmp(line + 2, "section\t", 8) ||
+          !strncmp(line + 2, "section ", 8) ||
           !strncmp(line + 2, "bss\n", 4) ||
           !strncmp(line + 2, "data\n", 5)) {
         instr_ok = 0;
@@ -353,13 +355,6 @@ int main(int argc, char** argv) {
     exit(1);
 
   }
-
-#ifdef __APPLE__
-
-  if (!clang_mode)
-    FATAL("GCC mode not supported on Apple platforms (use afl-clang instead).");
-
-#endif /* __APPLE__ */
 
   gettimeofday(&tv, &tz);
 

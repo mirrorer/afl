@@ -142,6 +142,25 @@ static void edit_params(u32 argc, char** argv) {
        non-zero exit codes with crash conditions when working with Java
        binaries. Meh. */
 
+#ifdef __APPLE__
+
+    if (!strcmp(name, "afl-g++")) cc_params[0] = getenv("AFL_CXX");
+    else if (!strcmp(name, "afl-gcj")) cc_params[0] = getenv("AFL_GCJ");
+    else cc_params[0] = getenv("AFL_CC");
+
+    if (!cc_params[0]) {
+
+      SAYF("\n" cLRD "[-] " cRST
+           "On Apple systems, 'gcc' is usually just a wrapper for clang. Please use the\n"
+           "    'afl-clang' utility instead of 'afl-gcc'. If you really have GCC installed,\n"
+           "    set AFL_CC or AFL_CXX to specify the correct path to that compiler.\n");
+
+      FATAL("AFL_CC or AFL_CXX required on MacOS X");
+
+    }
+
+#else
+
     if (!strcmp(name, "afl-g++")) {
       u8* alt_cxx = getenv("AFL_CXX");
       cc_params[0] = alt_cxx ? alt_cxx : (u8*)"g++";
@@ -152,6 +171,8 @@ static void edit_params(u32 argc, char** argv) {
       u8* alt_cc = getenv("AFL_CC");
       cc_params[0] = alt_cc ? alt_cc : (u8*)"gcc";
     }
+
+#endif /* __APPLE__ */
 
   }
 

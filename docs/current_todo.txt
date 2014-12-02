@@ -8,6 +8,8 @@ Here's the list of stuff I want to implement in afl:
 
   - More test cases (see testcases/wishlist.txt).
 
+  - Detect multi-thread / execve() binaries and warn user about trade-offs?
+
   - Special-cased expansion for strcmp() & similar functions to replace
     them with an instrumented loop - on a trial basis.
 

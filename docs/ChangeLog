@@ -1,4 +1,10 @@
 --------------
+Version 0.64b:
+--------------
+
+  - Enable GCC support on MacOS X.
+
+--------------
 Version 0.63b:
 --------------
 
