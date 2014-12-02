@@ -1,4 +1,26 @@
 --------------
+Version 0.53b:
+--------------
+
+  - Major revision of the crash & hang duplicate detection code to better
+    deal with fault conditions that can be reached in a multitude of ways.
+
+    The old approach could be compared to hashing stack traces to de-dupe
+    crashes, a method prone to crash count inflation. The alternative I
+    wanted to avoid would be equivalent to just looking at crash %eip,
+    which can have false negatives in common functions such as memcpy().
+
+    The middle ground currently used in afl-fuzz can be compared to looking
+    at every line item in the stack trace and tagging crashes as unique if
+    we see any function name that we haven't seen before (or something that
+    we have *always* seen now disappears). We do the comparison without paying
+    any attention to ordering or hit counts. This can still cause some
+    crash inflation early on, but the problem will quickly taper off.
+    
+  - Bugfix for harmless but absurd trim ratios shown if the first exec in
+    the trimmer timed out. Spotted by @EspenGx.
+
+--------------
 Version 0.52b:
 --------------
 
@@ -9,6 +31,9 @@ Version 0.52b:
   - Slight reorganization of the .state/ directory, now recording
     redundant paths, too. Note that this breaks the ability to 
     properly resume older sessions - sorry about that.
+
+    (To fix this, simply move <out_dir>/.state/* from an older run
+    to <out_dir>/.state/deterministic_done/*.)
 
 --------------
 Version 0.51b:

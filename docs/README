@@ -193,25 +193,28 @@ in real time:
                starting files given by the user. This is, in effect, the
                synthesized corpus mentioned in section 2.
 
-  - hangs/   - test cases that cause the tested program to time out. Note that
-               the default timeouts are fairly aggressive to keep things moving
-               fast. The entries are grouped by a 32-bit hash of the execution
-               path.
+  - hangs/   - unique test cases that cause the tested program to time out. Note
+               that the default timeouts are fairly aggressive to keep things
+               moving fast.
 
-  - crashes/ - test cases that caused the tested program to receive a fatal
-               signal (e.g., SIGSEGV, SIGILL, SIGABRT). The entries are 
-               grouped by the received signal, followed by the hash of the
-               execution path.
+  - crashes/ - unique test cases that cause the tested program to receive a
+               fatal signal (e.g., SIGSEGV, SIGILL, SIGABRT). The entries are 
+               grouped by the received signal.
 
-               The file names should let you correlate crashes with their
-               parent, non-crashing queue entry for easier debugging.
+Crashes and hangs are considered "unique" if the associated execution paths
+involve any state transitions not seen in previously-recorded faults. If a
+single bug can be reached in a multitude of ways, the counts may end up getting
+inflated early on in the process, but this should quickly taper off.
+
+The file names for crashes and hangs should let you correlate them with the
+parent, non-faulting queue entries. This should help with debugging.
 
 The queue/ subdirectory can be also used to resume aborted jobs; simply do:
 
 $ ./afl-fuzz -i old_output_dir/queue -o new_output_dir [...etc...]
 
 Although the fuzzer does not perform any additional analysis of the discovered
-crashes, the path-based grouping usually makes it easy to triage new finds
+crashes, the coverage-based grouping usually makes it easy to triage new finds
 manually - or to examine them with a simple GDB script. One such script is
 provided in experimental/crash_triage/.
 

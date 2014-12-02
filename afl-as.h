@@ -81,6 +81,13 @@
    different way, with previous tuple being recorded separately within the scope
    of every .c file. This should have no real impact.
 
+   TODO(?): The 64-bit ABI theoretically requires 16-byte stack alignment; some
+   versions of GCC & clang make the same assumption for 32-bit. This can
+   plausibly matter only in the startup code, but the few libc functions we do
+   call (getenv, atoi, shmat, read, write, fork, waitpid, close, exit) probably
+   don't use alignment-requiring SSE instructions on stack buffers. Anyway,
+   it's a simple fix if we're ever forced to make it.
+
  */
 
 static const u8* trampoline_fmt_32 =

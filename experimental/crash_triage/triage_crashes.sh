@@ -54,18 +54,15 @@ fi
 
 echo
 
-for crash_dir in $DIR/crashes/*; do
+for crash in $DIR/crashes/*; do
 
-  sig=`basename -- "$crash_dir" | cut -d, -f1 | cut -d: -f2`
-  hash=`basename -- "$crash_dir" | cut -d, -f2 | cut -d: -f2`
-  count=`ls -- "$crash_dir" | wc -l`
+  id=`basename -- "$crash" | cut -d, -f1 | cut -d: -f2`
+  sig=`basename -- "$crash" | cut -d, -f2 | cut -d: -f2`
 
-  echo "+++ HASH $hash, SIGNAL $sig ($count samples) +++"
+  echo "+++ ID $id, SIGNAL $sig +++"
   echo
 
-  first=`ls -- "$crash_dir" |  head -1`
-
-  gdb --batch -q --ex "r <$crash_dir/$first" --ex 'back' --ex 'disass $eip, $eip+16' --ex 'info reg' --ex 'quit' "$BIN"
+  gdb --batch -q --ex "r <$crash" --ex 'back' --ex 'disass $eip, $eip+16' --ex 'info reg' --ex 'quit' "$BIN"
   echo
 
 done

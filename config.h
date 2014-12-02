@@ -55,10 +55,6 @@
 
 #define HANG_LIMIT          250
 
-/* Number of samples per unique hang or crash to keep: */
-
-#define KEEP_SAMPLES        10
-
 /* Maximum number of unique hangs or crashes to record: */
 
 #define KEEP_UNIQUE_HANG    500
