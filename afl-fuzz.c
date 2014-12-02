@@ -153,6 +153,8 @@ static u64 total_cal_us,              /* Total calibration time (us)      */
 static u64 total_bitmap_size,         /* Total bit count for all bitmaps  */
            total_bitmap_entries;      /* Number of bitmaps counted        */
 
+static u32 cpu_core_count;            /* CPU core count                   */
+
 struct queue_entry {
 
   u8* fname;                          /* File name for the test case      */
@@ -1030,26 +1032,30 @@ static void init_forkserver(char** argv) {
 
     struct rlimit r;
 
-#ifdef RLIMIT_AS
-
     if (mem_limit) {
 
       r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
-      setrlimit(RLIMIT_AS, &r); /* Ignore errors */
 
-    }
+#ifdef RLIMIT_AS
+
+      setrlimit(RLIMIT_AS, &r); /* Ignore errors */
 
 #else
 
-    /* Hmm, this is necessary to support OpenBSD. */
+      /* Hmm, this is necessary to support OpenBSD. */
 
 #  warning "**** WARNING WARNING WARNING ****"
-#  warning "Your system does not appear to support RLIMIT_AS (aka ulimit -v)."
-#  warning "Memory limits will not be enforced. Fuzzing poorly-behaved binaries"
-#  warning "may lead to OOM conditions and system instability."
+#  warning "Your system does not appear to support RLIMIT_AS (aka ulimit -v). We'll"
+#  warning "use RLIMIT_DATA (ulimit -d), but it's not nearly as robust. Be careful"
+#  warning "with poorly-behaved binaries (or brace for OOM conditions)."
 #  warning "**** WARNING WARNING WARNING ****"
+
+      setrlimit(RLIMIT_DATA, &r); /* Ignore errors */
 
 #endif /* ^RLIMIT_AS */
+
+
+    }
 
     /* Dumping cores is slow and can lead to anomalies if SIGKILL is delivered
        before the dump is complete. */
@@ -1156,7 +1162,11 @@ static void init_forkserver(char** argv) {
          "      try bumping the limit up with the -m setting in the command line. To\n"
          "      confirm this diagnosis, it may be helpful to try:\n\n"
 
+#ifdef RLIMIT_AS
          "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+#else
+         "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+#endif /* ^RLIMIT_AS */
 
          "      For binaries compiled with ASAN, please see notes_for_asan.txt.\n\n"
 
@@ -1193,7 +1203,11 @@ static void init_forkserver(char** argv) {
        "      try bumping the limit up with the -m setting in the command line. A simple\n"
        "      way to confirm this problem may be:\n\n"
 
+#ifdef RLIMIT_AS
        "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+#else
+       "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+#endif /* ^RLIMIT_AS */
 
        "      For binaries compiled with ASAN, please see notes_for_asan.txt.\n\n"
 
@@ -1232,16 +1246,22 @@ static u8 run_target(char** argv) {
 
       struct rlimit r;
 
-#ifdef RLIMIT_AS
 
       if (mem_limit) {
 
         r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
+
+#ifdef RLIMIT_AS
+
         setrlimit(RLIMIT_AS, &r); /* Ignore errors */
 
-      }
+#else
 
-#endif /* RLIMIT_AS */
+        setrlimit(RLIMIT_DATA, &r); /* Ignore errors */
+
+#endif /* ^RLIMIT_AS */
+
+      }
 
       r.rlim_max = r.rlim_cur = 0;
 
@@ -1629,7 +1649,11 @@ static void perform_dry_run(char** argv) {
              "      bumping it up with the -m setting in the command line. If in doubt,\n"
              "      try running something along the lines of:\n\n"
 
+#ifdef RLIMIT_AS
              "      ( ulimit -Sv $[%llu << 20]; /path/to/binary [...] <testcase )\n\n"
+#else
+             "      ( ulimit -Sd $[%llu << 20]; /path/to/binary [...] <testcase )\n\n"
+#endif /* ^RLIMIT_AS */
 
              "      For binaries compiled with ASAN, please see notes_for_asan.txt.\n\n"
 
@@ -2019,6 +2043,57 @@ static u8 delete_in_subdirs(u8* path) {
 }
 
 
+/* Get the number of runnable processes, averaging over the course of
+   roughly 5 seconds. */
+
+#define RP_SAMPLES (UI_TARGET_HZ * 5)
+
+static double get_runnable_processes(void) {
+
+  static u32 measurements[RP_SAMPLES];
+  static u32 m_off;
+  static u8  first_call = 1;
+
+  FILE* f = fopen("/proc/stat", "r");
+  u8 tmp[1024];
+  u32 i, ret = 0;
+
+  if (!f) return 0;
+
+  measurements[m_off] = 0;
+
+  while (fgets(tmp, sizeof(tmp), f)) {
+
+    if (!strncmp(tmp, "procs_running ", 14) ||
+        !strncmp(tmp, "procs_blocked ", 14))
+      measurements[m_off] += atoi(tmp + 14);
+
+  }
+ 
+  fclose(f);
+
+  /* On first call, just initialize the entire table with the current
+     reading. */
+
+  if (first_call) {
+
+    for (i = 1; i < RP_SAMPLES; i++) 
+      measurements[i] = measurements[0];
+
+    first_call = 0;
+
+  }
+
+  m_off = (m_off + 1) % RP_SAMPLES;
+
+  for (i = 0; i < RP_SAMPLES; i++) ret += measurements[i];
+
+  return ((double)ret) / RP_SAMPLES;
+
+}
+
+
+
 /* Delete fuzzer output directory if we recognize it as ours, if the fuzzer
    is not currently running, and if the last run time isn't too great. */
 
@@ -2152,7 +2227,6 @@ dir_cleanup_failed:
 }
 
 
-
 /* A spiffy retro stats screen! This is called every stats_update_freq
    execve() calls, plus in several other circumstances. */
 
@@ -2213,6 +2287,9 @@ static void show_stats(void) {
 #define bH10    bH5 bH5
 #define bH20    bH10 bH10
 #define bH30    bH20 bH10
+#define SP5     "     "
+#define SP10    SP5 SP5
+#define SP20    SP10 SP10
 
   /* Lord, forgive me this. */
 
@@ -2435,6 +2512,29 @@ static void show_stats(void) {
        "   latent : " cNOR "%-11s " bSTG bV "\n", tmp, DI(queued_later_on));
 
   SAYF(bLB bH30 bH20 bH2 bH bHT bH20 bH2 bH2 bRB bSTOP cRST "\n");
+
+  /* Provide some CPU utilization stats. */
+
+  if (cpu_core_count) {
+
+    double cur_runnable = get_runnable_processes();
+    u32 cur_utilization = cur_runnable * 100 / cpu_core_count;
+
+    u8* cpu_color = cNOR;
+
+    /* If we could still run two or more processes, use green. */
+
+    if (cpu_core_count > 1 && cur_runnable + 1 <= cpu_core_count)
+      cpu_color = cLGN;
+
+    /* If we're clearly oversubscribed, use red. */
+
+    if (cur_runnable * 0.8 > cpu_core_count) cpu_color = cLRD;
+
+    SAYF(SP20 SP20 SP20 SP5 cGRA "    [cpu:%s%3u%%" cGRA "]\r" cRST,
+         cpu_color, cur_utilization < 999 ? cur_utilization : 999);
+
+  }
 
   /* Hallelujah! */
 
@@ -4371,6 +4471,8 @@ static void check_coredumps(void) {
 
   if (fd < 0) return;
 
+  ACTF("Checking core_pattern...");
+
   if (read(fd, &fchar, 1) == 1 && fchar == '|') {
 
     SAYF("\n" cLRD "[-] " cRST
@@ -4390,6 +4492,47 @@ static void check_coredumps(void) {
 
  
   close(fd);
+
+}
+
+
+/* Count the number of logical CPU cores. */
+
+static void count_cores(void) {
+
+  FILE* f = fopen("/proc/stat", "r");
+  u8 tmp[1024];
+  u32 cur_runnable = 0;
+
+  if (!f) return;
+
+  while (fgets(tmp, sizeof(tmp), f))
+    if (!strncmp(tmp, "cpu", 3) && isdigit(tmp[3])) cpu_core_count++;
+
+  if (cpu_core_count) {
+
+    cur_runnable = (u32)get_runnable_processes();
+
+    OKF("You have %u CPU cores and %u runnable tasks (utilization: %0.0f%%).",
+        cpu_core_count, cur_runnable, cur_runnable * 100.0 / cpu_core_count);
+
+    if (cpu_core_count > 1) {
+
+      if (cur_runnable * 0.8 > cpu_core_count) {
+
+        WARNF("System under heavy load, performance may be spotty.");
+
+      } else if (cur_runnable + 1 <= cpu_core_count) {
+
+        OKF("Try parallelizing for optimal performance. See parallel_fuzzing.txt.");
+  
+      }
+
+    }
+
+  } else WARNF("Unable to figure out the number of CPU cores.");
+ 
+  fclose(f);
 
 }
 
@@ -4593,6 +4736,8 @@ int main(int argc, char** argv) {
   fix_up_banner(argv[optind]);
 
   check_terminal();
+
+  count_cores();
 
   start_time = get_cur_time();
 

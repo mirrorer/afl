@@ -278,3 +278,21 @@ quasi-common explanations for variable behavior of the tested program:
 Less likely causes may include running out of disk space, SHM handles, or other
 globally limited resources; or the program being intentionally designed to
 behave randomly.
+
+9) CPU load
+-----------
+
+  [cpu: 25%]
+
+This tiny widget shows the apparent CPU utilization on the local system. It is
+calculated by taking the number of processes in the "runnable" state, and then
+comparing it to the number of logical cores on the system.
+
+If the value is shown in green, you are using fewer CPU cores than available on
+your system and can probably parallelize to improve performance; for tips on
+how to do that, see parallel_fuzzing.txt.
+
+If the value is shown in red, your CPU is probably oversubscribed, and running
+additional fuzzers may not give you any benefits. Of course, there are many
+other, complex factors at play, especially when using virtualized systems - so
+treat this number only as a rough guideline.

@@ -14,6 +14,10 @@ no performance hit.
 In fact, depending on the design of the fuzzed program, you may be able run one
 fuzzer per every virtual core on HT-enabled system at very little cost.
 
+(Conversely, if you stick to a single job on a multi-core machine, you will be
+underutilizing the hardware, as indicated by the CPU load widget in the bottom
+right corner of the screen.)
+
 When targeting multiple unrelated binaries, it is perfectly fine to run fully
 separate instances of afl-fuzz - be it on a single machine or across a large
 fleet. The picture gets more complicated when you want to have multiple fuzzers

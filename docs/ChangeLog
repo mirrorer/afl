@@ -1,4 +1,14 @@
 --------------
+Version 0.58b:
+--------------
+
+  - Core count check.
+
+  - Additional refinements for the lack-of-RLIMIT_AS case.
+
+  - The tool now shows CPU utilization to help with optimal CPU loading.
+
+--------------
 Version 0.57b:
 --------------
 
