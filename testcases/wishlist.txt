@@ -1,0 +1,14 @@
+My secret wish list for minimal test cases:
+
+  - JBIG,
+  - Ogg Vorbis,
+  - Ogg Theora,
+  - MP3,
+  - AAC,
+  - WebM,
+  - JPEG with ICC (LCMS),
+  - Small font (Freetype),
+  - Small PDF (Poppler).
+
+If you end up creating minimalistic files for any of the above, or have
+any other inputs worth sharing with the world, please let me know!

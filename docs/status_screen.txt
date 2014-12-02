@@ -1,0 +1,242 @@
+===============================
+Understanding the status screen
+===============================
+
+  (See README for the general instruction manual)
+
+1) Process timing
+-----------------
+
+  +----------------------------------------------------+
+  |        run time : 0 days, 8 hrs, 32 min, 43 sec    |
+  |   last new path : 0 days, 0 hrs, 6 min, 40 sec     |
+  | last uniq crash : none seen yet                    |
+  |  last uniq hang : 0 days, 1 hrs, 24 min, 32 sec    |
+  +----------------------------------------------------+
+
+This section is fairly self-explanatory: it tells you how long the fuzzer has
+been running and how much time has elapsed since its most recent finds. This is
+broken down into "paths" (a shorthand for test cases that trigger new execution
+patterns), crashes, and hangs.
+
+When it comes to timing: there is no hard rule, but most fuzzing jobs should be
+expected to run for days or weeks; in fact, for a moderately complex project, the
+first pass will probably take a couple of days. Every now and then, some jobs
+will be allowed to run for months.
+
+There's one important thing to watch out for: if the tool is not finding new
+paths within several minutes of starting, you're probably not invoking the
+target binary correctly and it never gets to parse the input files we're
+throwing at it; another possible explanations are that the default memory limit
+(-m) is too restrictive, and the program exits after failing to allocate a
+buffer very early on; or that the input files are patently invalid and fail a
+basic header check.
+
+If there are no new paths showing up for a while, you will eventually see a big
+red warning in this section, too :-)
+
+2) Overall results
+------------------
+
+  +-----------------------+
+  |  cycles done : 0      |
+  |  total paths : 2095   |
+  | uniq crashes : 0      |
+  |   uniq hangs : 19     |
+  +-----------------------+
+
+The first field in this section gives you the count of queue passes done so far
+- that is, the number of times the fuzzer went over all the interesting test
+cases discovered so far, fuzzed them, and looped back. Every fuzzing session
+should be allowed to complete at least one cycle - and ideally, much more than
+that. As noted earlier, the first pass can take a couple of days, so sit back
+and relax :-)
+
+To help make the call on when to hit Ctrl-C, the value is color-coded. It is
+shown in magenta during the first pass, progresses to yellow if new finds are
+still being made in subsequent rounds, then blue when that ends - and finally,
+turns green after the fuzzer hasn't been seeing any action for a longer while.
+
+The remaining fields in this part of the screen should be pretty obvious:
+there's the number of test cases ("paths") discovered so far, and the number of
+unique faults. The test cases, crashes, and hangs can be explored in real-time
+by browsing the output directory, as discussed in the README.
+
+3) Cycle progress
+-----------------
+
+  +-------------------------------------+
+  |  now processing : 1296 (61.86%)     |
+  | paths timed out : 0 (0.00%)         |
+  +-------------------------------------+
+
+This box tells you how far along the fuzzer is with the current queue cycle: the
+ID of the test case it is currently working on, plus the number of inputs it
+decided to ditch because they were persistently timing out.
+
+4) Map coverage
+---------------
+
+  +--------------------------------------+
+  |    map density : 4763 (29.07%)       |
+  | count coverage : 4.03 bits/tuple     |
+  +--------------------------------------+
+
+The section provides some trivia about the coverage observed by the
+instrumentation embedded in the target binary. It can be useful, for example,
+for comparing the merits of two simultaneous fuzzing jobs started with two
+different input files.
+
+The first line in the box tells you how many branch tuples we have already
+hit, in proportion to how much the bitmap can hold; the more the better, but
+please drop me a mail if you're seeing extreme values (below 1% or above 50%).
+
+The other field deals with the variability in tuple hit counts seen in the
+binary. In essence, if every taken branch is always taken a fixed number of
+times for all the inputs we have tried, this will read "1.00". As we manage
+to trigger other hit counts for every branch, the needle will start to move
+toward "8.00", but will probably never reach it.
+
+5) Stage progress
+-----------------
+
+  +-------------------------------------+
+  |  now trying : interest 32/8         |
+  | stage execs : 3996/34.4k (11.62%)   |
+  | total execs : 27.4M                 |
+  |  exec speed : 891.7/sec             |
+  +-------------------------------------+
+
+This part gives you an in-depth peek at what the fuzzer is actually doing right
+now. It tells you about the current stage, which can be any of:
+
+  * init - if you see this, you're pretty amazing; it flashes on the screen for
+    a millisecond or so =)
+
+  * calibration - a pre-fuzzing stage where the execution path is examined
+    to detect anomalies, establish baseline execution speed, and so on.
+
+  * trim L/S - another pre-fuzzing stage where the test case is trimmed to the
+    shortest form that still produces the same execution path. The length (L)
+    and stepover (S) are chosen in general relationship to file size.
+
+  * bitflip L/S - deterministic bit flips. There are L bits toggled at any given
+    time, walking the input file with S-bit increments. The current L/S variants
+    are: 1/1, 2/1, 4/1, 8/8, 16/8, 32/8.
+
+  * arith L/8 - deterministic arithmetics. The fuzzer tries to subtract or add
+    small integers to 8-, 16-, and 32-bit values. The steopver is always 8 bits.
+
+  * interest L/8 - deterministic value overwrite. The fuzzer has a list of known
+    "interesting" 8-, 16-, and 32-bit values to try. The stepover is 8 bits.
+
+  * havoc - a sort-of-fixed-length cycle with stacked random tweaks. The
+    operations attempted during this stage include bit flips, overwrites with
+    random and "interesting" integers, block deletion, and block duplication.
+
+  * splice - a last-resort strategy that kicks in after the first full queue
+    cycle with no new paths. It is equivalent to 'havoc', except that it first
+    splices together two random inputs from the queue at some arbitrarily
+    selected midpoint.
+
+  * sync - a stage used only when -S is set (see parallel_fuzzing.txt). No real
+    fuzzing is involved, but the tool scans the output from other fuzzers and
+    imports test cases as necessary.
+
+The remaining fields should be fairly self-evident: there's the exec count
+progress indicator for the current stage, a global exec counter, and a
+benchmark for program execution speed. That benchmark should be ideally over
+500 execs/sec - and if it drops below 100, the job will probably take very
+long time.
+
+The fuzzer will explicitly warn you about slow targets, too. If this happens,
+see the perf_tips.txt file included with the fuzzer for ideas on how to speed
+things up.
+
+6) Findings in depth
+--------------------
+
+  +--------------------------------------+
+  | favored paths : 879 (41.96%)         |
+  |  new edges on : 423 (20.19%)         |
+  | total crashes : 0 (0 unique)         |
+  |   total hangs : 24 (19 unique)       |
+  +--------------------------------------+
+
+This gives you several metrics that are of interest mostly to complete nerds.
+The section includes the number of paths that the fuzzer likes the most based
+on a minimization algorithm baked into the code (these will get considerably
+more air time), the number of test cases that actually result in better edge
+coverage (versus just pushing the branch hit counters up). There are also
+additional counters for crashes and hangs.
+
+7) Fuzzing strategy yields
+--------------------------
+
+  +-----------------------------------------------------+
+  |   bit flips : 57/289k, 18/289k, 18/288k             |
+  |  byte flips : 0/36.2k, 4/35.7k, 7/34.6k             |
+  | arithmetics : 53/2.54M, 0/537k, 0/55.2k             |
+  |  known ints : 8/322k, 12/1.32M, 10/1.70M            |
+  |       havoc : 1903/20.0M, 0/0                       |
+  |        trim : 139.4kB/9201 (20.31% gain)            |
+  +-----------------------------------------------------+
+
+This is just another nerd-targeted section keeping track of how many paths we
+have netted, in proportion to the number of execs attempted, for each of the
+fuzzing strategies discussed earlier on. This serves to scientifically validate
+assumptions about the usefulness of the approaches taken by afl-fuzz.
+
+The trim strategy stats in this section are a bit different than the rest.
+That line shows the absolute count of removed bytes, the number of execs that
+had to be performed to achieve that result, and a ratio of bytes removed to
+the overall size of test cases fed to the trimmer so far.
+
+8) Path geometry
+----------------
+
+  +----------------------+
+  |   levels : 5         |
+  |  pending : 1570      |
+  | pend fav : 583       |
+  | imported : 0         |
+  | variable : 0         |
+  |   latent : 0         |
+  +----------------------+
+
+The first field in this section tracks the path depth reached through the
+guided fuzzing process. In essence: the initial test cases supplied by the
+user are considered "level 1". The test cases that can be derived from that
+through traditional fuzzing are considered "level 2"; the ones derived by
+using these as inputs to subsequent fuzzing rounds are "level 3"; and so forth.
+The maximum depth is therefore a rough proxy for how much value you're getting
+out of the instrumentation-guided approach taken by afl-fuzz.
+
+The next field shows you the number of inputs that have not gone through any
+fuzzing yet. The same stat is also given for "favored" entries that the fuzzer
+really wants to get in this queue cycle (the non-favored entries may have to
+wait).
+
+Next, we have the number of paths imported from other fuzzer instances when
+doing parallelized fuzzing; the number of inputs that produce seemingly
+variable behavior in the tested binary; and the number of latent entries
+uncovered after completing the initial pass over the queue.
+
+The bit about variable paths is actually fairly interesting. There are three
+quasi-common explanations for variable behavior of the tested program:
+
+  * Use of uninitialized memory in conjunction with some intrinsic sources of
+    entropy in the tested binary. This can be indicative of a security bug.
+
+  * Multiple threads executing at once. To avoid problems, it's best to
+    restrict instrumented programs to a single thread. Check compile- and
+    run-time options - for example, with ImageMagick, this can be done with
+    MAGICK_THREAD_LIMIT=1.
+
+  * Attempts to overwrite files left over after previous runs. This is harmless,
+    but you may want to instruct the targeted program to write to stdout or to
+    /dev/null to avoid surprises.
+
+Less likely causes may include running out of disk space, SHM handles, or other
+globally limited resources; or the program being intentionally designed to
+behave randomly.

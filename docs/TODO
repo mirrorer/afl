@@ -1,0 +1,18 @@
+====
+TODO
+====
+
+Here's my current wishlist for afl:
+
+  - Part #2 of Jann's fork server patch.
+
+  - Experimental support for ASAN edge coverage (to support clang).
+
+  - Refactored fuzz_one to make it easier to plug custom mutators as
+    standalone mods.
+
+  - afl-fuzz.c broken into several files? It has gotten a bit too big.
+
+  - Real support for threads (one prev_loc per tid?).
+
+  - Maybe support for DynamoRIO or pin for binary-only instrumentation.

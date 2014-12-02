@@ -1,0 +1,21 @@
+This directory contains replacement files that should enable experimental
+ARMv7 instrumentation in place of the default x86 code. Several notes:
+
+  - The code is confirmed to work only in the sense that it allows libpng 
+    and jpeg9c to be compiled with ./configure --disable-shared and run
+    without catching fire. A lot more testing is necessary to declare victory. 
+
+  - In fact, something is known to go wrong when --disable-shared is *NOT*
+    specified; possibly a stack corruption bug. I need to investigate.
+
+  - To compile on ARM, you need to take several manual steps:
+
+    1) Copy the *.c and *.h files in this directory to the root directory of 
+       the project (../../), overwriting the original code,
+
+    2) Edit the top-level Makefile to delete the first line that mentions
+       '__asm__' (without quotes).
+
+    3) Type in 'make clean all',
+
+    4) Cross your fingers for good measure.

@@ -1,0 +1,312 @@
+--------------
+Version 0.47b:
+--------------
+
+  - Another minor fix for parallel builds of afl.
+
+  - Support for suffixes for -m.
+
+  - Documentation updates, notes_for_asan.txt.
+
+  - Move to http://lcamtuf.coredump.cx/afl/.
+
+--------------
+Version 0.46b:
+--------------
+
+  - Makefile dependencies cleaned up for parallel builds.
+
+  - Support for DESTDIR in Makefile.
+
+  - Removed all the USE_64BIT stuff, just auto-detect compilation mode.
+
+  - Fix for rare problems with code with manually written assembly that
+    switches between .code32 and .code64.
+
+--------------
+Version 0.45b:
+--------------
+
+  - Test case trimmer. Results in 20-30% size reduction for many types of work
+    loads, with very pronounced improvements in path discovery speeds.
+
+  - Better warning for input directories.
+
+  - Test and warning for older copies.
+
+  - Added fuzzer_stats file for status monitoring.
+
+  - Typo fixes, thanks to Alexander Cherepanov.
+
+  - Better warnings about ASAN memory requirements.
+
+  - Saner support for non-tty stdout (less output generated).
+
+--------------
+Version 0.44b:
+--------------
+
+  - Support for AFL_CC and AFL_CXX (thanks to Ben Laurie).
+
+  - Option combination -S -D replaced with -M for simplicity.
+
+  - Extra check for .section .text; lack of this prevented main() from
+    getting instrumented for some users.
+
+  - Reorganization of the testcases/ directory.
+
+  - An extra check to confirm that the build is operational.
+
+  - Consistent use of color reset codes, as suggested by Oliver Kunz.
+
+--------------
+Version 0.43b:
+--------------
+
+  - Fix for 64-bit gcc -shared reloc bug.
+
+  - echo -e removed from Makefile for compatibility with dash (reported by jwilk).
+
+  - Added status_screen.txt.
+
+  - Added canvas_harness.
+
+  - Minor change to the GCC check.
+
+--------------
+Version 0.42b:
+--------------
+
+  - Red zone fix for 64-bit (oops!).
+
+  - Horribly experimental ARM support in experimental/arm_support.
+
+  - Several improvements to error messages.
+
+  - Added AFL_QUIET to silence afl-gcc and afl-as when using wonky build
+    systems.
+
+  - Improved check for 64-bit compilation, plus several sanity checks
+    in Makefile.
+
+--------------
+Version 0.41b:
+--------------
+
+  - Fork server fix for processes that call execve().
+
+  - Minor compatibility fixes to Makefile, afl-gcc (reported by jwilk).
+
+  - Fixes to triage_crashes.sh (ditto).
+
+  - Multiple instrumentation performance improvements.
+
+  - Visual indication of the number of imported paths.
+
+  - Fix to afl-showmap to make it work well with new instrumentation.
+
+  - Much better messages for crashes early on.
+
+--------------
+Version 0.40b:
+--------------
+
+  - Proper support for parallelized fuzzing.
+
+  - Added an example in experimental/distributed_fuzzing/
+
+--------------
+Version 0.39b:
+--------------
+
+  - Redesigned status screen, now 90% more spiffy.
+
+  - More verbose and user-friendly messages for some common problems.
+
+  - Resuming now reconstructs path depth, too.
+
+  - Core dumps are inhibited to improve the ability to detect SEGV.
+
+  - A check for redirection of core dumps to files.
+
+  - Minor improvement to the handling of variable paths.
+
+  - Additional performance improvements and tighter mem limits by default.
+
+  - Performance tips added in docs/.
+
+--------------
+Version 0.38b:
+--------------
+
+  - Fixed an fd leak and +cov tracking bug resulting from changes in 0.37b.
+
+  - Screen update speed now auto-adjusts.
+
+  - Visual indication of non-instrumented mode.
+
+--------------
+Version 0.37b:
+--------------
+
+  - Added fuzz state tracking for more seamless resumption of aborted
+    fuzzing sessions.
+
+  - Removed the -D option, as it's no longer necessary.
+
+  - Refactored calibration code and improved startup reporting.
+
+  - Dynamically scaled timeouts.
+
+  - Visual notification for slow binaries.
+
+  - Improved instrumentation to explicitly cover the other leg of every
+    branch.
+
+--------------
+Version 0.36b:
+--------------
+
+  - Fork server support to avoid the overhead of execve(). A nearly-verbatim
+    design from Jann Horn; still pending part 2 that would also skip initial
+    setup steps (thinking about reliable heuristics now).
+
+  - Added a check for shell scripts used as fuzz targets.
+
+  - Added a check for fuzz jobs that don't seem to be finding anything.
+
+  - Fixes to how IGNORE_FINDS works (was a bit broken after adding splicing
+    and path skip heuristics).
+
+--------------
+Version 0.35b:
+--------------
+
+  - 64-bit instrumentation properly integrated into afl-as.
+
+--------------
+Version 0.34b:
+--------------
+
+  - New exec count classifier (the working theory is that it gets meaningful
+    coverage with fewer test cases spewed out).
+
+--------------
+Version 0.33b:
+--------------
+
+  - New, somewhat experimental instrumentation that tries to target only
+    arcs, rather than every line. May be fragile, but is a lot faster (2x+).
+    Old version included in experimental/old_as/ for time being.
+
+  - Several cosmetic fixes and typo corrections, thanks to Jakub Wilk.
+
+--------------
+Version 0.32b:
+--------------
+
+  - Another take at fixing the C++ exception thing.
+
+--------------
+Version 0.31b:
+--------------
+
+  - Followup fix to afl-as to address a potential problem with newer versions
+    of GCC introduced in 0.28b. Thanks to Jann Horn.
+
+--------------
+Version 0.30b:
+--------------
+
+  - More detail about the underlying operations captured in file names.
+
+--------------
+Version 0.29b:
+--------------
+
+  - Improvements to chunk operations.
+
+--------------
+Version 0.28b:
+--------------
+
+  - C++ exception handling fix for newer versions of GCC (thanks to 
+    Eberhard Mattes).
+
+  - Fix to the handling of the overflow flag (thanks to Eberhard Mattes).
+
+--------------
+Version 0.27b:
+--------------
+
+  - Extra prioritization of new paths versus already-fuzzed ones.
+
+  - Include spliced test case ID in the output file name.
+
+  - Fixed a rare, cosmetic null ptr deref after Ctrl-C.
+
+  - Make copies of test cases in the output directory.
+
+  - Use better output file names, keeping track of stage and splicing sources.
+
+--------------
+Version 0.26b:
+--------------
+
+  - Revamped storage of testcases, -u option removed,
+
+  - Built-in effort minimizer to get rid of potentially redundant inputs,
+
+  - Standalone testcase count minimization script in experimental/,
+
+  - Miscellaneous improvements to directory and file handling.
+
+  - Bug fix to timeout detection.
+
+--------------
+Version 0.25b:
+--------------
+
+  - Improved count-based instrumentation.
+
+  - Improvements to hang deduplication.
+
+  - New -cov prefixes for test cases.
+
+  - Switched from readdir() to scandir() + alphasort() to preserve ordering of
+    test cases.
+
+  - Splicing strategy,
+
+  - Display improvements and several other bugfixes.
+
+--------------
+Version 0.24b:
+--------------
+
+  - Program name on the progress screen and the -T parameter to go with it.
+
+--------------
+Version 0.23b:
+--------------
+
+  - Improved detection of variable behaviors.
+
+  - Path depth tracking and several other display improvements.
+
+  - Simplified (XOR-based) tuple instrumentation.
+
+--------------
+Version 0.22b:
+--------------
+
+  - More proper handling of long bitflips and some swaps.
+
+  - Fix for the handling of gcc -pipe.
+
+--------------
+Version 0.21b:
+--------------
+
+  - Initial public release.
+

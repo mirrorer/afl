@@ -1,0 +1,60 @@
+=================================
+Tips for performance optimization
+=================================
+
+  (See README for the general instruction manual)
+
+The fuzzer is designed to need ~1 core per job. This means that on an 8-core
+system, you can easily run eight different fuzzing jobs with relatively little
+performance hit. When running more than that, the performance should degrade
+fairly linearly.
+
+If the fuzzing process is slow, there are several things to try:
+
+  - First and foremost, choose simple and small initial test cases. Input
+    files under 1 kB are ideal whenever possible.
+
+    In practical terms - say, if you are fuzzing image parsers, don't start
+    with a folder of your vacation photos - generate a tiny 16x16 picture and 
+    run it through jpegtran or pngcrunch. The same goes for videos or audio.
+    There's plenty of small starting test cases in ../testcases/* - try them
+    out or submit new ones!
+
+  - Consider using a simpler target binary. For example, for image formats,
+    bundled utilities such as djpeg, readpng, or gifhisto are considerably
+    faster than the convert tool from ImageMagick.
+
+  - Lower the memory limit (-m) a bit. Some programs end up spending a lot of
+    time allocating and initializing megabytes of memory for some pathological
+    inputs; low -m values can make them give up sooner without necessarily
+    sacrificing coverage.
+
+  - Check for any parameters or settings that obviously improve performance. For
+    example, djpeg can be called with -dct fast -nosmooth -onepass -dither none
+    -scale 1/4 to speed things up; there is a corresponding drop in the quality
+    of decoded images, but it's probably not something you care about.
+
+  - See if the targeted binary is doing anything obviously slow (try strace -tt).
+    Perhaps it will run faster if you specify /dev/null as a config file,
+    if you disable some features on compile time (./configure --help), or if you
+    change the command line a bit?
+
+  - Compile without AFL_HARDEN or ASAN.
+
+  - Parallelize the process - see parallel_fuzzing.txt.
+
+  - Avoid fuzzing on systems that are low on free physical memory, under heavy
+    CPU load, or that are using NFS.
+
+  - Avoid instrumenting everything. Instrument the libraries / binaries you
+    actually want to stress-test right now, one at a time. Simultaneously
+    building against instrumented libc, zlib, and OpenSSL is an overkill.
+
+If you're just hoping to gain few percent more execs per second, the following
+Linux scheduler tweaks may help on x86:
+
+echo 1 >/proc/sys/kernel/sched_child_runs_first
+echo 1 >/proc/sys/kernel/sched_autogroup_enabled
+echo 50000000 >/proc/sys/kernel/sched_migration_cost_ns
+echo 250000000 >/proc/sys/kernel/sched_latency_ns
+

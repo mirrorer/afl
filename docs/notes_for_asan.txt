@@ -1,0 +1,69 @@
+==================================
+Notes for using ASAN with afl-fuzz
+==================================
+
+  (See README for the general instruction manual)
+
+The afl-gcc wrapper lets you build ASAN-enabled binaries with GCC 4.8 or newer.
+To do this, you need to specify AFL_HARDEN=1 in the environment when building
+the instrumented program.
+
+ASAN allocates a huge region of virtual address space for bookkeeping purposes.
+Most of this is never actually accessed, so the OS never has to allocate any
+real pages of memory for the process and the hack used by ASAN is essentially
+"free" - but the mapping counts against the OS-enforced limit of virtual
+memory (RLIMIT_AS, ulimit -v).
+
+At the same time, afl-fuzz tries to protect you from processes that go awry
+and try to consume all available memory in a vain attempt to parse a malformed
+input file. This happens surprisingly often, so enforcing such a limit is
+important for almost any fuzzer: the alternative is for the kernel OOM
+handler to step in and start killing random processes to free up resources.
+Needless to say, that's not a very nice prospect to live with.
+
+Unfortunately, un*x systems have no portable way to limit the amount of
+pages actually given to a process, and distinguish that from the harmless
+"land grab" done by ASAN. In principle, there are three standard ways to
+limit the size of the heap:
+
+  - The RLIMIT_AS mechanism (ulimit -v) caps the size of the virtual space,
+    but as noted, this pays no attention to the number of pages actually
+    given to the process. 
+
+  - The RLIMIT_DATA mechanism (ulimit -d) seems like a good fit, but it applies
+    only to the traditional sbrk() / brk() methods of requesting heap space;
+    modern allocators, including the one in glibc, routinely rely on mmap()
+    instead, and circumvent this limit completely.
+
+  - Finally, the RLIMIT_RSS limit (ulimit -m) sounds like what we need, but
+    doesn't work on Linux - apparently, mostly for historical reasons.
+
+There are also cgroups, but they are Linux-specific, not universally available
+even on Linux systems, and they require root permissions to set up, which comes
+with a bunch of other risks.
+
+So, we have no nice, portable way to avoid counting the ASAN allocation toward
+the limit. On 32-bit systems, or for binaries compiled in 32-bit mode (-m32),
+this is not a big deal: ASAN needs around 540 MB, so all you need to do is to
+specify -m 600 or so when calling afl-fuzz.
+
+On 64-bit systems, the situation is more murky, because the ASAN allocation
+is completely outlandish - around 17.5 TB. The actual amount of memory on
+your system is (probably) just a tiny fraction of that - so unless you dial
+it in extremely precisely, you will get no protection from OOM bugs.
+
+On my system, the exact amount of memory grabbed by ASAN is 17,825,850 MB;
+if so, perhaps -m 17825900 is a safe value, but use it at your own risk.
+
+In other words, use of ASAN is generally *not* recommended when fuzzing
+64-bit binaries, unless you are confident that they are robust and enforce
+reasonable memory limits, or unless you get the -m value adjusted very
+precisely. A good alternative is to generate a corpus without ASAN, and then
+examine the test cases with ASAN, Valgrind, or other heavy-duty tools.
+
+Of course, you can also always compile stuff with -m32 if your system
+supports that.
+
+Oh: if you want to use AFL_HARDEN *without* ASAN, you can specify
+AFL_HAREN_NOASAN=1 instead.
+

@@ -1,0 +1,293 @@
+==================
+american fuzzy lop
+==================
+
+Written and maintained by Michal Zalewski <lcamtuf@google.com>
+
+Copyright 2013, 2014 Google Inc. All rights reserved.
+Released under terms and conditions of Apache License, Version 2.0.
+
+For new versions and additional information, check out:
+http://lcamtuf.coredump.cx/afl/
+
+1) Background
+-------------
+
+Fuzzing is one of the most powerful strategies for identifying security issues
+in real-world software. Unfortunately, it also offers fairly shallow coverage:
+it is impractical to exhaustively cycle through all possible inputs, so even
+something as simple as setting three separate bytes to a specific value to
+reach a chunk of unsafe code can be an insurmountable obstacle to a typical
+fuzzer.
+
+There have been numerous attempts to solve this problem by augmenting the
+process with additional information about the behavior of the tested code.
+These techniques can be divided into three broad groups:
+
+  - Simple coverage maximization. This approach boils down to trying to isolate
+    initial test cases that offer diverse code coverage in the targeted
+    application - and then fuzzing them using conventional techniques.
+
+  - Dynamic control flow analysis. A more sophisticated technique that leverages
+    instrumented binaries to focus the fuzzing efforts on mutations that
+    produce noteworthy internal states within the instrumented binary.
+
+  - Static analysis / symbolic execution. An approach that attempts to reason
+    about potentially interesting states within the tested program and then make
+    educated guesses about the input values that could possibly trigger them.
+
+The first technique is surprisingly powerful when used to pre-select initial test
+cases from a massive corpus of valid data - say, the result of a large-scale web
+crawl. Unfortunately, coverage measurements provide only a very simplistic view
+of the internal state of the program, making them less suited for creatively
+guiding the fuzzing process later on.
+
+The latter two techniques are extremely promising in experimental settings. That
+said, in real-world applications, they frequently lead to irreducible complexity:
+most of the high-value targets will have a vast number of internal states and
+possible execution paths; deciding which ones are interesting and substantially
+different from the rest, and figuring out what inputs they depend on, is an
+extremely difficult challenge that, if not solved, usually causes the "smart"
+fuzzer to perform no better than a traditional one.
+
+2) About AFL
+------------
+
+American Fuzzy Lop uses an enhanced form of edge coverage to rapidly detect
+subtle, local-scale changes to program control flow without having to perform
+a complex comparisons between series of distinctive traces (a common failure
+point for other tools).
+
+In almost-plain English, the fuzzer does this by augmenting the tested code with
+very lightweight, assembly-level instrumentation that records tuples in the
+following format:
+
+  <ID of current code location>, <ID of previously-executed code location>
+
+The ordering for each tuple is discarded, while hit count is tracked coarsely;
+the main signal used by the fuzzer is the appearance of a previously-unseen
+tuple in the output dataset. This method combines the self-limiting nature of
+simple coverage measurements with the sensitivity of control flow analysis.
+
+The instrumentation is used as a part of a simple queue-based algorithm:
+
+  1) Load user-supplied initial test cases into the queue,
+
+  2) Take next input file from the queue,
+
+  3) Repeatedly mutate the file using a balanced variety of traditional fuzzing
+     strategies,
+
+  4) If any of the generated mutations resulted in a new tuple being recorded
+     by the instrumentation, add mutated output as a new entry in the queue.
+
+  5) Go to 2.
+
+The discovered test cases are also periodically culled to eliminate ones that
+have been made obsolete by more inclusive finds discovered later in the
+fuzzing process; and carefully trimmed under instrumentation to keep them short.
+
+Because of its ability to automatically construct a small corpus of interesting
+test cases, the fuzzer is useful not just for direct fuzzing, but also for
+seeding other, more labor- or resource-intensive testing regimes. In particular,
+it's great for generating test cases that can be manually examined for
+anomalies in the browser environment; in "heavy" applications such as Adobe
+Photoshop or Microsoft Office; or under Valgrind.
+
+In real-world testing with libraries such as libjpeg, libpng, libtiff, libbfd,
+or libbz2, the fuzzer requires no fine-tuning, and significantly outperforms
+blind fuzzing or coverage-only tools. Using a common set of strategies against
+libjpeg, the tool toggles twice as many branches as non-instrumented fuzzing
+(IGNORE_FINDS in config.h) and identifies several times as many distinctive
+test cases than coverage-based algorithms (COVERAGE_ONLY in config.h).
+
+3) Instrumenting programs for use with AFL
+------------------------------------------
+
+Instrumentation is injected by a companion tool called afl-gcc. It is meant to
+be used as a drop-in replacement for GCC, directly pluggable into the standard
+build process for any third-party code.
+
+The instrumentation has a relatively modest performance impact; in conjunction
+with other optimizations implemented by the tool, many instrumented programs
+can be fuzzed as fast or even faster than possible with traditional tools.
+
+The injected probes are designed to work with C and C++ code compiled on x86
+platforms. Porting to other architectures should not be difficult; in fact,
+there is an early-stake ARM port in experimental/arm_support/.
+
+The correct way to recompile the target program will vary depending on the
+specifics of the build process, but a common approach may be:
+
+$ CC=/path/to/afl/afl-gcc ./configure
+$ make clean all
+
+For C++ programs, you will want:
+
+$ CXX=/path/to/afl/afl-g++ ./configure
+
+When testing libraries, it is essential to either link the tested executable
+against a static version of the instrumented library (./configure
+--disable-shared may be useful), or to use a dynamically linked binary with
+the right LD_LIBRARY_PATH (beware of shell script wrappers generated by libtool).
+
+Setting AFL_HARDEN in the environment will cause afl-gcc to automatically enable
+several GCC hardening features that may make it easier to detect memory bugs;
+with GCC 4.8 and above, this includes ASAN. If you want to use this mode, see
+the notes_for_asan.txt file for important caveats.
+
+4) Choosing initial test cases
+------------------------------
+
+To operate correctly, the fuzzer requires one or more input file containing
+typical input normally processed by the targeted application.
+
+Whenever possible, the file should be reasonably small; under 1 kB is ideal,
+although not strictly necessary. The fuzzer will also try to automatically
+trim the test cases for you.
+
+You can find quite a few good examples of starting files in the testcases/
+subdirectory that comes with this tool.
+
+There is limited value in providing multiple files that are not fundamentally
+different from each other, and exercise the same set of features. When in
+doubt, use fewer samples, not more. One test case is perfectly fine in most
+scenarios.
+
+If a large corpus of data is available for screening, the afl-showmap utility
+can be employed to compare the instrumentation data recorded for various
+inputs. Files that not produce any previously-unseen tuples can be usually
+rejected. The fuzzer also performs basic internal de-duplication on its own.
+
+5) Fuzzing instrumented binaries
+--------------------------------
+
+The fuzzing process itself is carried out by the afl-fuzz utility. The program
+requires an input directory containing one or more initial test cases, plus a
+path to the binary to test.
+
+For tested programs that accept data on stdin, the usual syntax may be:
+
+$ ./afl-fuzz -i input_dir -o output_dir /path/to/program [...params...]
+
+For programs that need to read data from a specific file, the appropriate
+path can be specified via the -f flag, e.g.:
+
+$ ./afl-fuzz [...] -f testme.txt /path/to/program testme.txt
+
+It is possible to fuzz non-instrumented code using the -n flag. This gives you
+a fairly traditional fuzzer with a couple of nice testing strategies.
+
+You can use -t and -m to override the default timeout and memory limit for the
+executed process; this is seldom necessary.
+
+The fuzzing process itself is relatively simple. It consists of several types
+of sequential, deterministic operations (bitflips, injection of interesting
+integers, etc) followed by a "havoc" stage with multiple stacked, random
+modifications - block deletion, cloning, random bitflips, and so on. The
+deterministic stage takes time proportional to the size of the input file;
+once this is done, the havoc stages continue for every discovered input until
+Ctrl-C is hit.
+
+For large inputs, you can use -d to skip the deterministic stages and proceed
+straight to random tweaks. This makes the process faster but less systematic.
+Some other tips for optimizing the performance of the process are discussed
+in perf_tips.txt.
+
+6) Interpreting output
+----------------------
+
+The fuzzer keeps going until aborted with Ctrl-C or killed with SIGINT or
+SIGTERM. The progress screen provides various useful stats, including the
+number of distinctive execution paths discovered, the current queue cycle,
+the number of crashes recorded, and the number of execve() calls per second.
+
+For more info about the displayed data, and a discussion of how to evaluate
+the health of the fuzzing process, please see status_screen.txt.
+
+There are three subdirectories created within the output directory:
+
+  - queue/ - test cases for every distinctive execution path, along with hard
+             links to any initial input files. The data is essentially a
+             corpus of interesting test cases, and comes handy for seeding
+             other, more resource-intensive testing steps.
+
+             The directory can be also used to resume aborted jobs; simply do:
+
+             ./afl-fuzz -i old_output_dir/queue -o new_output_dir [...]
+
+  - hangs/ - test cases that cause the tested program to time out. The entries
+             are grouped by a 32-bit hash of the execution path.
+
+  - crashes/ - test cases that caused the tested program to receive a fatal
+               signal (e.g., SIGSEGV, SIGILL, SIGABRT). The entries are 
+               grouped by the received signal, followed by the hash of the
+               execution path.
+
+In all three directories, the first segment of every file name is a sequential
+ID of the generated test case, and the second one corresponds to the "parent"
+queue entry that the entry is derived from; there's some other fairly
+self-explanatory metadata appended, too.
+
+Although the fuzzer does not perform any additional analysis of the discovered
+crashes, the path-based grouping makes it easy to triage new finds manually - or
+to examine them with a simple GDB script. One such script is provided in
+experimental/crash_triage/.
+
+7) Parallelized fuzzing
+-----------------------
+
+For tips on how to fuzz a common target on multiple cores or multiple networked
+machines, please refer to the parallel_fuzzing.txt file included with the source
+code of American Fuzzy Lop.
+
+8) Known limitations & areas for improvement
+--------------------------------------------
+
+Here are some of the most important caveats for AFL:
+
+  - The fuzzer is optimized for compact data formats, such as images
+    and other multimedia. It is less suited for human-readable formats with
+    particularly verbose, redundant verbiage - say, XHTML or JavaScript. In
+    such cases, template- or ABNF-based generators tend to fare better.
+
+    (The fuzzer can still give a good workout to the first line of XML or JS
+    parsing, just won't be able to guess higher-order syntax particularly
+    well.)
+
+    If you want to modify the code to generate syntax-aware mutations for a
+    particular data format, you'd need to start with fuzz_one() in afl-fuzz.c.
+
+  - The fuzzer offers limited coverage if encryption, checksums, cryptographic
+    signatures, or compression are used to wholly wrap the actual data format
+    to be tested.
+
+    Good solutions include manually commenting out the relevant checks in the
+    instrumented application, or using a wrapper that postprocesses the
+    fuzzer-generated data before feeding it to the target program.
+
+    As an example, a patch for libpng to bypass CRC checksums is provided in 
+    experimental/libpng_no_checksum/libpng-nocrc.patch.
+
+  - The included instrumentation (afl-as.h) currently supports x86. If you are
+    feeling adventurous, an experimental ARM port can be found in
+    experimental/arm_support/, too.
+
+  - Instrumentation of binary-only code is theoretically possible, but not
+    supported at this point. Leveraging pin or DynamoRIO may be a good
+    approach.
+
+  - A small fraction of dingy build systems may malfunction when afl-gcc or
+    afl-as write anything to stderr, even if compilation succeeds. If you're
+    running into build issues, try setting and exporting AFL_QUIET=1 first,
+    then run 'make distclean', './configure', and 'make clean all' again.
+
+  - There are some unfortunate trade-offs with ASAN and 64-bit binaries
+    that aren't in our control; see notes_for_asan.txt for more.
+
+9) Contact
+----------
+
+Questions? Concerns? Bug reports? The author can be usually reached at
+<lcamtuf@google.com>.
+

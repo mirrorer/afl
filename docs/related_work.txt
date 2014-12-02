@@ -1,0 +1,146 @@
+===============================
+Related work & historical notes
+===============================
+
+  (See README for the general instruction manual)
+
+At some point, Rob Graham asked about the origins of afl-fuzz. I ended up
+writing a rather detailed response that is probably worth archiving for
+posterity.
+
+1) Influences
+-------------
+
+In short, afl-fuzz is inspired chiefly by the work done by Tavis Ormandy back
+in 2007. Tavis did some very persuasive experiments using gcov block coverage
+to select optimal test cases out of a large corpus of data, and then using
+them as a starting point for traditional fuzzing workflows.
+
+(By "persuasive", I mean to say that his experiments netted a significant
+number of interesting vulnerabilities.)
+
+In parallel to this, both Tavis and I were interested in evolutionary fuzzing.
+Tavis had his experiments, and I was working on a tool called bunny-the-fuzzer,
+released somewhere in 2007.
+
+Bunny used a generational algorithm not much different from afl-fuzz, but
+also tried to reason about the relationship between various input bits and
+the internal state of the program, with hopes of deriving some additional value
+from that. The reasoning / correlation part was probably in part inspired by
+other projects done around the same time by Will Drewry and Chris Evans.
+
+The state correlation approach sounded very sexy on paper, but ultimately, made
+the fuzzer complicated, brittle, and cumbersome to use. Because Bunny didn't
+fare a whole lot better than less sophisticated brute-force tools, I eventually
+decided to write it off. You can still find its original documentation at:
+
+  https://code.google.com/p/bunny-the-fuzzer/wiki/BunnyDoc
+
+There has been a fair amount of independent work, too. Most notably, few weeks
+earlier that year, Jared DeMott had a Defcon presentation about a
+coverage-driven fuzzer that relied on coverage as a fitness function.
+
+Jared's approach was by no means identical to what afl-fuzz does, but it was in
+the same ballpark. His fuzzer tried to explicitly solve for the maximum coverage
+with a single input file; in comparison, afl simply selects for cases that do
+something new (which almost certainly yields better results).
+
+Few years later, Gabriel Campana released fuzzgrind, a tool that relied purely
+on Valgrind and a constraint solver to maximize coverage without any brute-force
+bits; and Microsoft Research folks talked extensively about their still
+non-public, solver-based SAGE framework.
+
+In the past six years or so, I've also seen a fair number of academic papers
+that dealt with smart fuzzing (focusing chiefly on symbolic execution) and a
+couple papers that discussed proof-of-concept application of genetic
+algorithms. I'm unconvinced how practical most of these experiments were;
+I suspect that many of them suffer from the bunny-the-fuzzer's curse of being
+cool on paper and in carefully designed experiments, but failing the ultimate
+test of being able to find new, worthwhile security bugs in otherwise
+well-fuzzed, real-world software.
+
+So, attribution is hard. But I don't think there's anything worth glorifying
+about the core idea - it's essentially the application of well-established
+concepts in CS. The devil is very much in the implementation details, which
+make all the difference between a tool that works and one that's just
+theoretically supposed to.
+
+2) Speaking of implementation details...
+----------------------------------------
+
+As note earlier, I feel that there is nothing fundamentally unique about the
+overall design principle for afl-fuzz, but the implementation successfully
+solves several itches that seemed impossible to scratch with other tools:
+
+1) Most (but not all) of the approaches to smart fuzzing proposed in the past
+   were awfully slow and resource-intensive. This can quickly cancel out their
+   other benefits: you're getting a bad deal if your instrumentation makes it
+   10x more likely to hit a bug, but runs 100x slower. So, the tools start with
+   a huge handicap.
+
+   In comparison, afl-fuzz is meant to let you fuzz most of the intended
+   targets at roughly their native speed, so even if it doesn't add value,
+   you do not lose much.
+
+2) Most of the approaches that sound cool in theory - say, complex
+   syntax-aware instrumentation or symbolic execution - currently seem fairly
+   unreliable with complex, real-world targets. In my tests, they were prone to
+   failing unexpectedly or delivering performance worse than "dumb" tols.
+
+   This makes them less useful in the hands of less experienced users who
+   just want the tool to run flawlessly against binutils, ffmpeg, ImageMagick,
+   OpenSSL, or other complex program that you probably did not optimize for.
+
+   (Even Bunny, with its fairly simple instrumentation, required frequent
+   tweaks to accommodate various program design styles, coding conventions,
+   optimizations, and so on.)
+
+   In part in response to this, the primary goal for afl-fuzz is to be rock
+   solid; you can instrument just about anything with a couple of keystrokes,
+   and things are very unlikely to go south.
+
+   It is, first and foremost, just a very good traditional fuzzer with a bunch
+   of interesting and well-researched strategies to pull out of the hat. That
+   part is based on ~15 years of first-hand fuzzing experience with browsers
+   and other messy software; and discussions with other people who have gotten
+   exceptional mileage out of their fuzzing work (Robert Swiecki, Tavis Ormandy,
+   etc).
+
+3) Most of the more sophisticated types of instrumentation- or solver-driven
+   fuzzing lead to a problem with "path explosion", where you collect too
+   much information and end up with an ever-growing number of different
+   execution paths that are very hard to de-dupe or prioritize in any way.
+   When you end up identifying a million equally interesting variables to
+   play with, you are probably no wiser than with a blind tool.
+
+   (Bunny suffered from the path explosion problem, similarly to many of 
+   its peers; the tool struggled to work around the issue with various
+   configurable limits and de-duplication logic.)
+
+   Basic block coverage, of course, doesn't have this problem, but it runs
+   into another: it quickly reaches a plateau with a small number of test
+   cases and provides no additional fuzzing feedback for extended periods
+   of time. This makes it more useful for early-stage corpus screening,
+   but diminishes its value past that point.
+
+   American Fuzzy Lop uses fairly interesting form of self-limiting but
+   sensitive instrumentation to get longer-lived signals with no need
+   for fragile interpretation or post-processing down the line.
+
+4) Most of the fuzzer frameworks I have looked at have a billion knobs, the
+   optimal settings for which need to be somehow guessed by the operator
+   ahead of the time.
+
+   Peach fuzzer is probably pretty hart to beat in terms of option overload,
+   but Bunny had that problem, too. Check out the previously linked page for
+   a dizzying collection of command-line flags...
+
+   In contrast, afl-fuzz is designed so that you don't have to touch anything.
+   The three knobs you can play with are the output file, the memory limit,
+   and the ability to override the default, auto-calibrated timeout. The rest
+   is just supposed to work.
+
+But perhaps most importantly, afl-fuzz finds cool bugs and effortlessly creates
+a wide range of nice, compact corpuses with coverage that beats other tools. It
+is in no way perfect, but its failure modes are fairly intuitive and easy to
+predict.
