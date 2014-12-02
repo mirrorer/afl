@@ -44,7 +44,8 @@ static u8*  input_file;         /* Originally specified input file      */
 static u8*  modified_file;      /* Instrumented file for the real 'as'  */
 
 static u8   be_quiet,           /* Quiet mode (no stderr output)        */
-            clang_mode;         /* Running in clang mode?               */
+            clang_mode,         /* Running in clang mode?               */
+            pass_thru = 0;      /* Just pass data through?              */
 
 static u32  inst_ratio = 100;   /* Instrumentation probability (%)      */
 
@@ -113,6 +114,15 @@ static void edit_params(int argc, char** argv) {
     if (input_file[1]) FATAL("Incorrect use (not called through afl-gcc?)");
       else input_file = NULL;
 
+  } else {
+
+    /* Check if this looks like a standard invocation as a part of an attempt
+       to compile a program, rather than using gcc on an ad-hoc .s file in
+       a format we may not understand. This works around an issue compiling
+       NSS. */
+
+    if (strncmp(input_file, tmp_dir, strlen(tmp_dir))) pass_thru = 1;
+
   }
 
   modified_file = alloc_printf("%s/.afl-%u-%u.s", tmp_dir, getpid(),
@@ -160,6 +170,8 @@ static void add_instrumentation(void) {
   while (fgets(line, MAX_AS_LINE, inf)) {
 
     fputs(line, outf);
+
+    if (pass_thru) continue;
 
     /* We only want to instrument the .text section. So, let's keep track
        of that in processed files. */

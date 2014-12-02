@@ -25,10 +25,10 @@
 # Note that the fuzzer performs similar deduplication internally, so for the
 # second use case, you can get comparable results by simply removing the files
 # named in <out_dir>/queue/.state/redundant_paths/. This script is a lot slower,
-# but but produces slightly better output.
+# but produces slightly better output.
 #
 # The tool assumes that the tested program reads from stdin and requires no
-# cmdline parameters; very simple edits are required to support  other use
+# cmdline parameters; very simple edits are required to support other use
 # cases.
 #
 
@@ -40,7 +40,7 @@ ulimit -v 100000
 if [ ! "$#" = "2" ]; then
   echo "Usage: $0 /path/to/corpus_dir /path/to/tested_binary" 1>&2
   echo 1>&2
-  echo "Note: the tested binary must accept input on stdin and require no additional"1>&2
+  echo "Note: the tested binary must accept input on stdin and require no additional" 1>&2
   echo "parameters. For more complex use cases, you need to edit this script." 1>&2
   echo 1>&2
   exit 1

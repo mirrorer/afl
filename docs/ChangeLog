@@ -1,4 +1,22 @@
 --------------
+Version 0.67b:
+--------------
+
+  - Several more typos fixed, the project is now cartified 100% typo-free.
+    Thanks to Thomas Jarosch.
+
+--------------
+Version 0.66b:
+--------------
+
+  - Fix for a very obscure issue with build systems that use gcc as an assembler
+    for hand-written .s files, confusing afl-as. Affected nss. Reported by
+    Hanno Boeck.
+
+  - Fix for a bug when cleaning up synchronized fuzzer output dirs. Reported by
+    Thomas Jarosch.
+
+--------------
 Version 0.65b:
 --------------
 

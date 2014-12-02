@@ -1997,7 +1997,7 @@ static void write_stats_file(void) {
 /* A helper function for maybe_delete_out_dir(), deleting all prefixed
    files in a directory. */
 
-static u8 delete_id_files(u8* path) {
+static u8 delete_files(u8* path, u8* prefix) {
 
   DIR* d;
   struct dirent* d_ent;
@@ -2008,40 +2008,11 @@ static u8 delete_id_files(u8* path) {
 
   while ((d_ent = readdir(d))) {
 
-    if (!strncmp(d_ent->d_name, "id:", 3)) {
+    if (d_ent->d_name[0] != '.' && (!prefix ||
+        !strncmp(d_ent->d_name, prefix, strlen(prefix)))) {
 
       u8* fname = alloc_printf("%s/%s", path, d_ent->d_name);
       if (unlink(fname)) PFATAL("Unable to delete '%s'", fname);
-      ck_free(fname);
-
-    }
-
-  }
-
-  closedir(d);
-
-  return !!rmdir(path);
-
-}
-
-
-/* Another helper for cleaning up the .synced dir. */
-
-static u8 delete_in_subdirs(u8* path) {
-
-  DIR* d;
-  struct dirent* d_ent;
-
-  d = opendir(path);
-
-  if (!d) return 0;
-
-  while ((d_ent = readdir(d))) {
-
-    if (d_ent->d_name[0] != '.') {
-
-      u8* fname = alloc_printf("%s/%s", path, d_ent->d_name);
-      if (delete_id_files(fname)) return 1;
       ck_free(fname);
 
     }
@@ -2169,17 +2140,17 @@ static void maybe_delete_out_dir(void) {
   // in <out_dir>/.synced/*/id:*, if any are present.
 
   fn = alloc_printf("%s/.synced", out_dir);
-  if (delete_in_subdirs(fn)) goto dir_cleanup_failed;
+  if (delete_files(fn, NULL)) goto dir_cleanup_failed;
   ck_free(fn);
 
   // Next, we need to clean up <out_dir>/queue/.state/ subdirectories:
 
   fn = alloc_printf("%s/queue/.state/deterministic_done", out_dir);
-  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/queue/.state/redundant_paths", out_dir);
-  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
   // Then, get rid of the .state subdirectory itself (should be empty by now)
@@ -2190,7 +2161,7 @@ static void maybe_delete_out_dir(void) {
   ck_free(fn);
 
   fn = alloc_printf("%s/queue", out_dir);
-  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
   // All right, let's do <out_dir>/crashes/id:* and <out_dir>/hangs/id:* next:
@@ -2200,11 +2171,11 @@ static void maybe_delete_out_dir(void) {
   ck_free(fn);
 
   fn = alloc_printf("%s/crashes", out_dir);
-  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/hangs", out_dir);
-  if (delete_id_files(fn)) goto dir_cleanup_failed;
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
   // And now, for some finishing touches:
