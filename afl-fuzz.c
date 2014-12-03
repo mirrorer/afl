@@ -1309,9 +1309,9 @@ static void init_forkserver(char** argv) {
            "      this diagnosis would be:\n\n"
 
 #ifdef RLIMIT_AS
-           "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+           "      ( ulimit -Sv $[%llu << 10]; /path/to/fuzzed_app )\n\n"
 #else
-           "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+           "      ( ulimit -Sd $[%llu << 10]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
            "    - The binary is just buggy and explodes entirely on its own. If so, you\n"
@@ -1319,7 +1319,7 @@ static void init_forkserver(char** argv) {
 
            "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
            "      fail, poke <lcamtuf@coredump.cx>.\n",
-           DMS(mem_limit << 20), mem_limit);
+           DMS(mem_limit << 20), mem_limit - 1);
 
     }
 
@@ -1350,14 +1350,14 @@ static void init_forkserver(char** argv) {
          "      simple way to confirm the diagnosis may be:\n\n"
 
 #ifdef RLIMIT_AS
-         "      ( ulimit -Sv $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+         "      ( ulimit -Sv $[%llu << 10]; /path/to/fuzzed_app )\n\n"
 #else
-         "      ( ulimit -Sd $[%llu << 20]; /path/to/fuzzed_app )\n\n"
+         "      ( ulimit -Sd $[%llu << 10]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
          "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
          "      fail, poke <lcamtuf@coredump.cx>.\n",
-         DMS(mem_limit << 20), mem_limit);
+         DMS(mem_limit << 20), mem_limit - 1);
 
   }
 
@@ -1821,16 +1821,16 @@ static void perform_dry_run(char** argv) {
              "      try something along the lines of:\n\n"
 
 #ifdef RLIMIT_AS
-             "      ( ulimit -Sv $[%llu << 20]; /path/to/binary [...] <testcase )\n\n"
+             "      ( ulimit -Sv $[%llu << 10]; /path/to/binary [...] <testcase )\n\n"
 #else
-             "      ( ulimit -Sd $[%llu << 20]; /path/to/binary [...] <testcase )\n\n"
+             "      ( ulimit -Sd $[%llu << 10]; /path/to/binary [...] <testcase )\n\n"
 #endif /* ^RLIMIT_AS */
 
              "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
 
              "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
              "      fail, poke <lcamtuf@coredump.cx>.\n",
-             DMS(mem_limit << 20), mem_limit, doc_path);
+             DMS(mem_limit << 20), mem_limit - 1, doc_path);
 
         FATAL("Test case '%s' results in a crash", fn);
 
@@ -4797,7 +4797,9 @@ static void get_core_count(void) {
 
 #else
 
-  if (sysctlbyname("hw.ncpu", &cpu_core_count, &s, NULL, 0) < 0) return;
+  int s_name[2] = { CTL_HW, HW_NCPU };
+
+  if (sysctl(s_name, 2, &cpu_core_count, &s, NULL, 0) < 0) return;
 
 #endif /* ^__APPLE__ */
 
@@ -4821,6 +4823,14 @@ static void get_core_count(void) {
   if (cpu_core_count) {
 
     cur_runnable = (u32)get_runnable_processes();
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined (__OpenBSD__)
+
+    /* Add ourselves, since the 1-minute average doesn't include that yet. */
+
+    cur_runnable++;
+
+#endif /* __APPLE__ || __FreeBSD__ || __OpenBSD__ */
 
     OKF("You have %u CPU cores and %u runnable tasks (utilization: %0.0f%%).",
         cpu_core_count, cur_runnable, cur_runnable * 100.0 / cpu_core_count);

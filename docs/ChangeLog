@@ -4,6 +4,15 @@
 * strongly advisable to upgrade.
 
 --------------
+Version 0.85b:
+--------------
+
+  - Fix for the CPU counting code - no sysctlbyname() on OpenBSD, d'oh. Bug
+    reported by Daniel Dickman.
+
+  - Slight correction to error messages.
+
+--------------
 Version 0.84b:
 --------------
 
