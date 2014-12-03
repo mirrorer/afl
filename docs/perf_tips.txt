@@ -104,7 +104,7 @@ There are several OS-level factors that may affect fuzzing speed:
     schedule and is known to underestimate the cost of short-lived processes
     spawned by afl-fuzz (or any other fuzzer). On Linux, this can be fixed with:
 
-    cd /sys/devices/system/cpu\n
+    cd /sys/devices/system/cpu
     echo performance | tee cpu*/cpufreq/scaling_governor
 
     On other systems, the impact and potential solutions may be different.

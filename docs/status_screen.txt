@@ -302,8 +302,7 @@ behave randomly.
 
 This tiny widget shows the apparent CPU utilization on the local system. It is
 calculated by taking the number of processes in the "runnable" state, and then
-comparing it to the number of logical cores on the system. At this point, the
-widget works only on Linux.
+comparing it to the number of logical cores on the system.
 
 If the value is shown in green, you are using fewer CPU cores than available on
 your system and can probably parallelize to improve performance; for tips on

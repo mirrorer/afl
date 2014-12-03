@@ -50,6 +50,9 @@ At this point, only 64-bit compilation is supported; given that all modern
 MacOS X boxes are 64-bit, and that 32-bit mode needs a fair amount of work due
 to the idiosyncrasies of the platform, this is unlikely to change.
 
+If the CrashReporter app gets in the way, you can turn it off by following the
+instructions provided here: http://goo.gl/CCcd5u
+
 4) Linux (ARMv7)
 ----------------
 

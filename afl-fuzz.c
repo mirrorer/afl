@@ -40,6 +40,7 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <fcntl.h>
+#include <termios.h>
 
 #include <sys/fcntl.h>
 #include <sys/wait.h>
@@ -50,8 +51,10 @@
 #include <sys/resource.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#include <sys/termios.h>
 
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined (__OpenBSD__)
+#  include <sys/sysctl.h>
+#endif /* __APPLE__ || __FreeBSD__ || __OpenBSD__ */
 
 /* Lots of globals, but mostly for the status UI and other things where it
    really makes no sense to haul them around as function parameters. */
@@ -2207,6 +2210,20 @@ static double get_runnable_processes(void) {
 
   static double res;
 
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined (__OpenBSD__)
+
+  /* I don't see any portable sysctl or so that would quickly give us the
+     number of runnable processes; the 1-minute load average can be a
+     semi-decent approximation, though. */
+
+  if (getloadavg(&res, 1) != 1) return 0;
+
+#else
+
+  /* On Linux, /proc/stat is probably the best way; load averages are
+     computed in funny ways and sometimes don't reflect extremely short-lived
+     processes well. */
+
   FILE* f = fopen("/proc/stat", "r");
   u8 tmp[1024];
   u32 val = 0;
@@ -2232,6 +2249,8 @@ static double get_runnable_processes(void) {
           ((double)val) * (1.0 / AVG_SMOOTHING);
 
   }
+
+#endif /* ^(__APPLE__ || __FreeBSD__ || __OpenBSD__) */
 
   return res;
 
@@ -4763,14 +4782,41 @@ static void check_cpu_governor(void) {
 
 static void get_core_count(void) {
 
+  u32 cur_runnable = 0;
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined (__OpenBSD__)
+
+  size_t s = sizeof(cpu_core_count);
+
+  /* On *BSD systems, we can just use a sysctl to get the number of CPUs. */
+
+#ifdef __APPLE__
+
+  if (sysctlbyname("hw.logicalcpu", &cpu_core_count, &s, NULL, 0) < 0)
+    return;
+
+#else
+
+  if (sysctlbyname("hw.ncpu", &cpu_core_count, &s, NULL, 0) < 0) return;
+
+#endif /* ^__APPLE__ */
+
+#else
+
+  /* On Linux, a simple way is to look at /proc/stat, especially since we'd
+     be parsing it anyway for other reasons later on. */
+
   FILE* f = fopen("/proc/stat", "r");
   u8 tmp[1024];
-  u32 cur_runnable = 0;
 
   if (!f) return;
 
   while (fgets(tmp, sizeof(tmp), f))
     if (!strncmp(tmp, "cpu", 3) && isdigit(tmp[3])) cpu_core_count++;
+
+  fclose(f);
+  
+#endif /* ^(__APPLE__ || __FreeBSD__ || __OpenBSD__) */
 
   if (cpu_core_count) {
 
@@ -4794,8 +4840,6 @@ static void get_core_count(void) {
     }
 
   } else WARNF("Unable to figure out the number of CPU cores.");
- 
-  fclose(f);
 
 }
 

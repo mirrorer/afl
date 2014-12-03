@@ -9,6 +9,9 @@ Here's a quick overview of the stuff you can find in this directory:
                           corpus generated using simple image parsing 
                           binaries & afl-fuzz.
 
+  - clang_asm_normalize - a script that makes it easy to instrument
+                          hand-written assembly, provided that you have clang.
+
   - crash_triage        - a very rudimentary example of how to annotate crashes
                           with additional gdb metadata.
 

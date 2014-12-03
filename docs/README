@@ -248,14 +248,13 @@ Oh - for test case minimization, consider https://code.google.com/p/tmin/.
 ---------------------
 
 Please keep in mind that, similarly to many other computationally-expensive
-tasks, fuzzing may put some strain on your hardware and on the OS. In
-particular:
+tasks, fuzzing may put strain on your hardware and on the OS. In particular:
 
   - Your CPU will run hot and will need adequate cooling. In most cases, if
     cooling is inadequate or if there is a fan malfunction, CPU speeds will
     be automatically throttled. That said, especially when fuzzing on
     unsuitable hardware (laptops, smartphones, etc), it's not entirely
-    impossible for something to blow up or even catch fire.
+    impossible for something to blow up.
 
   - Targeted programs may end up erratically grabbing gigabytes of memory or
     filling up disk space with junk files. AFL tries to enforce basic memory
