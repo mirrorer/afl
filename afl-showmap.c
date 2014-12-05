@@ -17,8 +17,8 @@
    scripts to eliminate redundant inputs and perform other checks.
 
    If AFL_SINK_OUTPUT is set, output from the traced program will be
-   redirected to /dev/null. AFL_QUIET inhibits all non-fatal messages,
-   too.
+   redirected to /dev/null. AFL_QUIET inhibits all non-fatal messages
+   from the tool, too.
 
  */
 
@@ -47,8 +47,7 @@
 #include <sys/types.h>
 #include <sys/resource.h>
 
-static s32 forksrv_pid,               /* PID of the fork server            */
-           child_pid;                 /* PID of the fuzzed program         */
+static s32 child_pid;                 /* PID of the tested program         */
 
 static u8* trace_bits;                /* SHM with instrumentation bitmap   */
 
@@ -176,24 +175,12 @@ static void setup_shm(void) {
 static void run_target(char** argv) {
 
   int status = 0;
-  int st_pipe[2], ctl_pipe[2];
 
-  if (pipe(st_pipe) || pipe(ctl_pipe)) PFATAL("pipe() failed");
+  child_pid = fork();
 
-  forksrv_pid = fork();
+  if (child_pid < 0) PFATAL("fork() failed");
 
-  if (forksrv_pid < 0) PFATAL("fork() failed");
-
-  if (!forksrv_pid) {
-
-    struct rlimit r;
-
-    if (!getrlimit(RLIMIT_NOFILE, &r) && r.rlim_cur < FORKSRV_FD + 2) {
-
-      r.rlim_cur = FORKSRV_FD + 2;
-      setrlimit(RLIMIT_NOFILE, &r); /* Ignore errors */
-
-    }
+  if (!child_pid) {
 
     if (sink_output) {
 
@@ -207,46 +194,16 @@ static void run_target(char** argv) {
 
     }
 
-    /* Set up control and status pipes, close the original fds. */
-
-    if (dup2(ctl_pipe[0], FORKSRV_FD) < 0) PFATAL("dup2() failed");
-    if (dup2(st_pipe[1], FORKSRV_FD + 1) < 0) PFATAL("dup2() failed");
-
-    close(ctl_pipe[0]);
-    close(ctl_pipe[1]);
-    close(st_pipe[0]);
-    close(st_pipe[1]);
-
     execvp(argv[0], argv);
 
     PFATAL("Unable to execute '%s'", argv[0]);
 
   }
 
-  /* Close the unneeded endpoints, wake up workserver. */
-
-  close(ctl_pipe[0]);
-  close(st_pipe[1]);
-
-  if (write(ctl_pipe[1], &status, 4) != 4) 
-    FATAL("No instrumentation detected or fork server fault");
-
-  /* The fork server will send us a "hi mom" message first, then the PID,
-     then the actual exec status once the child process exits. */
-
-  if (read(st_pipe[0], &status, 4) != 4 ||
-      read(st_pipe[0], &child_pid, 4) != 4 || child_pid <= 0 ||
-      read(st_pipe[0], &status, 4) != 4) {
-
-    FATAL("No instrumentation detected or fork server fault");
-
-  }
+  if (waitpid(child_pid, &status, WUNTRACED) <= 0) FATAL("waitpid() failed");
 
   if (WIFSIGNALED(status))
     SAYF("+++ Killed by signal %u +++\n", WTERMSIG(status));
-
-  /* Fork server will die when we exit because of a failed read() on a
-     broken pipe, so no special need to kill it beforehand. */
 
 }
 

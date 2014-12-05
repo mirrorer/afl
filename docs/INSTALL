@@ -53,6 +53,11 @@ to the idiosyncrasies of the platform, this is unlikely to change.
 If the CrashReporter app gets in the way, you can turn it off by following the
 instructions provided here: http://goo.gl/CCcd5u
 
+The fork() semantics on OS X are a bit unusual compared to other unix systems.
+For non-OS-X-specific code, this is transparently mitigated with libc-level
+wrappers, but if you bump into problems when fuzzing platform-specific code,
+try setting AFL_NO_FORKSRV=1 in the environment before calling afl-fuzz.
+
 4) Linux (ARMv7)
 ----------------
 

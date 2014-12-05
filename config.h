@@ -182,6 +182,11 @@
 
 #define SHM_ENV_VAR         "__AFL_SHM_ID"
 
+/* Other less interesting, internal-only variables. */
+
+#define CLANG_ENV_VAR       "__AFL_CLANG_MODE"
+#define AS_LOOP_ENV_VAR     "__AFL_AS_LOOPCHECK"
+
 /* Distinctive exit code used to indicate failed execution: */
 
 #define EXEC_FAIL           0x55

@@ -26,7 +26,7 @@ ulimit -v 100000
 if [ ! "$#" = "2" ]; then
   echo "Usage: $0 /path/to/afl_output_dir /path/to/tested_binary" 1>&2
   echo 1>&2
-  echo "Note: the tested binary must accept input on stdin and require no additional"1>&2
+  echo "Note: the tested binary must accept input on stdin and require no additional" 1>&2
   echo "parameters. For more complex use cases, you need to edit this script." 1>&2
   echo 1>&2
   exit 1
@@ -54,7 +54,7 @@ fi
 
 echo
 
-for crash in $DIR/crashes/*; do
+for crash in $DIR/crashes/id:*; do
 
   id=`basename -- "$crash" | cut -d, -f1 | cut -d: -f2`
   sig=`basename -- "$crash" | cut -d, -f2 | cut -d: -f2`
@@ -62,7 +62,7 @@ for crash in $DIR/crashes/*; do
   echo "+++ ID $id, SIGNAL $sig +++"
   echo
 
-  gdb --batch -q --ex "r <$crash" --ex 'back' --ex 'disass $eip, $eip+16' --ex 'info reg' --ex 'quit' "$BIN"
+  gdb --batch -q --ex "r <$crash" --ex 'back' --ex 'disass $pc, $pc+16' --ex 'info reg' --ex 'quit' "$BIN" 0</dev/null
   echo
 
 done

@@ -84,6 +84,7 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            timeout_given,             /* Specific timeout given?          */
            not_on_tty,                /* stdout is not a tty              */
            uses_asan,                 /* Target uses ASAN?                */
+           no_forkserver,             /* Disable forkserver?              */
            crash_mode;                /* Crash mode! Yeah!                */
     
 static s32 out_fd,                    /* Persistent fd for out_file       */
@@ -1383,7 +1384,7 @@ static u8 run_target(char** argv) {
      execve(). There is a bit of code duplication between here and 
      init_forkserver(), but c'est la vie. */
 
-  if (dumb_mode) {
+  if (dumb_mode || no_forkserver) {
 
     child_pid = fork();
 
@@ -1473,7 +1474,7 @@ static u8 run_target(char** argv) {
 
   /* The SIGALRM handler simply kills the child_pid and sets child_timed_out. */
 
-  if (dumb_mode) {
+  if (dumb_mode || no_forkserver) {
 
     if (waitpid(child_pid, &status, WUNTRACED) <= 0) PFATAL("waitpid() failed");
 
@@ -1507,7 +1508,8 @@ static u8 run_target(char** argv) {
     return FAULT_CRASH;
   }
 
-  if (dumb_mode && WEXITSTATUS(status) == EXEC_FAIL) return FAULT_ERROR;
+  if ((dumb_mode || no_forkserver) && WEXITSTATUS(status) == EXEC_FAIL)
+    return FAULT_ERROR;
 
   return FAULT_NONE;
 
@@ -4863,7 +4865,14 @@ static void fix_up_sync(void) {
   if (dumb_mode)
     FATAL("-S / -M and -n are mutually exclusive");
 
-  if (skip_deterministic) FATAL("-d is implied in -S / -M mode");
+  if (skip_deterministic) {
+
+    if (force_deterministic)
+      FATAL("use -S instead of -M -d");
+    else
+      FATAL("-S already implies -d");
+
+  }
 
   while (*x) {
 
@@ -5136,6 +5145,8 @@ int main(int argc, char** argv) {
     FATAL("Input and output directories can't be the same!");
 
   if (dumb_mode && crash_mode) FATAL("-C and -n are mutually exclusive");
+
+  if (getenv("AFL_NO_FORKSRV")) no_forkserver = 1;
 
   fix_up_banner(argv[optind]);
 

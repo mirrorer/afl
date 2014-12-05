@@ -396,7 +396,7 @@ int main(int argc, char** argv) {
   struct timeval tv;
   struct timezone tz;
 
-  clang_mode = !!getenv("__AFL_CLANG_MODE");
+  clang_mode = !!getenv(CLANG_ENV_VAR);
 
   if (isatty(2) && !getenv("AFL_QUIET")) {
 
@@ -435,7 +435,7 @@ int main(int argc, char** argv) {
 
   }
 
-  if (getenv("__AFL_AS_BEENHERE"))
+  if (getenv(AS_LOOP_ENV_VAR))
     FATAL("Endless loop when calling 'as' (remove '.' from your PATH)");
 
   setenv("__AFL_AS_BEENHERE", "1", 1);

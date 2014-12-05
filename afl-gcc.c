@@ -124,7 +124,7 @@ static void edit_params(u32 argc, char** argv) {
 
     clang_mode = 1;
 
-    setenv("__AFL_CLANG_MODE", "1", 1);
+    setenv(CLANG_ENV_VAR, "1", 1);
 
     if (!strcmp(name, "afl-clang++")) {
       u8* alt_cxx = getenv("AFL_CXX");

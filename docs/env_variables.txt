@@ -73,11 +73,19 @@ in scripting environments.
 
   - Setting AFL_SKIP_CHECKS skips the checks to detect instrumented binaries
     and shell scripts. This is useful mostly if you develop your own
-    instrumentation or so.
+    instrumentation (e.g., for interpreted languages or binary-only code).
 
   - Setting AFL_SKIP_CPUFREQ skips the check for CPU scaling policy. This is
     useful if you can't change the defaults and are OK with some performance
     loss.
+
+  - Setting AFL_NO_FORKSRV disables the forkserver optimization, using one
+    fork + execve() call for every tested input. This is useful mostly when
+    working with unruly libraries that create threads or do other crazy
+    things when initializing.
+
+    Note that this setting inhibits some of the user-friendly diagnostics
+    normally done when starting up the forkserver.
 
   - By default, LD_BIND_NOW is set to 1 to speed up fuzzing, but you can,
     theoretically, override it. I don't think there's any reason to.

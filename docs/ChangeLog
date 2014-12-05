@@ -4,13 +4,25 @@
 * strongly advisable to upgrade.
 
 --------------
+Version 0.86b:
+--------------
+
+  - Added AFL_NO_FORKSRV, allowing the forkserver to be bypassed. Suggested
+    by Ryan Govostes.
+
+  - Simplified afl-showmap.c to make use of the no-forkserver mode.
+
+  - Made minor improvements to crash_triage.sh, as suggested by Jakub Wilk.
+
+--------------
 Version 0.85b:
 --------------
 
-  - Fix for the CPU counting code - no sysctlbyname() on OpenBSD, d'oh. Bug
+  - Fixed the CPU counting code - no sysctlbyname() on OpenBSD, d'oh. Bug
     reported by Daniel Dickman.
 
-  - Slight correction to error messages.
+  - Made a slight correction to error messages - the advice on testing
+    with ulimit was a tiny bit off by a factor of 1024.
 
 --------------
 Version 0.84b:
