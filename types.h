@@ -70,4 +70,7 @@ typedef int64_t  s64;
 
 #define R(x) (random() % (x))
 
+#define STRINGIFY_INTERNAL(x) #x
+#define STRINGIFY(x) STRINGIFY_INTERNAL(x)
+
 #endif /* ! _HAVE_TYPES_H */

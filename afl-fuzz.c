@@ -1243,6 +1243,12 @@ static void init_forkserver(char** argv) {
                            "detect_leaks=0:"
                            "allocator_may_return_null=1", 0);
 
+    /* MSAN is tricky, because it doesn't support abort_on_error=1 at this
+       point. So, we do this in a very hacky way. */
+
+    setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
+                           "msan_track_origins=0", 0);
+
     execv(target_path, argv);
 
     /* Use a distinctive return value to tell the parent about execv()
@@ -1435,6 +1441,15 @@ static u8 run_target(char** argv) {
 
       close(dev_null_fd);
 
+      /* Set sane defaults for ASAN if nothing else specified. */
+
+      setenv("ASAN_OPTIONS", "abort_on_error=1:"
+                             "detect_leaks=0:"
+                             "allocator_may_return_null=1", 0);
+
+      setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
+                             "msan_track_origins=0", 0);
+
       execv(target_path, argv);
 
       /* Use a distinctive return value to tell the parent about execv()
@@ -1505,6 +1520,14 @@ static u8 run_target(char** argv) {
 
   if (WIFSIGNALED(status) && !stop_soon) {
     kill_signal = WTERMSIG(status);
+    return FAULT_CRASH;
+  }
+
+  /* A somewhat nasty hack for MSAN, which doesn't support abort_on_error and
+     must use a special exit code. */
+
+  if (uses_asan && WEXITSTATUS(status) == MSAN_ERROR) {
+    kill_signal = 0;
     return FAULT_CRASH;
   }
 
@@ -2384,7 +2407,7 @@ static void maybe_delete_out_dir(void) {
 dir_cleanup_failed:
 
   SAYF("\n" cLRD "[-] " cRST
-       "Whoops, the fuzzer tied to reuse your output directory, but bumped into\n"
+       "Whoops, the fuzzer tried to reuse your output directory, but bumped into\n"
        "    some files that shouldn't be there or that couldn't be removed - so it\n"
        "    decided to abort! This happened while processing this path:\n\n"
 
@@ -4506,7 +4529,8 @@ static void check_binary(u8* fname) {
 
   }
 
-  if (memmem(f_data, f_len, "libasan.so", 10)) uses_asan = 1;
+  if (memmem(f_data, f_len, "libasan.so", 10) ||
+      memmem(f_data, f_len, "__msan_init", 11)) uses_asan = 1;
 
   if (munmap(f_data, f_len)) PFATAL("unmap() failed");
 
@@ -4912,6 +4936,12 @@ static void check_asan_opts(void) {
 
   if (x && !strstr(x, "abort_on_error=1"))
     FATAL("Custom ASAN_OPTIONS set without abort_on_error=1 - please fix!");
+
+  x = getenv("MSAN_OPTIONS");
+
+  if (x && !strstr(x, "exit_code=" STRINGIFY(MSAN_ERROR)))
+    FATAL("Custom MSAN_OPTIONS set without exit_code="
+          STRINGIFY(MSAN_ERROR) " - please fix!");
 
 } 
 

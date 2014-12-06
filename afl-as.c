@@ -319,7 +319,7 @@ static void add_instrumentation(void) {
 
       if (line[0] == '.') {
 
-#endif /* __APPPLE__ */
+#endif /* __APPLE__ */
 
         /* .L0: or LBB0_0: style jump destination */
 
@@ -444,7 +444,7 @@ int main(int argc, char** argv) {
      ASAN-specific branches. But we can probabilistically compensate for
      that... */
 
-  if (getenv("AFL_USE_ASAN")) inst_ratio /= 3;
+  if (getenv("AFL_USE_ASAN") || getenv("AFL_USE_MSAN")) inst_ratio /= 3;
 
   add_instrumentation();
 

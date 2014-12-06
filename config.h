@@ -189,7 +189,8 @@
 
 /* Distinctive exit code used to indicate failed execution: */
 
-#define EXEC_FAIL           0x55
+#define EXEC_FAIL           85
+#define MSAN_ERROR          86
 
 /* Designated file desciptors for forkserver commands (the application will
    use FORKSRV_FD and FORKSRV_FD + 1): */

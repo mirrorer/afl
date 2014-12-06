@@ -230,6 +230,16 @@ static void edit_params(u32 argc, char** argv) {
 
     cc_params[cc_par_cnt++] = "-fsanitize=address";
 
+    if (getenv("AFL_USE_MSAN"))
+      FATAL("ASAN and MSAN are mutually exclusive");
+
+  } else if (getenv("AFL_USE_MSAN")) {
+
+    cc_params[cc_par_cnt++] = "-fsanitize=memory";
+
+    if (getenv("AFL_USE_ASAN"))
+      FATAL("ASAN and MSAN are mutually exclusive");
+
   }
 
   if (!getenv("AFL_DONT_OPTIMIZE")) {

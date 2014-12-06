@@ -4,6 +4,12 @@
 * strongly advisable to upgrade.
 
 --------------
+Version 0.87b:
+--------------
+
+  - Added support for MSAN, via AFL_USE_MSAN, same gotchas as for ASAN.
+
+--------------
 Version 0.86b:
 --------------
 

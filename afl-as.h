@@ -35,9 +35,6 @@
 #include "config.h"
 #include "types.h"
 
-#define STRINGIFY_INTERNAL(x) #x
-#define STRINGIFY(x) STRINGIFY_INTERNAL((x))
-
 /* 
    ------------------
    Performances notes
@@ -228,7 +225,7 @@ static const u8* main_payload_32 =
   "\n"
   "  pushl $4          /* length    */\n"
   "  pushl $__afl_temp /* data      */\n"
-  "  pushl $" STRINGIFY(FORKSRV_FD + 1) "  /* file desc */\n"
+  "  pushl $" STRINGIFY((FORKSRV_FD + 1)) "  /* file desc */\n"
   "  call  write\n"
   "  addl  $12, %esp\n"
   "\n"
@@ -241,7 +238,7 @@ static const u8* main_payload_32 =
   "\n"
   "  pushl $4          /* length    */\n"
   "  pushl $__afl_temp /* data      */\n"
-  "  pushl $" STRINGIFY(FORKSRV_FD) "      /* file desc */\n"
+  "  pushl $" STRINGIFY(FORKSRV_FD) "        /* file desc */\n"
   "  call  read\n"
   "  addl  $12, %esp\n"
   "\n"
@@ -265,7 +262,7 @@ static const u8* main_payload_32 =
   "\n"
   "  pushl $4              /* length    */\n"
   "  pushl $__afl_fork_pid /* data      */\n"
-  "  pushl $" STRINGIFY(FORKSRV_FD + 1) "      /* file desc */\n"
+  "  pushl $" STRINGIFY((FORKSRV_FD + 1)) "      /* file desc */\n"
   "  call  write\n"
   "  addl  $12, %esp\n"
   "\n"
@@ -282,7 +279,7 @@ static const u8* main_payload_32 =
   "\n"
   "  pushl $4          /* length    */\n"
   "  pushl $__afl_temp /* data      */\n"
-  "  pushl $" STRINGIFY(FORKSRV_FD + 1) "  /* file desc */\n"
+  "  pushl $" STRINGIFY((FORKSRV_FD + 1)) "  /* file desc */\n"
   "  call  write\n"
   "  addl  $12, %esp\n"
   "\n"
@@ -295,7 +292,7 @@ static const u8* main_payload_32 =
   "  pushl $" STRINGIFY(FORKSRV_FD) "\n"
   "  call  close\n"
   "\n"
-  "  pushl $" STRINGIFY(FORKSRV_FD + 1) "\n"
+  "  pushl $" STRINGIFY((FORKSRV_FD + 1)) "\n"
   "  call  close\n"
   "\n"
   "  addl  $8, %esp\n"
@@ -513,7 +510,7 @@ static const u8* main_payload_64 =
   "\n"
   "  movq $4, %rdx               /* length    */\n"
   "  leaq __afl_temp(%rip), %rsi /* data      */\n"
-  "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi       /* file desc */\n"
+  "  movq $" STRINGIFY((FORKSRV_FD + 1)) ", %rdi       /* file desc */\n"
   CALL_L64("write")
   "\n"
   "  cmpq $4, %rax\n"
@@ -525,7 +522,7 @@ static const u8* main_payload_64 =
   "\n"
   "  movq $4, %rdx               /* length    */\n"
   "  leaq __afl_temp(%rip), %rsi /* data      */\n"
-  "  movq $" STRINGIFY(FORKSRV_FD) ", %rdi           /* file desc */\n"
+  "  movq $" STRINGIFY(FORKSRV_FD) ", %rdi             /* file desc */\n"
   CALL_L64("read")
   "  cmpq $4, %rax\n"
   "  jne  __afl_die\n"
@@ -546,7 +543,7 @@ static const u8* main_payload_64 =
   "\n"
   "  movq $4, %rdx                   /* length    */\n"
   "  leaq __afl_fork_pid(%rip), %rsi /* data      */\n"
-  "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi             /* file desc */\n"
+  "  movq $" STRINGIFY((FORKSRV_FD + 1)) ", %rdi             /* file desc */\n"
   CALL_L64("write")
   "\n"
   "  movq $2, %rdx                   /* WUNTRACED */\n"
@@ -560,7 +557,7 @@ static const u8* main_payload_64 =
   "\n"
   "  movq $4, %rdx               /* length    */\n"
   "  leaq __afl_temp(%rip), %rsi /* data      */\n"
-  "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi         /* file desc */\n"
+  "  movq $" STRINGIFY((FORKSRV_FD + 1)) ", %rdi         /* file desc */\n"
   CALL_L64("write")
   "\n"
   "  jmp  __afl_fork_wait_loop\n"
@@ -572,7 +569,7 @@ static const u8* main_payload_64 =
   "  movq $" STRINGIFY(FORKSRV_FD) ", %rdi\n"
   CALL_L64("close")
   "\n"
-  "  movq $" STRINGIFY(FORKSRV_FD + 1) ", %rdi\n"
+  "  movq $" STRINGIFY((FORKSRV_FD + 1)) ", %rdi\n"
   CALL_L64("close")
   "\n"
   "  movq %r12, %rsp\n"

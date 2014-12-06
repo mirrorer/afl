@@ -19,8 +19,10 @@ Because of this, fuzzing with ASAN is recommended in two cases:
   - On 64-bit, only if you trust the target binary to be well-behaved and not
     attempt to use up all physical memory on the host OS.
 
-To compile with ASAN, set USE_ASAN=1 before calling 'make clean all'. The
+To compile with ASAN, set AFL_USE_ASAN=1 before calling 'make clean all'. The
 afl-gcc / afl-clang wrappers will pick that up and add the appropriate flags.
+
+(You can also use AFL_USE_MSAN=1 to enable MSAN instead.)
 
 For 32-bit targets, you will need to run afl-fuzz with '-m 800' or so to give
 ASAN some breathing room. For 64-bit targets, you need to use '-m none'.
