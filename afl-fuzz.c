@@ -167,6 +167,8 @@ static u64 total_bitmap_size,         /* Total bit count for all bitmaps  */
 
 static u32 cpu_core_count;            /* CPU core count                   */
 
+static FILE* plot_file;               /* Gnuplot output file              */
+
 struct queue_entry {
 
   u8* fname;                          /* File name for the test case      */
@@ -2157,7 +2159,7 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
 /* Update stats file for unattended monitoring. */
 
-static void write_stats_file(void) {
+static void write_stats_file(double eps) {
 
   u8* fn = alloc_printf("%s/fuzzer_stats", out_dir);
   s32 fd;
@@ -2178,9 +2180,11 @@ static void write_stats_file(void) {
              "fuzzer_pid     : %u\n"
              "cycles_done    : %llu\n"
              "execs_done     : %llu\n"
+             "execs_per_sec  : %0.02f\n"
              "paths_total    : %u\n"
              "paths_found    : %u\n"
              "paths_imported : %u\n"
+             "max_depth      : %u\n"
              "cur_path       : %u\n"
              "pending_favs   : %u\n"
              "pending_total  : %u\n"
@@ -2188,13 +2192,52 @@ static void write_stats_file(void) {
              "unique_crashes : %llu\n"
              "unique_hangs   : %llu\n",
              start_time / 1000, get_cur_time() / 1000, getpid(),
-             queue_cycle - 1, total_execs, queued_paths, queued_discovered,
-             queued_imported, current_entry, pending_favored,
-             pending_not_fuzzed, queued_variable, unique_crashes, unique_hangs);
+             queue_cycle - 1, total_execs, eps, queued_paths,
+             queued_discovered, queued_imported, max_depth,
+             current_entry, pending_favored, pending_not_fuzzed,
+             queued_variable, unique_crashes, unique_hangs);
 
   fclose(f);
 
 }
+
+
+/* Update the plot file if there is a reason to. */
+
+static void maybe_update_plot_file(double eps) {
+
+  static u32 prev_qp, prev_pf, prev_pnf, prev_ce, prev_md;
+  static u64 prev_qc, prev_uc, prev_uh;
+
+  if (prev_qp == queued_paths && prev_pf == pending_favored && 
+      prev_pnf == pending_not_fuzzed && prev_ce == current_entry &&
+      prev_qc == queue_cycle && prev_uc == unique_crashes &&
+      prev_uh == unique_hangs && prev_md == max_depth) return;
+
+  prev_qp  = queued_paths;
+  prev_pf  = pending_favored;
+  prev_pnf = pending_not_fuzzed;
+  prev_ce  = current_entry;
+  prev_qc  = queue_cycle;
+  prev_uc  = unique_crashes;
+  prev_uh  = unique_hangs;
+  prev_md  = max_depth;
+
+  /* Fields in the file:
+
+     unix_time, cycles_done, cur_path, paths_total, paths_not_fuzzed,
+     favored_not_fuzzed, unique_crashes, unique_hangs, max_depth,
+     execs_per_sec */
+
+  fprintf(plot_file, "%llu, %llu, %u, %u, %u, %u, %llu, %llu, %u, %0.02f\n",
+          get_cur_time() / 1000, queue_cycle - 1, current_entry, queued_paths,
+          pending_not_fuzzed, pending_favored, unique_crashes, unique_hangs,
+          max_depth, eps);
+
+  fflush(plot_file);
+
+}
+
 
 
 /* A helper function for maybe_delete_out_dir(), deleting all prefixed
@@ -2398,6 +2441,10 @@ static void maybe_delete_out_dir(void) {
   if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
   ck_free(fn);
 
+  fn = alloc_printf("%s/plot_data", out_dir);
+  if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
+  ck_free(fn);
+
   OKF("Output dir cleanup successful.");
 
   // Wow... is that all? If yes, celebrate!
@@ -2425,7 +2472,7 @@ dir_cleanup_failed:
 
 static void show_stats(void) {
 
-  static u64 prev_ms, prev_execs;
+  static u64 last_stats_ms, last_plot_ms, prev_ms, prev_execs;
   static double avg_exec;
   double t_byte_ratio;
 
@@ -2434,13 +2481,6 @@ static void show_stats(void) {
 
   u32 banner_len, banner_pad;
   u8  tmp[256];
-
-  if (not_on_tty) return;
-
-  /* Compute some mildly useful bitmap stats. */
-
-  t_bytes = count_non_255_bytes(virgin_bits);
-  t_bits = (MAP_SIZE << 3) - count_bits(virgin_bits);
 
   cur_ms   = get_cur_time();
 
@@ -2458,6 +2498,11 @@ static void show_stats(void) {
       double cur_avg = ((double)(total_execs - prev_execs)) * 1000 /
                        (cur_ms - prev_ms);
 
+      /* If there is a dramatic (5x+) drop in speed, reset
+         the indicator more quickly. */
+
+      if (cur_avg * 5 < avg_exec) avg_exec = cur_avg;
+
       avg_exec = avg_exec * (1.0 - 1.0 / AVG_SMOOTHING) +
                  cur_avg * (1.0 / AVG_SMOOTHING);
 
@@ -2470,6 +2515,33 @@ static void show_stats(void) {
     if (!stats_update_freq) stats_update_freq = 1;
 
   }
+
+  /* Roughly every minute, update fuzzer stats. */
+
+  if (cur_ms - last_stats_ms > STATS_UPDATE_SEC * 1000) {
+
+    last_stats_ms = cur_ms;
+    write_stats_file(avg_exec);
+
+  }
+
+  if (cur_ms - last_plot_ms > PLOT_UPDATE_SEC * 1000) {
+
+    last_plot_ms = cur_ms;
+    maybe_update_plot_file(avg_exec);
+ 
+  }
+
+  /* If we're not on TTY, that's the end of it! */
+
+  if (not_on_tty) return;
+
+  /* Compute some mildly useful bitmap stats. */
+
+  t_bytes = count_non_255_bytes(virgin_bits);
+  t_bits = (MAP_SIZE << 3) - count_bits(virgin_bits);
+
+  /* Now, for the visuals... */
 
   if (clear_screen) {
 
@@ -2619,7 +2691,7 @@ static void show_stats(void) {
 
   if (!stage_max) {
 
-    sprintf(tmp, "n/a");
+    sprintf(tmp, "%s/-", DI(stage_cur));
 
   } else {
 
@@ -2936,7 +3008,6 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
       /* Since this can be slow, update the screen every now and then. */
 
       if (!(trim_exec++ % stats_update_freq)) show_stats();
-
       stage_cur++;
 
     }
@@ -3191,7 +3262,8 @@ static u8 fuzz_one(char** argv) {
 
     u8 res;
 
-    /* This is a bit half-hearted... */
+    /* This is a bit half-hearted, but the stage is usually pretty short,
+       so UI updates aren't all that critical... */
 
     stage_name  = "calibration";
     stage_cur   = 0;
@@ -4312,7 +4384,8 @@ static void sync_fuzzers(char** argv) {
 
     sprintf(stage_tmp, "sync %u", ++sync_cnt);
     stage_name = stage_tmp;
-    show_stats();
+    stage_cur  = 0;
+    stage_max  = 0;
 
     /* For every file queued by this fuzzer, parse ID and see if we have looked at
        it before; exec a test case if not. */
@@ -4362,6 +4435,8 @@ static void sync_fuzzers(char** argv) {
         syncing_party = 0;
 
         munmap(mem, st.st_size);
+
+        if (!(stage_cur++ % stats_update_freq)) show_stats();
 
       }
 
@@ -4643,6 +4718,7 @@ static void usage(u8* argv0) {
 static void setup_dirs_fds(void) {
 
   u8* tmp;
+  s32 fd;
 
   ACTF("Setting up output directories...");
 
@@ -4694,6 +4770,22 @@ static void setup_dirs_fds(void) {
 
   dev_urandom_fd = open("/dev/urandom", O_RDONLY);
   if (dev_urandom_fd < 0) PFATAL("Unable to open /dev/urandom");
+
+#ifndef O_LARGEFILE
+#  define O_LARGEFILE 0
+#endif /* !O_LARGEFILE */
+
+  tmp = alloc_printf("%s/plot_data", out_dir);
+  fd = open(tmp, O_WRONLY | O_CREAT | O_EXCL | O_LARGEFILE, 0600);
+  if (fd < 0) PFATAL("Unable to create '%s'", tmp);
+  ck_free(tmp);
+
+  plot_file = fdopen(fd, "w");
+  if (!plot_file) PFATAL("fdopen() failed");
+
+  fprintf(plot_file, "# unix_time, cycles_done, cur_path, paths_total, "
+                     "pending_total, pending_favs, unique_crashes, "
+                     "unique_hangs, max_depth, execs_per_sec\n");
 
 }
 
@@ -5210,7 +5302,7 @@ int main(int argc, char** argv) {
 
   if (stop_soon) goto stop_fuzzing;
 
-  write_stats_file();
+  write_stats_file(0);
 
   if (!not_on_tty) {
     sleep(4);
@@ -5235,8 +5327,10 @@ int main(int argc, char** argv) {
 
       show_stats();
 
-      if (not_on_tty) 
+      if (not_on_tty) {
         ACTF("Entering queue cycle %llu.", queue_cycle);
+        fflush(stdout);
+      }
 
       /* If we had a full queue cycle with no new finds, try
          recombination strategies next. */
@@ -5252,8 +5346,6 @@ int main(int argc, char** argv) {
     }
 
     skipped_fuzz = fuzz_one(argv + optind);
-
-    write_stats_file();
 
     if (stop_soon) break;
 
@@ -5277,9 +5369,9 @@ stop_fuzzing:
 
   SAYF(cLRD "\n+++ Testing aborted by user +++\n" cRST);
 
-  /* Running for more than 10 minutes but still doing first cycle? */
+  /* Running for more than 30 minutes but still doing first cycle? */
 
-  if (queue_cycle == 1 && get_cur_time() - start_time > 10 * 60 * 1000) {
+  if (queue_cycle == 1 && get_cur_time() - start_time > 30 * 60 * 1000) {
 
     SAYF("\n" cYEL "[!] " cRST
            "Stopped during the first cycle, results may be incomplete.\n"
@@ -5287,10 +5379,12 @@ stop_fuzzing:
 
   }
 
+  fclose(plot_file);
   destroy_queue();
   alloc_report();
 
   OKF("We're done here. Have a nice day!\n");
+
 
   exit(0);
 

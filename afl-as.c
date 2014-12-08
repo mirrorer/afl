@@ -438,7 +438,7 @@ int main(int argc, char** argv) {
   if (getenv(AS_LOOP_ENV_VAR))
     FATAL("Endless loop when calling 'as' (remove '.' from your PATH)");
 
-  setenv("__AFL_AS_BEENHERE", "1", 1);
+  setenv(AS_LOOP_ENV_VAR, "1", 1);
 
   /* When compiling with ASAN, we don't have a particularly elegant way to skip
      ASAN-specific branches. But we can probabilistically compensate for

@@ -121,6 +121,11 @@
 
 #define UI_TARGET_HZ        4
 
+/* Fuzzer stats file and plot update intervals (sec): */
+
+#define STATS_UPDATE_SEC    60
+#define PLOT_UPDATE_SEC     5
+
 /* Smoothing divisor for CPU load and exec speed stats (1 - no smoothing). */
 
 #define AVG_SMOOTHING       25
@@ -207,8 +212,10 @@
 #define CAL_TMOUT_PERC      150
 
 /* Map size for the traced binary (2^MAP_SIZE_POW2). Must be greater than
-   2; keep it under 18 or so for performance reasons. You need to recompile
-   the target binary after changing this - otherwise, SEGVs may ensue. */
+   2; you probably want to keep it under 18 or so for performance reasons
+   (adjusting AFL_INST_RATIO when compiling is probably a better way to solve
+   problems). You need to recompile the target binary after changing this -
+   otherwise, SEGVs may ensue. */
 
 #define MAP_SIZE_POW2       16
 #define MAP_SIZE            (1 << MAP_SIZE_POW2)

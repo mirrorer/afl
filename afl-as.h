@@ -18,6 +18,8 @@
    programs. The instrumentation stores XORed pairs of data: identifiers of the
    currently executing branch and the one that executed immediately before.
 
+   TL;DR: the instrumentation does shm_trace_map[cur_loc ^ prev_loc]++
+
    The code is designed for 32-bit and 64-bit x86 systems. Both modes should
    work everywhere except for Apple systems. Apple does relocations differently
    from everybody else, so since their OSes have been 64-bit for a longer while,

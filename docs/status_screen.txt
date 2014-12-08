@@ -198,7 +198,8 @@ The remaining fields should be fairly self-evident: there's the exec count
 progress indicator for the current stage, a global exec counter, and a
 benchmark for the current program execution speed. This may fluctuate from
 one test case to another, but the benchmark should be ideally over 500 execs/sec
-- and if it drops below 100, the job will probably take very long time.
+most of the time - and if it stays below 100, the job will probably take very
+long.
 
 The fuzzer will explicitly warn you about slow targets, too. If this happens,
 see the perf_tips.txt file included with the fuzzer for ideas on how to speed
@@ -317,8 +318,8 @@ are ready to run, but not how resource-hungry they may be. It also doesn't
 distinguish between physical cores, logical cores, and virtualized CPUs; the
 performance characteristics of each of these will differ quite a bit.
 
-10) Addendum: status file
--------------------------
+10) Addendum: status and plot files
+-----------------------------------
 
 For unattended operation, some of the key status screen information can be also
 found in a machine-readable format in the fuzzer_stats file in the output
@@ -329,9 +330,11 @@ directory. This includes:
   - fuzzer_pid     - PID of the fuzzer process
   - cycles_done    - queue cycles completed so far
   - execs_done     - number of execve() calls attempted
+  - execs_per_sec  - current number of execs per second
   - paths_total    - total number of entries in the queue
   - paths_found    - number of entries discovered through local fuzzing
   - paths_imported - number of entries imported from other instances
+  - max_depth      - number of levels in the generated data set
   - cur_path       - currently processed entry number
   - pending_favs   - number of entries still waiting to be fuzzed
   - pending_total  - number of favored entries waiting to be fuzzed
@@ -340,3 +343,7 @@ directory. This includes:
   - unique_hangs   - number of unique hangs encountered
 
 Most of these map directly to the UI elements discussed earlier on.
+
+On top of that, you can also find an entry called 'plot_data', containing a
+plottable history for most of these fields. If you have gnuplot installed, you
+can turn this into a nice progress report with the included 'afl-plot.sh' tool.

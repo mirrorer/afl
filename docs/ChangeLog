@@ -4,6 +4,24 @@
 * strongly advisable to upgrade.
 
 --------------
+Version 0.88b:
+--------------
+
+  - Added support for plotting, with design and implementation based on a
+    prototype design proposed by by Michael Rash. Huge thanks!
+
+  - Added afl-plot.sh, which allows you to, well, generate a nice plot using
+    this data.
+
+  - Refactored the code slightly to make more frequent updates to fuzzer_stats
+    and to provide more detail about synchronization.
+
+  - Added a fflush(stdout) call for non-tty operation, as requested by 
+    Joonas Kuorilehto.
+
+  - Added some detail to fuzzer_stats for parity with plot_file.
+
+--------------
 Version 0.87b:
 --------------
 
