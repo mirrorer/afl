@@ -22,7 +22,9 @@
 
 #define AFL_MAIN
 #define MESSAGES_TO_STDOUT
+
 #define _GNU_SOURCE
+#define _FILE_OFFSET_BITS 64
 
 #include "config.h"
 #include "types.h"
@@ -2190,12 +2192,14 @@ static void write_stats_file(double eps) {
              "pending_total  : %u\n"
              "variable_paths : %u\n"
              "unique_crashes : %llu\n"
-             "unique_hangs   : %llu\n",
+             "unique_hangs   : %llu\n"
+             "afl_banner     : %s\n",
              start_time / 1000, get_cur_time() / 1000, getpid(),
              queue_cycle - 1, total_execs, eps, queued_paths,
              queued_discovered, queued_imported, max_depth,
              current_entry, pending_favored, pending_not_fuzzed,
-             queued_variable, unique_crashes, unique_hangs);
+             queued_variable, unique_crashes, unique_hangs,
+             use_banner);
 
   fclose(f);
 
@@ -4771,12 +4775,8 @@ static void setup_dirs_fds(void) {
   dev_urandom_fd = open("/dev/urandom", O_RDONLY);
   if (dev_urandom_fd < 0) PFATAL("Unable to open /dev/urandom");
 
-#ifndef O_LARGEFILE
-#  define O_LARGEFILE 0
-#endif /* !O_LARGEFILE */
-
   tmp = alloc_printf("%s/plot_data", out_dir);
-  fd = open(tmp, O_WRONLY | O_CREAT | O_EXCL | O_LARGEFILE, 0600);
+  fd = open(tmp, O_WRONLY | O_CREAT | O_EXCL, 0600);
   if (fd < 0) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
 

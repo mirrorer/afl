@@ -213,7 +213,7 @@ Any existing output directory can be also used to resume aborted jobs; simply do
 $ ./afl-fuzz -i old_output_dir -o new_output_dir [...etc...]
 
 If you have gnuplot installed, you can also generate some pretty graphs for any
-active fuzzing task using afl-plot.sh.
+active fuzzing task using 'afl-plot'.
 
 7) Parallelized fuzzing
 -----------------------
@@ -340,7 +340,8 @@ bug reports, or patches from:
   - Martin Carpenter,
   - Mudge Zatko,
   - Joe Zbiciak,
-  - Ryan Govostes.
+  - Ryan Govostes,
+  - Michael Rash.
 
 Thank you!
 

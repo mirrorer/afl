@@ -346,4 +346,4 @@ Most of these map directly to the UI elements discussed earlier on.
 
 On top of that, you can also find an entry called 'plot_data', containing a
 plottable history for most of these fields. If you have gnuplot installed, you
-can turn this into a nice progress report with the included 'afl-plot.sh' tool.
+can turn this into a nice progress report with the included 'afl-plot' tool.

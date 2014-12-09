@@ -4,6 +4,16 @@
 * strongly advisable to upgrade.
 
 --------------
+Version 0.89b:
+--------------
+
+  - Renamed afl-plot.sh to afl-plot, as requested by Padraig Brady.
+
+  - Improved the compatibility of afl-plot with older versions of gnuplot.
+
+  - Added banner information to fuzzer_stats, populated it to afl-plot.
+
+--------------
 Version 0.88b:
 --------------
 
