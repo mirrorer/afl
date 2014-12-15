@@ -176,7 +176,7 @@ struct queue_entry {
   u8* fname;                          /* File name for the test case      */
   u32 len;                            /* Input length                     */
 
-  u8  cal_done,                       /* Calibration completed?           */
+  u8  cal_failed,                     /* Calibration failed?              */
       trim_done,                      /* Trimmed?                         */
       was_fuzzed,                     /* Had any fuzzing done yet?        */
       passed_det,                     /* Deterministic stages passed?     */
@@ -185,14 +185,15 @@ struct queue_entry {
       favored,                        /* Currently favored?               */
       fs_redundant;                   /* Marked as redundant in the fs?   */
 
-  u32 bitmap_size;                    /* Number of bits set in bitmap     */
+  u32 bitmap_size,                    /* Number of bits set in bitmap     */
+      exec_cksum;                     /* Checksum of the execution trace  */
 
   u64 exec_us,                        /* Execution time (us)              */
       handicap,                       /* Number of queue cycles behind    */
       depth;                          /* Path depth                       */
 
   u8* trace_mini;                     /* Trace bytes, if kept             */
-  u32 tc_ref;                         /* Trace bits ref count             */
+  u32 tc_ref;                         /* Trace bytes ref count            */
 
   struct queue_entry *next,           /* Next element, if any             */
                      *next_1k;        /* 1000 elements ahead              */
@@ -515,6 +516,26 @@ static void mark_as_det_done(struct queue_entry* q) {
   ck_free(fn);
 
   q->passed_det = 1;
+
+}
+
+
+/* Mark as variable. */
+
+static void mark_as_variable(struct queue_entry* q) {
+
+  u8* fn = strrchr(q->fname, '/');
+  s32 fd;
+
+  fn = alloc_printf("%s/queue/.state/variable_behavior/%s", out_dir, fn + 1);
+
+  fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
+  if (fd < 0) PFATAL("Unable to create '%s'", fn);
+  close(fd);
+
+  ck_free(fn);
+
+  q->var_behavior = 1;
 
 }
 
@@ -901,11 +922,12 @@ static void minimize_bits(u8* dst, u8* src) {
 
    The first step of the process is to maintain a list of top_rated[] entries
    for every byte in the bitmap. We win that slot if there is no previous
-   contender, or if the contender has an overall smaller bitmap than we do. */
+   contender, or if the contender has a more favorable speed x size factor. */
 
 static void update_bitmap_score(struct queue_entry* q) {
 
   u32 i;
+  u64 fav_factor = q->exec_us * q->len;
 
   /* For every byte set in trace_bits[], see if there is a previous winner,
      and how it compares to us. */
@@ -916,7 +938,9 @@ static void update_bitmap_score(struct queue_entry* q) {
 
        if (top_rated[i]) {
 
-         if (top_rated[i]->bitmap_size >= q->bitmap_size) continue;
+         /* Faster-executing or smaller test cases are favored. */
+
+         if (fav_factor > top_rated[i]->exec_us * top_rated[i]->len) continue;
 
          /* Looks like we're going to win. Decrease ref count for the
             previous winner, discard its trace_bits[] if necessary. */
@@ -1104,9 +1128,6 @@ static void read_testcases(void) {
     if (st.st_size > MAX_FILE) 
       FATAL("Test case '%s' is too big (%s, limit is %s)", fn,
             DMS(st.st_size), DMS(MAX_FILE));
-
-    if (!st.st_size) 
-      FATAL("Test case '%s' has zero length", fn);
 
     /* Check for metadata that indicates that deterministic fuzzing
        is complete for this entry. We don't want to repeat deterministic
@@ -1607,16 +1628,20 @@ static void write_with_gap(void* mem, u32 len, u32 skip_at, u32 skip_len) {
 }
 
 
+static void show_stats(void);
+
 /* Calibrate a new test case. This is done when processing the input directory
    to warn about flaky or otherwise problematic test cases early on; and when
    new paths are discovered to detect variable behavior and so on. */
 
 static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
-                         u32 handicap, u8 already_ran) {
+                         u32 handicap) {
 
-  u8  fault, new_bits = 0, var_detected = 0;
-  u32 i, cksum, cal_cycles = CAL_CYCLES, old_tmout = exec_tmout;
+  u8  fault = 0, new_bits = 0, var_detected = 0, first_run = (q->exec_cksum == 0);
   u64 start_us, stop_us;
+
+  s32 old_sc = stage_cur, old_sm = stage_max, old_tmout = exec_tmout;
+  u8* old_sn = stage_name;
 
   /* Be a bit more generous about timeouts at this point; otherwise, when
      resuming fuzzing jobs where some test cases just barely sneaked under
@@ -1626,53 +1651,20 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
   if (timeout_given)
     exec_tmout = exec_tmout * CAL_TMOUT_PERC / 100;
 
-  write_to_testcase(use_mem, q->len);
+  q->cal_failed = 1;
+
+  stage_name = "calibration";
+  stage_max  = CAL_CYCLES;
 
   start_us = get_cur_time_us();
 
-  /* Initial run... */
+  for (stage_cur = 0; stage_cur < stage_max; stage_cur++) {
 
-  fault = run_target(argv);
+    u32 cksum;
 
-  if (stop_soon || fault != crash_mode) goto abort_calibration;
+    if (!first_run && !(stage_cur % stats_update_freq)) show_stats();
 
-  /* Except for running in dumb mode, we expect some data in trace_bits[].
-     We also call has_new_bits() to update our map and see if this test case
-     does anything new. */
-
-  if (!dumb_mode) {
-
-    u8 hnb;
-
-    if (!count_bytes(trace_bits)) {
-      fault = FAULT_NOINST;
-      goto abort_calibration;
-    }
-
-    hnb = has_new_bits(virgin_bits);
-
-    /* If we have already ran this test case, has_new_bits() is not expected
-       to return a non-zero value. */
-
-    if (hnb && already_ran) {
-      var_detected = 1;
-      cal_cycles   = CAL_CYCLES_LONG;
-    }
-
-    if (hnb > new_bits) new_bits = hnb;
-
-  }
-
-  cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
-
-  /* Additional runs to detect variable paths and better estimate
-     execution speed. We simply compare hashes of trace_bits[]. */
-
-  for (i = 1; i < cal_cycles; i++) {
-
-    u32 new_cksum;
-
-    if (!out_file) lseek(out_fd, 0, SEEK_SET);
+    write_to_testcase(use_mem, q->len);
 
     fault = run_target(argv);
 
@@ -1681,15 +1673,24 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
 
     if (stop_soon || fault != crash_mode) goto abort_calibration;
 
-    new_cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
+    if (!dumb_mode && !stage_cur && !count_bytes(trace_bits)) {
+      fault = FAULT_NOINST;
+      goto abort_calibration;
+    }
 
-    if (cksum != new_cksum) {
+    cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
+
+    if (q->exec_cksum != cksum) {
 
       u8 hnb = has_new_bits(virgin_bits);
       if (hnb > new_bits) new_bits = hnb;
 
-      var_detected = 1;
-      cal_cycles   = CAL_CYCLES_LONG;
+      if (q->exec_cksum) {
+
+        var_detected = 1;
+        stage_max    = CAL_CYCLES_LONG;
+
+      } else q->exec_cksum = cksum;
 
     }
 
@@ -1698,27 +1699,26 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
   stop_us = get_cur_time_us();
 
   total_cal_us     += stop_us - start_us;
-  total_cal_cycles += cal_cycles;
+  total_cal_cycles += stage_max;
 
   /* OK, let's collect some stats about the performance of this test case.
      This is used for fuzzing air time calculations in calculate_score(). */
 
-  q->exec_us = (stop_us - start_us) / cal_cycles;
-
+  q->exec_us     = (stop_us - start_us) / stage_max;
   q->bitmap_size = count_bytes(trace_bits);
   q->handicap    = handicap;
-  q->cal_done    = 1;
-
-  update_bitmap_score(q);
+  q->cal_failed  = 0;
 
   total_bitmap_size += q->bitmap_size;
   total_bitmap_entries++;
+
+  update_bitmap_score(q);
 
   /* If this case didn't result in new output from the instrumentation, tell
      parent. This is a non-critical problem, but something to warn the user
      about. */
 
-  if (!dumb_mode && !already_ran && !new_bits) fault = FAULT_NOBITS;
+  if (!dumb_mode && first_run && !fault && !new_bits) fault = FAULT_NOBITS;
 
 abort_calibration:
 
@@ -1727,28 +1727,20 @@ abort_calibration:
     queued_with_cov++;
   }
 
-  /* Mark variable paths in a reasonably clear way. */
+  /* Mark variable paths. */
 
   if (var_detected && !q->var_behavior) {
-
-    q->var_behavior = 1;
+    mark_as_variable(q);
     queued_variable++;
-
-    if (!strstr(q->fname, ",+var")) {
-
-      u8* new_fn = alloc_printf("%s,+var", q->fname);
-
-      if (rename(q->fname, new_fn))
-        PFATAL("Unable to rename '%s'", q->fname);
-
-      ck_free(q->fname);
-      q->fname = new_fn;
-
-    }
-
   }
 
+  stage_name = old_sn;
+  stage_cur  = old_sc;
+  stage_max  = old_sm;
   exec_tmout = old_tmout;
+
+  if (!first_run) show_stats();
+
   return fault;
 
 }
@@ -1798,10 +1790,14 @@ static void perform_dry_run(char** argv) {
 
     close(fd);
 
-    res = calibrate_case(argv, q, use_mem, 0, 0);
+    res = calibrate_case(argv, q, use_mem, 0);
     ck_free(use_mem);
 
     if (stop_soon) return;
+
+    if (res == crash_mode)
+      SAYF(cGRA "    len = %u, map size = %u, exec speed = %llu us\n" cRST, 
+           q->len, q->bitmap_size, q->exec_us);
 
     switch (res) {
 
@@ -1810,6 +1806,7 @@ static void perform_dry_run(char** argv) {
         if (q == queue) check_map_coverage();
 
         if (crash_mode) FATAL("Test case '%s' does *NOT* crash", fn);
+
         break;
 
       case FAULT_HANG:
@@ -1875,6 +1872,7 @@ static void perform_dry_run(char** argv) {
 
         useless_at_start++;
         WARNF("No new instrumentation output, test case may be useless.");
+        break;
 
     }
 
@@ -2041,12 +2039,12 @@ static void write_crash_readme(void) {
    save or queue the input test case for further analysis if so. Returns 1 if
    entry is saved, 0 otherwise. */
 
-static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
+static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 
   u8  *fn = "";
   u8  hnb;
   s32 fd;
-  u8  keeping = 0;
+  u8  keeping = 0, res;
 
   if (fault == crash_mode) {
 
@@ -2068,8 +2066,15 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
       queued_with_cov++;
     }
 
-    queue_top->bitmap_size = count_bytes(trace_bits);
-    update_bitmap_score(queue_top);      
+    queue_top->exec_cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
+
+    /* Try to calibrate inline; this also calls update_bitmap_score() when
+       successful. */
+
+    res = calibrate_case(argv, queue_top, mem, queue_cycle - 1);
+
+    if (res == FAULT_ERROR)
+      FATAL("Unable to execute target application");
 
     fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
     if (fd < 0) PFATAL("Unable to create '%s'\n", fn);
@@ -2161,7 +2166,7 @@ static u8 save_if_interesting(void* mem, u32 len, u8 fault) {
 
 /* Update stats file for unattended monitoring. */
 
-static void write_stats_file(double eps) {
+static void write_stats_file(double bitmap_cvg, double eps) {
 
   u8* fn = alloc_printf("%s/fuzzer_stats", out_dir);
   s32 fd;
@@ -2191,6 +2196,7 @@ static void write_stats_file(double eps) {
              "pending_favs   : %u\n"
              "pending_total  : %u\n"
              "variable_paths : %u\n"
+             "bitmap_cvg     : %0.02f%%\n"
              "unique_crashes : %llu\n"
              "unique_hangs   : %llu\n"
              "afl_banner     : %s\n",
@@ -2198,7 +2204,7 @@ static void write_stats_file(double eps) {
              queue_cycle - 1, total_execs, eps, queued_paths,
              queued_discovered, queued_imported, max_depth,
              current_entry, pending_favored, pending_not_fuzzed,
-             queued_variable, unique_crashes, unique_hangs,
+             queued_variable, bitmap_cvg, unique_crashes, unique_hangs,
              use_banner);
 
   fclose(f);
@@ -2208,7 +2214,7 @@ static void write_stats_file(double eps) {
 
 /* Update the plot file if there is a reason to. */
 
-static void maybe_update_plot_file(double eps) {
+static void maybe_update_plot_file(double bitmap_cvg, double eps) {
 
   static u32 prev_qp, prev_pf, prev_pnf, prev_ce, prev_md;
   static u64 prev_qc, prev_uc, prev_uh;
@@ -2233,10 +2239,11 @@ static void maybe_update_plot_file(double eps) {
      favored_not_fuzzed, unique_crashes, unique_hangs, max_depth,
      execs_per_sec */
 
-  fprintf(plot_file, "%llu, %llu, %u, %u, %u, %u, %llu, %llu, %u, %0.02f\n",
+  fprintf(plot_file, 
+          "%llu, %llu, %u, %u, %u, %u, %0.02f%%, %llu, %llu, %u, %0.02f\n",
           get_cur_time() / 1000, queue_cycle - 1, current_entry, queued_paths,
-          pending_not_fuzzed, pending_favored, unique_crashes, unique_hangs,
-          max_depth, eps);
+          pending_not_fuzzed, pending_favored, bitmap_cvg, unique_crashes,
+          unique_hangs, max_depth, eps);
 
   fflush(plot_file);
 
@@ -2406,6 +2413,10 @@ static void maybe_delete_out_dir(void) {
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
+  fn = alloc_printf("%s/queue/.state/variable_behavior", out_dir);
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  ck_free(fn);
+
   // Then, get rid of the .state subdirectory itself (should be empty by now)
   // and everything matching <out_dir>/queue/id:*.
 
@@ -2502,8 +2513,8 @@ static void show_stats(void) {
       double cur_avg = ((double)(total_execs - prev_execs)) * 1000 /
                        (cur_ms - prev_ms);
 
-      /* If there is a dramatic (5x+) drop in speed, reset
-         the indicator more quickly. */
+      /* If there is a dramatic (5x+) drop in speed, reset the indicator
+         more quickly. */
 
       if (cur_avg * 5 < avg_exec) avg_exec = cur_avg;
 
@@ -2520,19 +2531,22 @@ static void show_stats(void) {
 
   }
 
+  t_bytes = count_non_255_bytes(virgin_bits);
+  t_byte_ratio = ((double)t_bytes * 100) / MAP_SIZE;
+
   /* Roughly every minute, update fuzzer stats. */
 
   if (cur_ms - last_stats_ms > STATS_UPDATE_SEC * 1000) {
 
     last_stats_ms = cur_ms;
-    write_stats_file(avg_exec);
+    write_stats_file(t_byte_ratio, avg_exec);
 
   }
 
   if (cur_ms - last_plot_ms > PLOT_UPDATE_SEC * 1000) {
 
     last_plot_ms = cur_ms;
-    maybe_update_plot_file(avg_exec);
+    maybe_update_plot_file(t_byte_ratio, avg_exec);
  
   }
 
@@ -2542,7 +2556,6 @@ static void show_stats(void) {
 
   /* Compute some mildly useful bitmap stats. */
 
-  t_bytes = count_non_255_bytes(virgin_bits);
   t_bits = (MAP_SIZE << 3) - count_bits(virgin_bits);
 
   /* Now, for the visuals... */
@@ -2665,7 +2678,6 @@ static void show_stats(void) {
 
   SAYF(bV bSTOP "  now processing : " cNOR "%-17s " bSTG bV bSTOP, tmp);
 
-  t_byte_ratio = ((double)t_bytes * 100) / MAP_SIZE;
 
   sprintf(tmp, "%s (%0.02f%%)", DI(t_bytes), t_byte_ratio);
 
@@ -2934,27 +2946,17 @@ static u32 next_p2(u32 val) {
 static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
 
   static u8 tmp[64];
+  static u8 clean_trace[MAP_SIZE];
 
-  u8  fault;
-  u32 cksum;
-  u8  needs_write = 0;
+  u8  needs_write = 0, fault = 0;
   u32 trim_exec = 0;
   u32 remove_len;
   u32 len_p2;
 
-  if (q->len < 5) return 0;
+  if (q->len < 5 || q->var_behavior) return 0;
 
   stage_name = tmp;
-
   bytes_trim_in += q->len;
-
-  write_to_testcase(in_buf, q->len);
-  fault = run_target(argv);
-  trim_execs++;
-
-  if (stop_soon || fault != crash_mode) goto abort_trimming;
-
-  cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
 
   /* Select initial chunk len, starting with large steps. */
 
@@ -2977,7 +2979,7 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
     while (remove_pos < q->len) {
 
       u32 trim_avail = MIN(remove_len, q->len - remove_pos);
-      u32 new_cksum;
+      u32 cksum;
 
       write_with_gap(in_buf, q->len, remove_pos, trim_avail);
 
@@ -2988,14 +2990,14 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
 
       /* Note that we don't keep track of crashes or hangs here; maybe TODO? */
 
-      new_cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
+      cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
 
       /* If the deletion had no impact on the trace, make it permanent. This
          isn't perfect for variable-path inputs, but we're just making a
          best-effort pass, so it's not a big deal if we end up with false
          negatives every now and then. */
 
-      if (new_cksum == cksum) {
+      if (cksum == q->exec_cksum) {
 
         u32 move_tail = q->len - remove_pos - trim_avail;
 
@@ -3005,7 +3007,16 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
         memmove(in_buf + remove_pos, in_buf + remove_pos + trim_avail, 
                 move_tail);
 
-        needs_write = 1;
+
+        /* Let's save a clean trace, which will be needed by
+           update_bitmap_score once we're done with the trimming stuff. */
+
+        if (!needs_write) {
+
+          needs_write = 1;
+          memcpy(clean_trace, trace_bits, MAP_SIZE);
+
+        }
 
       } else remove_pos += remove_len;
 
@@ -3038,7 +3049,12 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
 
     close(fd);
 
+    memcpy(trace_bits, clean_trace, MAP_SIZE);
+    update_bitmap_score(q);
+
   }
+
+
 
 abort_trimming:
 
@@ -3073,7 +3089,7 @@ static u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 
   /* This handles FAULT_ERROR for us: */
 
-  queued_discovered += save_if_interesting(out_buf, len, fault);
+  queued_discovered += save_if_interesting(argv, out_buf, len, fault);
 
   if (!(stage_cur % stats_update_freq) || stage_cur + 1 == stage_max)
     show_stats();
@@ -3167,9 +3183,9 @@ static u32 calculate_score(struct queue_entry* q) {
   switch (q->depth) {
 
     case 0 ... 3:   break;
-    case 4 ... 6:   perf_score *= 2; break;
-    case 7 ... 12:  perf_score *= 4; break;
-    case 13 ... 24: perf_score *= 6; break;
+    case 4 ... 7:   perf_score *= 2; break;
+    case 8 ... 13:  perf_score *= 4; break;
+    case 14 ... 25: perf_score *= 6; break;
     default:        perf_score *= 8;
 
   }
@@ -3204,10 +3220,10 @@ static u8 fuzz_one(char** argv) {
 
 #ifdef IGNORE_FINDS
 
-  /* In IGNORE_FINDS mode, skip any entries that weren't already calibrated
-     in perform_dry_run(), which is called only for the initial -i data. */
+  /* In IGNORE_FINDS mode, skip any entries that weren't in the
+     initial data set. */
 
-  if (!queue_cur->cal_done) return 1;
+  if (queue_cur->depth > 1) return 1;
 
 #else
 
@@ -3258,24 +3274,15 @@ static u8 fuzz_one(char** argv) {
 
   cur_depth = queue_cur->depth;
 
-  /***************
-   * CALIBRATION *
-   ***************/
+  /*******************************************
+   * CALIBRATION (only if failed earlier on) *
+   *******************************************/
 
-  if (!queue_cur->cal_done) {
+  if (queue_cur->cal_failed) {
 
     u8 res;
 
-    /* This is a bit half-hearted, but the stage is usually pretty short,
-       so UI updates aren't all that critical... */
-
-    stage_name  = "calibration";
-    stage_cur   = 0;
-    stage_max   = CAL_CYCLES;
-
-    show_stats();
-
-    res = calibrate_case(argv, queue_cur, in_buf, queue_cycle - 1, 1);
+    res = calibrate_case(argv, queue_cur, in_buf, queue_cycle - 1);
 
     if (res == FAULT_ERROR)
       FATAL("Unable to execute target application");
@@ -3303,8 +3310,11 @@ static u8 fuzz_one(char** argv) {
       goto abandon_entry;
     }
 
-    len = queue_cur->len;
+    /* Don't retry trimming, even if it failed. */
+
     queue_cur->trim_done = 1;
+
+    if (len != queue_cur->len) len = queue_cur->len;
 
   }
 
@@ -4314,7 +4324,7 @@ abandon_entry:
   /* Update pending_not_fuzzed count if we made it through the calibration
      cycle and have not seen this entry before. */
 
-  if (!stop_soon && queue_cur->cal_done && !queue_cur->was_fuzzed) {
+  if (!stop_soon && !queue_cur->cal_failed && !queue_cur->was_fuzzed) {
     queue_cur->was_fuzzed = 1;
     pending_not_fuzzed--;
     if (queue_cur->favored) pending_favored--;
@@ -4435,7 +4445,7 @@ static void sync_fuzzers(char** argv) {
         if (stop_soon) return;
 
         syncing_party = sd_ent->d_name;
-        queued_imported += save_if_interesting(mem, st.st_size, fault);
+        queued_imported += save_if_interesting(argv, mem, st.st_size, fault);
         syncing_party = 0;
 
         munmap(mem, st.st_size);
@@ -4753,6 +4763,10 @@ static void setup_dirs_fds(void) {
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
 
+  tmp = alloc_printf("%s/queue/.state/variable_behavior/", out_dir);
+  if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
+  ck_free(tmp);
+
   if (sync_id) {
 
     tmp = alloc_printf("%s/.synced/", out_dir);
@@ -4784,7 +4798,7 @@ static void setup_dirs_fds(void) {
   if (!plot_file) PFATAL("fdopen() failed");
 
   fprintf(plot_file, "# unix_time, cycles_done, cur_path, paths_total, "
-                     "pending_total, pending_favs, unique_crashes, "
+                     "pending_total, pending_favs, map_size, unique_crashes, "
                      "unique_hangs, max_depth, execs_per_sec\n");
 
 }
@@ -5302,7 +5316,7 @@ int main(int argc, char** argv) {
 
   if (stop_soon) goto stop_fuzzing;
 
-  write_stats_file(0);
+  write_stats_file(0, 0);
 
   if (!not_on_tty) {
     sleep(4);

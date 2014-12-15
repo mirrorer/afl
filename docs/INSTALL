@@ -34,7 +34,8 @@ installation, or install it with:
 # gmake install
 
 Keep in mind that if you are using csh as your shell, the syntax of some of the
-shell commands given in the README and other docs will be different.
+shell commands given in the README and other docs will be different. Beyond
+that, everything should work as advertised.
 
 3) MacOS X (x86)
 ----------------
@@ -54,9 +55,15 @@ If the CrashReporter app gets in the way, you can turn it off by following the
 instructions provided here: http://goo.gl/CCcd5u
 
 The fork() semantics on OS X are a bit unusual compared to other unix systems.
-For non-OS-X-specific code, this is transparently mitigated with libc-level
-wrappers, but if you bump into problems when fuzzing platform-specific code,
-try setting AFL_NO_FORKSRV=1 in the environment before calling afl-fuzz.
+This means two things:
+
+  - Fuzzing will be probably slower than on Linux. In fact, some folks report
+    considerable performance gains by running the jobs inside a Linux VM on
+    MacOS X.
+
+  - Some non-portable, platform-specific code may be incompatible with the
+    afl forkserver. If you run into any problems, set AFL_NO_FORKSRV=1 in the
+    environment before starting afl-fuzz.
 
 4) Linux (ARMv7)
 ----------------

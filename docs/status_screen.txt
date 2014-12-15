@@ -164,7 +164,8 @@ now. It tells you about the current stage, which can be any of:
     a millisecond or so =)
 
   - calibration - a pre-fuzzing stage where the execution path is examined
-    to detect anomalies, establish baseline execution speed, and so on.
+    to detect anomalies, establish baseline execution speed, and so on. Executed
+    very briefly whenever a new find is being made.
 
   - trim L/S - another pre-fuzzing stage where the test case is trimmed to the
     shortest form that still produces the same execution path. The length (L)
@@ -295,6 +296,9 @@ explanations for variable behavior of the tested program:
 Less likely causes may include running out of disk space, SHM handles, or other
 globally limited resources; or the program being intentionally designed to
 behave randomly.
+
+The paths where variable behavior is detected are marked with with a matching
+entry in the <out_dir>/.state/variable_behavior/ directory.
 
 9) CPU load
 -----------

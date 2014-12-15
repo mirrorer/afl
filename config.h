@@ -49,7 +49,7 @@
    cases that show variable behavior): */
 
 #define CAL_CYCLES          10
-#define CAL_CYCLES_LONG     100
+#define CAL_CYCLES_LONG     50
 
 /* Number of subsequent hangs before abandoning an input file: */
 

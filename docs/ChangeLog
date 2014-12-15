@@ -4,6 +4,31 @@
 * strongly advisable to upgrade.
 
 --------------
+Version 0.90b:
+--------------
+
+  - Moved to an algorithm where paths are selected as preferred primarily based
+    on size and speed, rather than bitmap coverage. This should offer
+    noticeable performance gains in many use cases.
+
+  - Refactored path calibration code; calibration now takes place as soon as a
+    test case is discovered, to faciliate better prioritization decisions later
+    on.
+
+  - Changed the way of marking variable paths to avoid .state metadata
+    inconsistencies.
+
+  - Made sure that calibration routines always create a new test case to avoid
+    hypothetical problems with utilities that modify the input file.
+
+  - Added bitmap saturation to fuzzer stats and plot data.
+
+  - Added a testcase for JPEG XR.
+
+  - Added a tty check for the colors warning in Makefile, to keep distro build
+    logs tidy. Suggested by Jakub Wilk.
+
+--------------
 Version 0.89b:
 --------------
 

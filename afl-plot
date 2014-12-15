@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# american fuzzy lop - progress plotting utility
-# ----------------------------------------------
+# american fuzzy lop - Advanced Persistent Graphing
+# -------------------------------------------------
 #
 # Written and maintained by Michal Zalewski <lcamtuf@google.com>
 # Based on a design & prototype by Michael Rash.
@@ -27,11 +27,11 @@ if [ ! "$#" = "2" ]; then
   cat 1>&2 <<_EOF_
 This program generates gnuplot images from afl-fuzz output data. Usage:
 
-$0 afl_dir output_dir
+$0 afl_state_dir graph_output_dir
 
-The afl_dir parameter should point to an existing state directory belonging to
-any active or stopped instance of afl-fuzz; while output_dir should point to
-an empty directory where this tool can write the resulting data to.
+The afl_state_dir parameter should point to an existing state directory for any
+active or stopped instance of afl-fuzz; while graph_output_dir should point to
+an empty directory where this tool can write the resulting plots to.
 
 The program will put index.html and three PNG images in the output directory;
 you should be able to view it with any web browser of your choice.
@@ -44,7 +44,7 @@ fi
 
 if [ ! -f "$1/plot_data" ]; then
 
-  echo "[-] The input directory does not seem to be valid (missing 'plot_data')." 1>&2
+  echo "[-] The input directory is not valid (missing 'plot_data')." 1>&2
   exit 1
 
 fi
@@ -57,7 +57,7 @@ GNUPLOT=`which gnuplot 2>/dev/null`
 
 if [ "$GNUPLOT" = "" ]; then
 
-  echo "[-] Can't find 'gnuplot' in your \$PATH - you may need to install it first." 1>&2
+  echo "[-] Can't find 'gnuplot' in your \$PATH - do you have it installed?" 1>&2
   exit 1
 
 fi
@@ -108,16 +108,16 @@ plot '$1/plot_data' using 1:4 with filledcurve x1 title 'total paths' linecolor 
 set terminal png truecolor enhanced size 1000,200 butt
 set output '$2/low_freq.png'
 
-plot '$1/plot_data' using 1:7 with filledcurve x1 title '' linecolor rgb '#c00080' fillstyle transparent solid 0.2 noborder, \\
-     '' using 1:7 with lines title ' uniq crashes' linecolor rgb '#c00080' linewidth 3, \\
-     '' using 1:8 with lines title 'uniq hangs' linecolor rgb '#c000f0' linewidth 3, \\
-     '' using 1:9 with lines title 'levels' linecolor rgb '#0090ff' linewidth 3
+plot '$1/plot_data' using 1:8 with filledcurve x1 title '' linecolor rgb '#c00080' fillstyle transparent solid 0.2 noborder, \\
+     '' using 1:8 with lines title ' uniq crashes' linecolor rgb '#c00080' linewidth 3, \\
+     '' using 1:9 with lines title 'uniq hangs' linecolor rgb '#c000f0' linewidth 3, \\
+     '' using 1:10 with lines title 'levels' linecolor rgb '#0090ff' linewidth 3
 
 set terminal png truecolor enhanced size 1000,200 butt
 set output '$2/exec_speed.png'
 
-plot '$1/plot_data' using 1:10 with filledcurve x1 title '' linecolor rgb '#0090ff' fillstyle transparent solid 0.2 noborder, \\
-     '$1/plot_data' using 1:10 with lines title '    execs/sec' linecolor rgb '#0090ff' linewidth 3 smooth bezier;
+plot '$1/plot_data' using 1:11 with filledcurve x1 title '' linecolor rgb '#0090ff' fillstyle transparent solid 0.2 noborder, \\
+     '$1/plot_data' using 1:11 with lines title '    execs/sec' linecolor rgb '#0090ff' linewidth 3 smooth bezier;
 
 _EOF_
 
@@ -125,7 +125,7 @@ _EOF_
 
 if [ ! -s "$2/exec_speed.png" ]; then
 
-  echo "[-] Oops, something went wrong! Perhaps you have a very old or broken version of gnuplot?" 1>&2
+  echo "[-] Oops, something went wrong! Perhaps you have an ancient or broken version of gnuplot?" 1>&2
   exit 1
 
 fi

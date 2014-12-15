@@ -213,7 +213,9 @@ Any existing output directory can be also used to resume aborted jobs; simply do
 $ ./afl-fuzz -i old_output_dir -o new_output_dir [...etc...]
 
 If you have gnuplot installed, you can also generate some pretty graphs for any
-active fuzzing task using 'afl-plot'.
+active fuzzing task using 'afl-plot'. For an example of how this looks like, see:
+
+  http://lcamtuf.coredump.cx/afl/plot/
 
 7) Parallelized fuzzing
 -----------------------
@@ -254,18 +256,18 @@ Please keep in mind that, similarly to many other computationally-expensive
 tasks, fuzzing may put strain on your hardware and on the OS. In particular:
 
   - Your CPU will run hot and will need adequate cooling. In most cases, if
-    cooling is insufficient or doesn't work properly, CPU speeds will be
-    automatically throttled. That said, especially when fuzzing on unsuitable
-    hardware (laptops, smartphones, etc), it's not entirely impossible for
-    something to blow up.
+    cooling is insufficient or stops working properly, CPU speeds will be
+    automatically throttled. That said, especially when fuzzing on less
+    suitable hardware (laptops, smartphones, etc), it's not entirely impossible
+    for something to blow up.
 
   - Targeted programs may end up erratically grabbing gigabytes of memory or
     filling up disk space with junk files. AFL tries to enforce basic memory
     limits, but can't prevent each and every possible mishap. The bottom line
-    is that you shouldn't be fuzzing on systems where data loss is an
-    unacceptable risk.
+    is that you shouldn't be fuzzing on systems where the prospect of data loss
+    is not an acceptable risk.
 
-  - Fuzzing involves billions of reads and writes to the disk. On modern
+  - Fuzzing involves billions of reads and writes to the filesystem. On modern
     systems, this will be usually heavily cached, resulting in fairly modest
     "physical" I/O - but there are many factors that may alter this equation.
     It is your responsibility to monitor for potential trouble; with very heavy
@@ -273,7 +275,7 @@ tasks, fuzzing may put strain on your hardware and on the OS. In particular:
 
     A good way to monitor disk I/O on Linux is the 'iostat' command:
 
-    $ iostat -d 3 -x [...optional disk ID...]
+    $ iostat -d 3 -x -k [...optional disk ID...]
 
 10) Known limitations & areas for improvement
 ---------------------------------------------
@@ -282,8 +284,8 @@ Here are some of the most important caveats for AFL:
 
   - The fuzzer is optimized for compact data formats, such as images
     and other multimedia. It is less suited for human-readable formats with
-    particularly verbose, redundant verbiage - say, XHTML or JavaScript. In
-    such cases, template- or ABNF-based generators tend to fare better.
+    particularly verbose, redundant verbiage - say, XHTML, SQL, or JavaScript.
+    In such cases, template- or ABNF-based generators tend to fare better.
 
     Of course, if you want to modify the code to generate syntax-aware
     mutations, go ahead! You'd want to start with fuzz_one() in afl-fuzz.c.
