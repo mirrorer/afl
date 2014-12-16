@@ -77,32 +77,47 @@ fi
 rm -rf .traces 2>/dev/null
 mkdir .traces || exit 1
 
-OUT_DIR="$DIR.minimized"
+if [ "$AFL_EDGES_ONLY" = "" ]; then
+  OUT_DIR="$DIR.minimized"
+else
+  OUT_DIR="$DIR.edges.minimized"
+fi
 
 rm -rf -- "$OUT_DIR" 2>/dev/null
 mkdir "$OUT_DIR" || exit 1
 
 echo "[*] Evaluating $CCOUNT input files (this may take a while)..."
 
-for c in $DIR/*; do
+CUR=0
 
-  B=`basename -- "$c"`
+for fn in `ls "$DIR"`; do
+
+  CUR=$[CUR+1]
+  echo -ne "\\r    Processing file $CUR/$CCOUNT... "
 
   # Modify this if $BIN needs to be called with additional parameters, etc.
 
-  AFL_SINK_OUTPUT=1 "$SM" "$BIN" <"$c" 2>&1 | grep -E '^[0-9]{5}/[0-9]{1,3}$' >".traces/$B"
+  AFL_SINK_OUTPUT=1 AFL_QUIET=1 "$SM" "$BIN" <"$DIR/$fn" >".traces/$fn" 2>&1
 
-  TC=`grep -c . ".traces/$B"`
+  FSIZE=`wc -c <"$DIR/$fn"`
 
-  cat ".traces/$B" >>.traces/.all
-
-  awk '{print "'$TC'~" $0 "~'"$B"'"}' <".traces/$B" >>.traces/.lookup
+  cat ".traces/$fn" >>.traces/.all
+  awk '{print "'$[FSIZE]'~" $0 "~'"$fn"'"}' <".traces/$fn" >>.traces/.lookup
 
 done
 
+echo
+echo "[*] Sorting trace sets..."
+
+# Find the least common tuples; let's start with ones that have just one
+# or a couple test cases, since we probably won't be able to avoid these
+# test cases no matter how hard we try.
+
 sort .traces/.all | uniq -c | sort -n >.traces/.all_uniq
 
-sort -rn .traces/.lookup >.traces/.lookup_sorted
+# Prepare a list of files for each tuple, smallest first.
+
+sort -n .traces/.lookup >.traces/.lookup_sorted
 
 TCOUNT=`grep -c . .traces/.all_uniq`
 
@@ -111,23 +126,30 @@ echo "[*] Minimizing..."
 
 touch .traces/.already_have
 
+CUR=0
+
 while read -r cnt tuple; do
+
+  CUR=$[CUR+1]
+  echo -ne "\\r    Processing tuple $CUR/$TCOUNT... "
 
   # If we already have this tuple, skip it.
 
   grep -q "^$tuple\$" .traces/.already_have && continue
 
-  # Find the best candidate for this tuple.
+  # Find the best (smallest) candidate for this tuple.
 
   FN=`grep "~$tuple~" .traces/.lookup_sorted | head -1 | cut -d~ -f3-`
 
   cat "$DIR/$FN" >"$OUT_DIR/$FN"
-  cat ".traces/$FN" >>.traces/.already_have
+  cat ".traces/$FN" ".traces/.already_have" | sort -u >.traces/.tmp
+  mv -f .traces/.tmp .traces/.already_have
 
 done <.traces/.all_uniq
 
 NCOUNT=`ls -- "$OUT_DIR" | wc -l`
 
+echo
 echo "[+] Narrowed down to $NCOUNT files, saved in '$OUT_DIR'."
 
 rm -rf .traces

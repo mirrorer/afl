@@ -196,14 +196,14 @@ struct queue_entry {
   u32 tc_ref;                         /* Trace bytes ref count            */
 
   struct queue_entry *next,           /* Next element, if any             */
-                     *next_1k;        /* 1000 elements ahead              */
+                     *next_100;       /* 100 elements ahead               */
 
 };
 
 static struct queue_entry *queue,     /* Fuzzing queue (linked list)      */
                           *queue_cur, /* Current offset within the queue  */
                           *queue_top, /* Top of the list                  */
-                          *queue_p1k; /* Previous 1k marker               */
+                          *q_prev100; /* Previous 100 marker              */
 
 static struct queue_entry*
   top_rated[MAP_SIZE];                /* Top entries for bitmap bytes     */
@@ -590,15 +590,15 @@ static void add_to_queue(u8* fname, u32 len, u8 passed_det) {
     queue_top->next = q;
     queue_top = q;
 
-  } else queue_p1k = queue = queue_top = q;
+  } else q_prev100 = queue = queue_top = q;
 
   queued_paths++;
   pending_not_fuzzed++;
 
-  if (!(queued_paths % 1000)) {
+  if (!(queued_paths % 100)) {
 
-    queue_p1k->next_1k = q;
-    queue_p1k = q;
+    q_prev100->next_100 = q;
+    q_prev100 = q;
 
   }
 
@@ -4259,7 +4259,7 @@ retry_splicing:
     splicing_with = tid;
     target = queue;
 
-    while (tid >= 1000) { target = target->next_1k; tid -= 1000; }
+    while (tid >= 100) { target = target->next_100; tid -= 100; }
     while (tid--) target = target->next;
 
     /* Make sure that the target has a reasonable length. */
