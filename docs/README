@@ -10,6 +10,9 @@ Released under terms and conditions of Apache License, Version 2.0.
 For new versions and additional information, check out:
 http://lcamtuf.coredump.cx/afl/
 
+To compare notes with other users or get notified about major new features,
+send a mail to <afl-users+subscribe@googlegroups.com>.
+
 1) Challenges of guided fuzzing
 -------------------------------
 
@@ -353,3 +356,8 @@ Thank you!
 Questions? Concerns? Bug reports? The author can be usually reached at
 <lcamtuf@google.com>.
 
+There is also a mailing list for the project; to join, send a mail to
+<afl-users+subscribe@googlegroups.com>. Or, if you prefer to browse
+archives first, try:
+
+https://groups.google.com/group/afl-users

@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 0.91b
+VERSION     = 0.92b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -90,7 +90,7 @@ publish: clean
 	test "`basename $$PWD`" = "afl" || exit 1
 	test -f ~/www/afl/releases/$(PROGNAME)-$(VERSION).tgz; if [ "$$?" = "0" ]; then echo; echo "Change program version in Makefile, mmkay?"; echo; exit 1; fi
 	cd ..; rm -rf $(PROGNAME)-$(VERSION); cp -pr $(PROGNAME) $(PROGNAME)-$(VERSION); \
-	  tar -cvz --exclude 'msie-jxr-*' --exclude 'msie-tiff-*' --exclude 'jxrlib-*' --exclude 'libtiff-*' -f ~/www/afl/releases/$(PROGNAME)-$(VERSION).tgz $(PROGNAME)-$(VERSION)
+	  tar -cvz --exclude 'msie-jxr-*' --exclude 'msie-tiff-*' --exclude 'jxrlib-*' --exclude 'libtiff-*' --exclude 'ffmpeg-*' -f ~/www/afl/releases/$(PROGNAME)-$(VERSION).tgz $(PROGNAME)-$(VERSION)
 	chmod 644 ~/www/afl/releases/$(PROGNAME)-$(VERSION).tgz
 	( cd ~/www/afl/releases/; ln -s -f $(PROGNAME)-$(VERSION).tgz $(PROGNAME)-latest.tgz )
 	cat docs/README >~/www/afl/README.txt

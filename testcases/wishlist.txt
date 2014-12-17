@@ -6,9 +6,8 @@ My secret wish list for minimal test cases:
   - MP3,
   - AAC,
   - WebM,
-  - JPEG with ICC (LCMS),
+  - Small JPEG with ICC (LCMS),
   - Small font (Freetype),
-  - Small PDF (Poppler),
   - Perhaps a couple more exotic compression formats.
 
 If you end up creating minimalistic files for any of the above, or have

@@ -1,7 +1,20 @@
+Want to stay in the loop on major new features? Join our mailing list by
+sending a mail to <afl-users+subscribe@googlegroups.com>.
 
-* NOTE: The lowest currently recommended version is 0.90b. If that version
-* works for you, you can keep using it. If you have an older release, it is
-* strongly advisable to upgrade.
+Not sure if you should upgrade? The lowest currently recommended version
+is 0.90b. If you're stuck on an earlier release, it's strongly advisable
+to download a newer build.
+
+--------------
+Version 0.92b:
+--------------
+
+  - Added support for reading test cases from another filesystem.
+    Requested by Jakub Wilk.
+
+  - Added pointers to the mailing list.
+
+  - Added a sample PDF document.
 
 --------------
 Version 0.91b:
