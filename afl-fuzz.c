@@ -58,9 +58,6 @@
 #  include <sys/sysctl.h>
 #endif /* __APPLE__ || __FreeBSD__ || __OpenBSD__ */
 
-#ifndef O_NOATIME
-#  define O_NOATIME 0
-#endif /* !O_NOATIME */
 
 /* Lots of globals, but mostly for the status UI and other things where it
    really makes no sense to haul them around as function parameters. */
@@ -1784,7 +1781,7 @@ static void perform_dry_run(char** argv) {
 
     ACTF("Attempting dry run with '%s'...", fn);
 
-    fd = open(q->fname, O_RDONLY | O_NOATIME);
+    fd = open(q->fname, O_RDONLY);
     if (fd < 0) PFATAL("Unable to open '%s'", q->fname);
 
     use_mem = ck_alloc_nozero(q->len);
@@ -1901,9 +1898,8 @@ static void link_or_copy(u8* old_path, u8* new_path) {
   u8* tmp;
 
   if (!i) return;
-  if (errno != EXDEV) PFATAL("link() failed");
 
-  sfd = open(old_path, O_RDONLY | O_NOATIME);
+  sfd = open(old_path, O_RDONLY);
   if (sfd < 0) PFATAL("Unable to open '%s'", old_path);
 
   dfd = open(new_path, O_WRONLY | O_CREAT | O_EXCL, 0600);
@@ -1916,6 +1912,7 @@ static void link_or_copy(u8* old_path, u8* new_path) {
 
   if (i < 0) PFATAL("read() failed");
 
+  ck_free(tmp);
   close(sfd);
   close(dfd);
 
@@ -3286,7 +3283,7 @@ static u8 fuzz_one(char** argv) {
 
   /* Map the test case into memory. */
 
-  fd = open(queue_cur->fname, O_RDONLY | O_NOATIME);
+  fd = open(queue_cur->fname, O_RDONLY);
 
   if (fd < 0) PFATAL("Unable to open '%s'", queue_cur->fname);
 
@@ -4307,7 +4304,7 @@ retry_splicing:
 
     /* Read the testcase into a new buffer. */
 
-    fd = open(target->fname, O_RDONLY | O_NOATIME);
+    fd = open(target->fname, O_RDONLY);
 
     if (fd < 0) PFATAL("Unable to open '%s'", target->fname);
 
@@ -4455,7 +4452,7 @@ static void sync_fuzzers(char** argv) {
 
       path = alloc_printf("%s/%s", qd_path, qd_ent->d_name);
 
-      fd = open(path, O_RDONLY | O_NOATIME);
+      fd = open(path, O_RDONLY);
       if (fd < 0) PFATAL("Unable to open '%s'", path);
 
       if (fstat(fd, &st)) PFATAL("fstat() failed");
