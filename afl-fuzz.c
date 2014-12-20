@@ -1335,7 +1335,7 @@ static void init_forkserver(char** argv) {
 
       SAYF("\n" cLRD "[-] " cRST
            "Whoops, the target binary crashed suddenly, before receiving any input\n"
-           "    from the fuzzer! There are three probable explanations:\n\n"
+           "    from the fuzzer! There are several probable explanations:\n\n"
 
            "    - The current memory limit (%s) is too restrictive, causing the\n"
            "      target to hit an OOM condition in the dynamic linker. Try bumping up\n"
@@ -1351,8 +1351,16 @@ static void init_forkserver(char** argv) {
            "    - The binary is just buggy and explodes entirely on its own. If so, you\n"
            "      need to fix the underlying problem or find a better replacement.\n\n"
 
+#ifdef __APPLE__
+
+           "    - On MacOS X, the semantics of fork() syscalls are non-standard and may\n"
+           "      break afl-fuzz performance optimizations when running platform-specific\n"
+           "      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
+
+#endif /* __APPLE__ */
+
            "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
-           "      fail, poke <lcamtuf@coredump.cx>.\n",
+           "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n",
            DMS(mem_limit << 20), mem_limit - 1);
 
     }
@@ -1390,7 +1398,7 @@ static void init_forkserver(char** argv) {
 #endif /* ^RLIMIT_AS */
 
          "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
-         "      fail, poke <lcamtuf@coredump.cx>.\n",
+         "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n",
          DMS(mem_limit << 20), mem_limit - 1);
 
   }
@@ -1856,8 +1864,16 @@ static void perform_dry_run(char** argv) {
 
              "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
 
+#ifdef __APPLE__
+  
+             "    - On MacOS X, the semantics of fork() syscalls are non-standard and may\n"
+             "      break afl-fuzz performance optimizations when running platform-specific\n"
+             "      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
+
+#endif /* __APPLE__ */
+
              "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
-             "      fail, poke <lcamtuf@coredump.cx>.\n",
+             "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n",
              DMS(mem_limit << 20), mem_limit - 1, doc_path);
 
         FATAL("Test case '%s' results in a crash", fn);
@@ -4959,17 +4975,36 @@ static void setup_stdio_file(void) {
 
 /* Make sure that core dumps don't go to a program. */
 
-static void check_coredumps(void) {
+static void check_crash_handling(void) {
 
 #ifdef __APPLE__
 
-  /* Yuck! For now, we know that the crash reporter interferes with afl-fuzz.
-     But I don't have a MacOS X box to test saner way to detect or adjust
-     its settings. */
+  /* Yuck! There appears to be no simple C API to query for the state of 
+     loaded daemons on MacOS X, and I'm a bit hesitant to do something
+     more sophisticated, such as disabling crash reporting via Mach ports,
+     until I get a box to test the code. So, for now, we check for crash
+     reporting the awful way. */
+  
+  if (system("launchctl bslist 2>/dev/null | grep -q '\\.ReportCrash$'")) return;
 
-  system("launchctl unload -w /System/Library/LaunchAgents/com.apple.ReportCrash.plist 2>/dev/null");
+  SAYF("\n" cLRD "[-] " cRST
+       "Whoops, your system is configured to forward crash notifications to an\n"
+       "    external crash reporting utility. This will cause issues due to the\n"
+       "    extended delay between the fuzzed binary malfunctioning and this fact\n"
+       "    being relayed to the fuzzer via the standard waitpid() API.\n\n"
+       "    To avoid having crashes misinterpreted as hangs, please run the\n" 
+       "    following commands:\n\n"
+
+       "    SL=/System/Library; PL=com.apple.ReportCrash\n"
+       "    launchctl unload -w ${SL}/LaunchAgents/${PL}.plist\n"
+       "    sudo launchctl unload -w ${SL}/LaunchDaemons/${PL}.Root.plist\n");
+
+  FATAL("Crash reporter detected");
 
 #else
+
+  /* This is Linux specific, but I don't think there's anything equivalent on
+     *BSD, so we can just let it slide for now. */
 
   s32 fd = open("/proc/sys/kernel/core_pattern", O_RDONLY);
   u8  fchar;
@@ -5440,7 +5475,7 @@ int main(int argc, char** argv) {
   check_terminal();
 
   get_core_count();
-  check_coredumps();
+  check_crash_handling();
   check_cpu_governor();
 
   setup_shm();

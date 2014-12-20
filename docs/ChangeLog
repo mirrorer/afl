@@ -6,13 +6,23 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 0.95b:
+--------------
+
+  - Cleaned up the OSX ReportCrash code. Thanks to Tobias Ospelt for help.
+
+  - Added some extra tips for AFL_NO_FORKSERVER on OSX.
+
+  - Refreshed the INSTALL file.
+
+--------------
 Version 0.94b:
 --------------
 
   - Added in-place resume (-i-) to address a common user complaint.
 
-  - Added an awful workaround for CrashReport on MacOS X (not sure if it
-    even works).
+  - Added an awful workaround for ReportCrash on MacOS X. Problem
+    spotted by Joseph Gentle.
 
 --------------
 Version 0.93b:

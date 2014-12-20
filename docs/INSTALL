@@ -20,6 +20,10 @@ There are no special dependencies to speak of; you will need GNU make and a
 working compiler (gcc or clang). Some of the optional scripts in experimental/*
 may depend on bash, gdb, and similar basic tools.
 
+You may have to change several settings to get optimal results (most notably,
+disable crash reporting utilities and switch to a different CPU governor), but
+afl-fuzz will guide you through that if necessary.
+
 2) OpenBSD, FreeBSD, NetBSD (x86)
 ---------------------------------
 
@@ -40,20 +44,23 @@ that, everything should work as advertised.
 3) MacOS X (x86)
 ----------------
 
-Follow the instructions for Linux. Of course, you need Xcode installed to
-compile this or any other program.
+MacOS X should work, but there are some gotchas due to the idiosyncrasies of
+the platform.
 
-Note that 'gcc' is just a wrapper for clang on MacOS X, so you should compile
-everything with afl-clang. If you have GCC installed, you can use the afl-gcc
-wrappers, but specify AFL_CC or AFL_CXX to point to the real GCC binary.
+To build AFL, install Xcode and follow the general instructions for Linux.
 
-At this point, only 64-bit compilation is supported; given that all modern
-MacOS X boxes are 64-bit, and that 32-bit mode needs a fair amount of work due
-to the idiosyncrasies of the platform, this is unlikely to change.
+The Xcode 'gcc' tool is just a wrapper for clang, so be sure to use afl-clang
+to compile any instrumented binaries; afl-gcc will fail unless you have GCC
+installed from another source (in which case, please specify AFL_CC and
+AFL_CXX to point to the "real" GCC binaries).
 
-NOTE: The crash reporting application that comes by default with MacOS X will
-interfere with afl-fuzz. You will need to turn it off by following the
-instructions provided here: http://goo.gl/CCcd5u
+Only 64-bit compilation will work on the platform; porting the 32-bit
+instrumentation would require a fair amount of work due to the way OS X
+handles relocations, and today, virtually all MacOS X boxes are 64-bit.
+
+The crash reporting daemon that comes by default with MacOS X will cause
+problems with fuzzing. You need to turn it off by following the instructions
+provided here: http://goo.gl/CCcd5u
 
 The fork() semantics on OS X are a bit unusual compared to other unix systems.
 This means two things:
@@ -63,7 +70,7 @@ This means two things:
     MacOS X.
 
   - Some non-portable, platform-specific code may be incompatible with the
-    afl forkserver. If you run into any problems, set AFL_NO_FORKSRV=1 in the
+    AFL forkserver. If you run into any problems, set AFL_NO_FORKSRV=1 in the
     environment before starting afl-fuzz.
 
 4) Linux (ARMv7)
@@ -88,6 +95,12 @@ $ ./configure --prefix=$HOME/gcc --with-gnu-as --with-gnu-ld \
 $ make
 $ sudo make install
 
+If you have system-wide crash reporting enabled, you may run into problems
+similar to the gotchas for Linux and MacOS X, but I have not verified this.
+More information about AppCrash can be found here:
+
+http://www.oracle.com/technetwork/server-storage/solaris10/app-crash-142906.html
+
 6) Everything else
 ------------------
 
@@ -101,3 +114,5 @@ not officially supported and have not been tested.
 The fuzzer will not work under Cygwin; it could be ported fairly easily, but
 doing so is probably a bad idea: you will get much better results with a Linux
 machine or a hardware-accelerated VM.
+
+Stock Android kernel will probably not work due to removed support for SHM.
