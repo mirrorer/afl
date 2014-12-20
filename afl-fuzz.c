@@ -88,7 +88,8 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            not_on_tty,                /* stdout is not a tty              */
            uses_asan,                 /* Target uses ASAN?                */
            no_forkserver,             /* Disable forkserver?              */
-           crash_mode;                /* Crash mode! Yeah!                */
+           crash_mode,                /* Crash mode! Yeah!                */
+           in_place_resume;           /* Attempt in-place resume?         */
     
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
@@ -1075,7 +1076,7 @@ static void read_testcases(void) {
   u32 i;
   u8* fn;
 
-  /* Auto-detect resumption attempts. */
+  /* Auto-detect non-in-place resumption attempts. */
 
   fn = alloc_printf("%s/queue", in_dir);
   if (!access(fn, F_OK)) in_dir = fn; else ck_free(fn);
@@ -1919,6 +1920,8 @@ static void link_or_copy(u8* old_path, u8* new_path) {
 }
 
 
+static void nuke_resume_dir(void);
+
 /* Create hard links for input test cases in the output directory, choosing
    good names and pivoting accordingly. */
 
@@ -1987,6 +1990,8 @@ static void pivot_inputs(void) {
     id++;
 
   }
+
+  if (in_place_resume) nuke_resume_dir();
 
 }
 
@@ -2367,6 +2372,41 @@ static double get_runnable_processes(void) {
 }
 
 
+/* Delete the temporary directory used for in-place session resume. */
+
+static void nuke_resume_dir(void) {
+
+  u8* fn;
+
+  fn = alloc_printf("%s/_resume/.state/deterministic_done", out_dir);
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/_resume/.state/redundant_edges", out_dir);
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/_resume/.state/variable_behavior", out_dir);
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/_resume/.state", out_dir);
+  if (rmdir(fn) && errno != ENOENT) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/_resume", out_dir);
+  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  return;
+
+dir_cleanup_failed:
+
+  FATAL("_resume directory cleanup failed");
+
+}
+
+
 
 /* Delete fuzzer output directory if we recognize it as ours, if the fuzzer
    is not currently running, and if the last run time isn't too great. */
@@ -2406,15 +2446,17 @@ static void maybe_delete_out_dir(void) {
 
     /* With this out of the way, let's see how much work is at stake. */
 
-    if (last_update - start_time > 60 * 60) {
+    if (!in_place_resume && last_update - start_time > 60 * 60) {
 
       SAYF("\n" cLRD "[-] " cRST
            "The job output directory already exists and contains the results of more\n"
            "    than an hour's worth of fuzzing. To avoid data loss, afl-fuzz will *NOT*\n"
            "    automatically delete this data for you.\n\n"
-  
-           "    Please remove or rename the directory manually, or choose a different\n"
-           "    output location for this job.\n");
+
+           "    If you wish to start a new session, remove or rename the directory manually,\n"
+           "    or specify a different output location for this job. To resume the old\n"
+           "    session, put '-' as the input directory in the command line ('-i -') and\n"
+           "    try again.\n");
 
        FATAL("At-risk data found in in '%s'", out_dir);
 
@@ -2424,11 +2466,34 @@ static void maybe_delete_out_dir(void) {
 
   ck_free(fn);
 
-  OKF("Output directory exists but deemed OK to reuse.");
+  /* The idea for in-place resume is pretty simple: we temporarily move the old
+     queue/ to a new location that gets deleted once import to the new queue/
+     is finished. If _resume/ already exists, the current queue/ may be
+     incomplete due to an earlier abort, so we want to use the old _resume/
+     dir instead, and we let rename() fail silently. */
+
+  if (in_place_resume) {
+
+    u8* orig_q = alloc_printf("%s/queue", out_dir);
+
+    in_dir = alloc_printf("%s/_resume", out_dir);
+
+    rename(orig_q, in_dir); /* Ignore errors */
+
+    OKF("Output directory exists, will attempt session resume.");
+
+    ck_free(orig_q);
+
+  } else {
+
+    OKF("Output directory exists but deemed OK to reuse.");
+
+  }
+
   ACTF("Deleting old session data...");
 
-  // Okay, let's get the ball rolling! First, we need to get rid of the entries
-  // in <out_dir>/.synced/*/id:*, if any are present.
+  /* Okay, let's get the ball rolling! First, we need to get rid of the entries
+     in <out_dir>/.synced/.../id:*, if any are present. */
 
   fn = alloc_printf("%s/.synced", out_dir);
   if (delete_files(fn, NULL)) goto dir_cleanup_failed;
@@ -2448,8 +2513,8 @@ static void maybe_delete_out_dir(void) {
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
-  // Then, get rid of the .state subdirectory itself (should be empty by now)
-  // and everything matching <out_dir>/queue/id:*.
+  /* Then, get rid of the .state subdirectory itself (should be empty by now)
+     and everything matching <out_dir>/queue/id:*. */
 
   fn = alloc_printf("%s/queue/.state", out_dir);
   if (rmdir(fn) && errno != ENOENT) goto dir_cleanup_failed;
@@ -2459,21 +2524,56 @@ static void maybe_delete_out_dir(void) {
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
-  // All right, let's do <out_dir>/crashes/id:* and <out_dir>/hangs/id:* next:
+  /* All right, let's do <out_dir>/crashes/id:* and <out_dir>/hangs/id:*. */
 
   fn = alloc_printf("%s/crashes/README.txt", out_dir);
   unlink(fn); /* Ignore errors */
   ck_free(fn);
 
   fn = alloc_printf("%s/crashes", out_dir);
+
+  /* Make backup of the crashes directory if it's not empty and if we're
+     doing in-place resume. */
+
+  if (in_place_resume && rmdir(fn)) {
+
+    time_t cur_t = time(0);
+    struct tm* t = localtime(&cur_t);
+
+    u8* nfn = alloc_printf("%s.%04u-%02u-%02u-%02u:%02u:%02u", fn,
+                           t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                           t->tm_hour, t->tm_min, t->tm_sec);
+
+    rename(fn, nfn); /* Ignore errors. */
+    ck_free(nfn);
+
+  }
+
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/hangs", out_dir);
+
+  /* Backup hangs, too. */
+
+  if (in_place_resume && rmdir(fn)) {
+
+    time_t cur_t = time(0);
+    struct tm* t = localtime(&cur_t);
+
+    u8* nfn = alloc_printf("%s.%04u-%02u-%02u-%02u:%02u:%02u", fn,
+                           t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                           t->tm_hour, t->tm_min, t->tm_sec);
+
+    rename(fn, nfn); /* Ignore errors. */
+    ck_free(nfn);
+
+  }
+
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
-  // And now, for some finishing touches:
+  /* And now, for some finishing touches. */
 
   fn = alloc_printf("%s/.cur_input", out_dir);
   if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
@@ -2493,7 +2593,7 @@ static void maybe_delete_out_dir(void) {
 
   OKF("Output dir cleanup successful.");
 
-  // Wow... is that all? If yes, celebrate!
+  /* Wow... is that all? If yes, celebrate! */
 
   return;
 
@@ -4776,6 +4876,11 @@ static void setup_dirs_fds(void) {
 
     maybe_delete_out_dir();
 
+  } else {
+
+    if (in_place_resume)
+      FATAL("Resume attempted but old output directory not found");
+
   }
 
   tmp = alloc_printf("%s/queue", out_dir);
@@ -4856,6 +4961,16 @@ static void setup_stdio_file(void) {
 
 static void check_coredumps(void) {
 
+#ifdef __APPLE__
+
+  /* Yuck! For now, we know that the crash reporter interferes with afl-fuzz.
+     But I don't have a MacOS X box to test saner way to detect or adjust
+     its settings. */
+
+  system("launchctl unload -w /System/Library/LaunchAgents/com.apple.ReportCrash.plist 2>/dev/null");
+
+#else
+
   s32 fd = open("/proc/sys/kernel/core_pattern", O_RDONLY);
   u8  fchar;
 
@@ -4881,6 +4996,8 @@ static void check_coredumps(void) {
   }
  
   close(fd);
+
+#endif /* ^__APPLE__ */
 
 }
 
@@ -5191,6 +5308,9 @@ int main(int argc, char** argv) {
 
         if (in_dir) FATAL("Multiple -i options not supported");
         in_dir = optarg;
+
+        if (!strcmp(in_dir, "-")) in_place_resume = 1;
+
         break;
 
       case 'o': /* output dir */

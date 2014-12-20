@@ -6,10 +6,19 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 0.94b:
+--------------
+
+  - Added in-place resume (-i-) to address a common user complaint.
+
+  - Added an awful workaround for CrashReport on MacOS X (not sure if it
+    even works).
+
+--------------
 Version 0.93b:
 --------------
 
-  - Minor fix to the link() workaround, as reported by Jakub Wilk.
+  - Fixed the link() workaround, as reported by Jakub Wilk.
 
 --------------
 Version 0.92b:

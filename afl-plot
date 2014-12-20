@@ -14,10 +14,6 @@
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
-# Note that this assumes that the targeted application reads from stdin
-# and requires no other cmdline parameters. Modify as needed if this is
-# not the case.
-#
 
 echo "progress plotting utility for afl-fuzz by <lcamtuf@google.com>"
 echo
