@@ -231,7 +231,7 @@ additional, more detailed counters for crashes and hangs.
   |  byte flips : 0/36.2k, 4/35.7k, 7/34.6k             |
   | arithmetics : 53/2.54M, 0/537k, 0/55.2k             |
   |  known ints : 8/322k, 12/1.32M, 10/1.70M            |
-  |       havoc : 1903/20.0M, 0/0                       |
+  |  havoc & co : 0/0, 1903/20.0M, 0/0                  |
   |        trim : 139.4 kB/9201 (20.31% gain)           |
   +-----------------------------------------------------+
 

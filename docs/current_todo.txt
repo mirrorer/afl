@@ -6,11 +6,6 @@ TODO
 
 Here's the list of stuff I'm currently thinking about:
 
-  - Support for string extraction from the tested binaries. Tricky because
-    of shared libs.
-
-  - Possible inclusion of 8192 as an "interesting" integer (needs testing).
-
   - Investigation of x86 hardware branch tracing (Via the Linux perf API?)
     as an alternative to injected instrumentation.
 

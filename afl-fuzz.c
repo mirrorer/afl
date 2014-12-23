@@ -158,8 +158,8 @@ static s32 stage_cur_byte,            /* Byte offset of current stage op  */
 
 static u8  stage_val_type;            /* Value type (STAGE_VAL_*)         */
 
-static u64 stage_finds[14],           /* Patterns found per fuzz stage    */
-           stage_cycles[14];          /* Execs per fuzz stage             */
+static u64 stage_finds[15],           /* Patterns found per fuzz stage    */
+           stage_cycles[15];          /* Execs per fuzz stage             */
 
 static u32 rand_cnt = RESEED_RNG;     /* Random number counter            */
 
@@ -210,6 +210,14 @@ static struct queue_entry *queue,     /* Fuzzing queue (linked list)      */
 static struct queue_entry*
   top_rated[MAP_SIZE];                /* Top entries for bitmap bytes     */
 
+struct extra_data {
+  u8* data;                           /* Dictionary token data            */
+  u32 len;                            /* Dictionary token length          */
+};
+
+static struct extra_data* extras;     /* Extra tokens to fuzz with        */
+static u32 extras_cnt;                /* Total number of tokens read      */
+
 /* Interesting values, as per config.h */
 
 static s8  interesting_8[]  = { INTERESTING_8 };
@@ -231,6 +239,7 @@ enum {
   STAGE_INTEREST8,
   STAGE_INTEREST16,
   STAGE_INTEREST32,
+  STAGE_EXTRAS,
   STAGE_HAVOC,
   STAGE_SPLICE
 };
@@ -359,34 +368,34 @@ static u8* DI(u64 val) {
   CHK_FORMAT(1, 10000, "%llu", u64);
 
   /* 10.0k - 99.9k */
-  CHK_FORMAT(1000, 100, "%0.01fk", double);
+  CHK_FORMAT(1000, 99.95, "%0.01fk", double);
 
   /* 100k - 999k */
   CHK_FORMAT(1000, 1000, "%lluk", u64);
 
   /* 1.00M - 9.99M */
-  CHK_FORMAT(1000 * 1000, 10, "%0.02fM", double);
+  CHK_FORMAT(1000 * 1000, 9.995, "%0.02fM", double);
 
   /* 10.0M - 99.9M */
-  CHK_FORMAT(1000 * 1000, 100, "%0.01fM", double);
+  CHK_FORMAT(1000 * 1000, 99.95, "%0.01fM", double);
 
   /* 100M - 999M */
   CHK_FORMAT(1000 * 1000, 1000, "%lluM", u64);
 
   /* 1.00G - 9.99G */
-  CHK_FORMAT(1000LL * 1000 * 1000, 10, "%0.02fG", double);
+  CHK_FORMAT(1000LL * 1000 * 1000, 9.995, "%0.02fG", double);
 
   /* 10.0G - 99.9G */
-  CHK_FORMAT(1000LL * 1000 * 1000, 100, "%0.01fG", double);
+  CHK_FORMAT(1000LL * 1000 * 1000, 99.95, "%0.01fG", double);
 
   /* 100G - 999G */
   CHK_FORMAT(1000LL * 1000 * 1000, 1000, "%lluG", u64);
 
   /* 1.00T - 9.99G */
-  CHK_FORMAT(1000LL * 1000 * 1000 * 1000, 10, "%0.02fT", double);
+  CHK_FORMAT(1000LL * 1000 * 1000 * 1000, 9.995, "%0.02fT", double);
 
   /* 10.0T - 99.9T */
-  CHK_FORMAT(1000LL * 1000 * 1000 * 1000, 100, "%0.01fT", double);
+  CHK_FORMAT(1000LL * 1000 * 1000 * 1000, 99.95, "%0.01fT", double);
 
 #undef CHK_FORMAT
 
@@ -404,12 +413,12 @@ static u8* DF(double val) {
 
   static u8 tmp[16];
 
-  if (val < 99.99) {
+  if (val < 99.995) {
     sprintf(tmp, "%0.02f", val);
     return tmp;
   }
 
-  if (val < 999.9) {
+  if (val < 999.95) {
     sprintf(tmp, "%0.01f", val);
     return tmp;
   }
@@ -439,34 +448,34 @@ static u8* DMS(u64 val) {
   CHK_FORMAT(1, 10000, "%llu B", u64);
 
   /* 10.0k - 99.9k */
-  CHK_FORMAT(1024, 100, "%0.01f kB", double);
+  CHK_FORMAT(1024, 99.95, "%0.01f kB", double);
 
   /* 100k - 999k */
   CHK_FORMAT(1024, 1000, "%llu kB", u64);
 
   /* 1.00M - 9.99M */
-  CHK_FORMAT(1024 * 1024, 10, "%0.02f MB", double);
+  CHK_FORMAT(1024 * 1024, 9.995, "%0.02f MB", double);
 
   /* 10.0M - 99.9M */
-  CHK_FORMAT(1024 * 1024, 100, "%0.01f MB", double);
+  CHK_FORMAT(1024 * 1024, 99.95, "%0.01f MB", double);
 
   /* 100M - 999M */
   CHK_FORMAT(1024 * 1024, 1000, "%llu MB", u64);
 
   /* 1.00G - 9.99G */
-  CHK_FORMAT(1024LL * 1024 * 1024, 10, "%0.02f GB", double);
+  CHK_FORMAT(1024LL * 1024 * 1024, 9.995, "%0.02f GB", double);
 
   /* 10.0G - 99.9G */
-  CHK_FORMAT(1024LL * 1024 * 1024, 100, "%0.01f GB", double);
+  CHK_FORMAT(1024LL * 1024 * 1024, 99.95, "%0.01f GB", double);
 
   /* 100G - 999G */
   CHK_FORMAT(1024LL * 1024 * 1024, 1000, "%llu GB", u64);
 
   /* 1.00T - 9.99G */
-  CHK_FORMAT(1024LL * 1024 * 1024 * 1024, 10, "%0.02f TB", double);
+  CHK_FORMAT(1024LL * 1024 * 1024 * 1024, 9.995, "%0.02f TB", double);
 
   /* 10.0T - 99.9T */
-  CHK_FORMAT(1024LL * 1024 * 1024 * 1024, 100, "%0.01f TB", double);
+  CHK_FORMAT(1024LL * 1024 * 1024 * 1024, 99.95, "%0.01f TB", double);
 
 #undef CHK_FORMAT
 
@@ -1159,6 +1168,88 @@ static void read_testcases(void) {
 
   last_path_time = 0;
   queued_at_start = queued_paths;
+
+}
+
+
+/* Helper function for load_extras. */
+
+static int compare_extras(const void* p1, const void* p2) {
+  struct extra_data *e1 = (struct extra_data*)p1,
+                    *e2 = (struct extra_data*)p2;
+
+  return e1->len - e2->len;
+}
+
+
+/* Read extras from the extras directory and sort them by size. */
+
+static void load_extras(u8* dir) {
+
+  DIR* d;
+  struct dirent* de;
+  u32 min_len = MAX_EXTRA_FILE, max_len = 0;
+
+  ACTF("Loading extra dictionary from '%s'...", dir);
+
+  d = opendir(dir);
+
+  if (!d) PFATAL("Unable to open '%s'", dir);
+
+  while ((de = readdir(d))) {
+
+    struct stat st;
+    u8* fn = alloc_printf("%s/%s", dir, de->d_name);
+    s32 fd;
+
+    if (lstat(fn, &st) || access(fn, R_OK))
+      PFATAL("Unable to access '%s'", fn);
+
+    /* This also takes care of . and .. */
+    if (!S_ISREG(st.st_mode) || !st.st_size) continue;
+
+    if (st.st_size > MAX_EXTRA_FILE)
+      FATAL("Extra '%s' is too big (%s, limit is %s)", fn,
+            DMS(st.st_size), DMS(MAX_EXTRA_FILE));
+
+
+    if (min_len > st.st_size) min_len = st.st_size;
+    if (max_len < st.st_size) max_len = st.st_size;
+
+    extras = ck_realloc(extras, (extras_cnt + 1) * sizeof(struct extra_data));
+
+    extras[extras_cnt].data = ck_alloc(st.st_size);
+    extras[extras_cnt].len  = st.st_size;
+
+    fd = open(fn, O_RDONLY);
+
+    if (fd < 0) PFATAL("Unable to open '%s'", fn);
+
+    if (read(fd, extras[extras_cnt].data, st.st_size) != st.st_size)
+      PFATAL("Short read from '%s'", fn);
+
+    close(fd);
+    ck_free(fn);
+
+    extras_cnt++;
+
+  }
+
+  closedir(d);
+  if (!extras_cnt) FATAL("No usable files in '%s'", dir);
+
+  qsort(extras, extras_cnt, sizeof(struct extra_data), compare_extras);
+
+  OKF("Loaded %u extra tokens, size range %s to %s.\n", extras_cnt,
+      DMS(min_len), DMS(max_len));
+
+  if (max_len > 32)
+    WARNF("Some tokens are relatively large (%s) - consider trimming.",
+          DMS(max_len));
+
+  if (extras_cnt > MAX_DET_EXTRAS)
+    WARNF("More than %u tokens - ignored for deterministic tests.",
+          MAX_DET_EXTRAS);
 
 }
 
@@ -2936,11 +3027,12 @@ static void show_stats(void) {
        cNOR "%-10s " bSTG bV "\n", tmp, DI(queued_discovered));
 
 
-  sprintf(tmp, "%s/%s, %s/%s",
+  sprintf(tmp, "%s/%s, %s/%s, %s/%s",
+          DI(stage_finds[STAGE_EXTRAS]), DI(stage_cycles[STAGE_EXTRAS]),
           DI(stage_finds[STAGE_HAVOC]), DI(stage_cycles[STAGE_HAVOC]),
           DI(stage_finds[STAGE_SPLICE]), DI(stage_cycles[STAGE_SPLICE]));
 
-  SAYF(bV bSTOP "       havoc : " cNOR "%-37s " bSTG bV bSTOP
+  SAYF(bV bSTOP "  havoc & co : " cNOR "%-37s " bSTG bV bSTOP
        "  imported : " cNOR "%-10s " bSTG bV "\n", tmp, DI(queued_imported));
 
   if (!bytes_trim_out) {
@@ -4016,6 +4108,63 @@ skip_arith:
 
 skip_interest:
 
+  /************************
+   * USER-SUPPLIED EXTRAS *
+   ************************/
+
+  if (!extras_cnt || extras_cnt > MAX_DET_EXTRAS) goto skip_extras;
+
+  /* Setting 32-bit integers, both endians. */
+
+  stage_name  = "extras";
+  stage_short = "extra";
+  stage_cur   = 0;
+  stage_max   = extras_cnt * len;
+
+  stage_cur_val = STAGE_VAL_NONE;
+
+  orig_hit_cnt = new_hit_cnt;
+
+  for (i = 0; i < len; i++) {
+
+    u32 last_len = 0;
+
+    /* Extras are sorted by size, from smallest to largest. This means
+       that we don't have to worry about restoring the buffer in
+       between writes at a particular offset determined by the outer
+       loop. */
+
+    for (j = 0; j < extras_cnt; j++) {
+
+      if (extras[j].len > len - i ||
+          !memcmp(extras[j].data, out_buf + i, extras[j].len)) {
+
+        stage_max -= extras_cnt;
+        continue;
+
+      }
+
+      last_len = extras[j].len;
+      memcpy(out_buf + i, extras[j].data, last_len);
+
+      if (common_fuzz_stuff(argv, out_buf, len)) goto abandon_entry;
+
+      stage_cur++;
+
+    }
+
+    /* Restore all the clobbered memory. */
+    memcpy(out_buf + i, in_buf + i, last_len);
+
+  }
+
+  new_hit_cnt = queued_paths + unique_crashes;
+
+  stage_finds[STAGE_EXTRAS]  += new_hit_cnt - orig_hit_cnt;
+  stage_cycles[STAGE_EXTRAS] += stage_max;
+
+skip_extras:
+
   /* If we made this to here without jumping to havoc_stage or abandon_entry,
      we're properly done with deterministic steps and can mark it as such
      in the .state/ directory. */
@@ -4066,7 +4215,7 @@ havoc_stage:
  
     for (i = 0; i < use_stacking; i++) {
 
-      switch (UR(15)) {
+      switch (UR(15 + (extras_cnt ? 2 : 0))) {
 
         case 0:
 
@@ -4324,6 +4473,56 @@ havoc_stage:
                 memmove(out_buf + copy_to, out_buf + copy_from, copy_len);
 
             } else memset(out_buf + copy_to, UR(256), copy_len);
+
+            break;
+
+          }
+
+        /* Values 16 and 17 can be selected only if extras_cnt > 0. */
+
+        case 16: {
+
+            /* Overwrite bytes with an user-specified extra. */
+
+            u32 use_extra = UR(extras_cnt);
+            u32 extra_len = extras[use_extra].len;
+            u32 insert_at;
+
+            if (extra_len > temp_len) break;
+
+            insert_at = UR(temp_len - extra_len + 1);
+            memcpy(out_buf + insert_at, extras[use_extra].data, extra_len);
+
+            break;
+
+          }
+
+        case 17: {
+
+            /* Insert an user-specified extra. */
+
+            u32 use_extra = UR(extras_cnt);
+            u32 extra_len = extras[use_extra].len;
+            u32 insert_at = UR(temp_len);
+            u8* new_buf;
+
+            if (temp_len + extra_len >= MAX_FILE) break;
+
+            new_buf = ck_alloc_nozero(temp_len + extra_len);
+
+            /* Head */
+            memcpy(new_buf, out_buf, insert_at);
+
+            /* Inserted part */
+            memcpy(new_buf + insert_at, extras[use_extra].data, extra_len);
+
+            /* Tail */
+            memcpy(new_buf + insert_at + extra_len, out_buf + insert_at,
+                   temp_len - insert_at);
+
+            ck_free(out_buf);
+            out_buf  = new_buf;
+            temp_len += extra_len;
 
             break;
 
@@ -4857,7 +5056,8 @@ static void usage(u8* argv0) {
        "Fuzzing behavior settings:\n\n"
 
        "  -d            - quick & dirty mode (skips deterministic steps)\n"
-       "  -n            - fuzz without instrumentation (dumb mode)\n\n"
+       "  -n            - fuzz without instrumentation (dumb mode)\n"
+       "  -x dir        - directory with an optional fuzzer dictionary\n\n"
 
        "Other stuff:\n\n"
 
@@ -5329,13 +5529,14 @@ int main(int argc, char** argv) {
   s32 opt;
   u64 prev_queued = 0;
   u32 sync_interval_cnt = 0;
+  u8* extras_dir = 0;
 
   SAYF(cCYA "afl-fuzz " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
        ") by <lcamtuf@google.com>\n");
 
   doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 
-  while ((opt = getopt(argc,argv,"+i:o:f:m:t:T:dnCB:S:M:")) > 0)
+  while ((opt = getopt(argc,argv,"+i:o:f:m:t:T:dnCB:S:M:x:")) > 0)
 
     switch (opt) {
 
@@ -5368,6 +5569,12 @@ int main(int argc, char** argv) {
 
         if (out_file) FATAL("Multiple -f options not supported");
         out_file = optarg;
+        break;
+
+      case 'x':
+
+        if (extras_dir) FATAL("Multiple -x options not supported");
+        extras_dir = optarg;
         break;
 
       case 't':
@@ -5486,6 +5693,8 @@ int main(int argc, char** argv) {
 
   pivot_inputs();
 
+  if (extras_dir) load_extras(extras_dir);
+
   detect_file_args(argv + optind + 1);
 
   if (!out_file) setup_stdio_file();
@@ -5503,6 +5712,8 @@ int main(int argc, char** argv) {
   if (stop_soon) goto stop_fuzzing;
 
   write_stats_file(0, 0);
+
+  /* Woop woop woop */
 
   if (!not_on_tty) {
     sleep(4);

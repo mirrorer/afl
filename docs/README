@@ -176,9 +176,9 @@ executed process; this is seldom necessary, perhaps except for video decoders.
 
 Tips for optimizing the performance of the process are discussed in
 perf_tips.txt. Note that the fuzzer starts by meticulously performing an array
-of deterministic fuzzing steps, which can take many hours or days. If you want
-more traditional behavior akin to zzuf or honggfuzz, use the -d option to get
-quick but less systematic and less in-depth results right away.
+of deterministic fuzzing steps, which can take several days. If you want more
+traditional behavior akin to zzuf or honggfuzz, use the -d option to get quick
+but less systematic and less in-depth results right away.
 
 6) Interpreting output
 ----------------------
@@ -216,7 +216,8 @@ Any existing output directory can be also used to resume aborted jobs; simply do
 $ ./afl-fuzz -i- -o existing_output_dir [...etc...]
 
 If you have gnuplot installed, you can also generate some pretty graphs for any
-active fuzzing task using 'afl-plot'. For an example of how this looks like, see:
+active fuzzing task using 'afl-plot'. For an example of how this looks like,
+see:
 
   http://lcamtuf.coredump.cx/afl/plot/
 
@@ -226,7 +227,30 @@ active fuzzing task using 'afl-plot'. For an example of how this looks like, see
 For tips on how to fuzz a common target on multiple cores or multiple networked
 machines, please refer to parallel_fuzzing.txt.
 
-8) Crash exploration
+8) Fuzzer dictionaries
+----------------------
+
+The afl-fuzz mutation engine is optimized for compact data formats - say,
+images, multimedia, compression schemes, regular expression syntax, or shell
+scripts. It is less suited for languages with particularly verbose and redundant
+verbiage - notably including HTML, SQL, or JavaScript. With the latter, building
+a template- or ABNF-based tool would probably give you superior results.
+
+Of course, building syntax-aware fuzzers takes time and effort. To avoid the
+hassle, afl-fuzz provides a way to seed the fuzzing process with an optional
+dictionary of keywords, magic headers, or other special tokens associated with
+the targeted language.
+
+To use this feature, place the tokens in a new directory, one per file; and then
+point the fuzzer to that directory via the -x option in the command line. One
+example of a pre-built dictionary is the collection of PNG section headers in
+testcases/_extras/png/.
+
+Note that the tokens should be *extremely* short and correspond to the basic
+syntax units that the fuzzer will then clobber together in various ways. In
+fact, there is a hard limit on token length: 128 bytes.
+
+9) Crash exploration
 --------------------
 
 The coverage-based grouping of crashes usually produces a small data set that
@@ -252,8 +276,8 @@ beneath.
 
 Oh - for test case minimization, consider https://code.google.com/p/tmin/.
 
-9) Common-sense risks
----------------------
+10) Common-sense risks
+----------------------
 
 Please keep in mind that, similarly to many other computationally-expensive
 tasks, fuzzing may put strain on your hardware and on the OS. In particular:
@@ -280,19 +304,10 @@ tasks, fuzzing may put strain on your hardware and on the OS. In particular:
 
     $ iostat -d 3 -x -k [...optional disk ID...]
 
-10) Known limitations & areas for improvement
+11) Known limitations & areas for improvement
 ---------------------------------------------
 
 Here are some of the most important caveats for AFL:
-
-  - The fuzzer is optimized for compact data formats, such as images
-    and other multimedia. It is less suited for human-readable formats with
-    particularly verbose, redundant verbiage - say, XHTML, SQL, or JavaScript.
-    In such cases, template- or ABNF-based generators tend to fare better.
-
-    Of course, if you want to modify the code to generate syntax-aware
-    mutations, go ahead! You'd want to start with fuzz_one() in afl-fuzz.c.
-    Patches that refactor this code are welcome.
 
   - As with any other brute-force tool, the fuzzer offers limited coverage if
     encryption, checksums, cryptographic signatures, or compression are used to
@@ -350,7 +365,7 @@ bug reports, or patches from:
 
 Thank you!
 
-12) Contact
+13) Contact
 -----------
 
 Questions? Concerns? Bug reports? The author can be usually reached at

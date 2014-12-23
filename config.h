@@ -117,6 +117,14 @@
 
 #define MAX_FILE            (1 * 1024 * 1024)
 
+/* Maximum "extra" token size (-x), in bytes: */
+
+#define MAX_EXTRA_FILE      128
+
+/* Maximum number of extras to still carry out deterministic steps: */
+
+#define MAX_DET_EXTRAS      500
+
 /* UI refresh frequency (Hz): */
 
 #define UI_TARGET_HZ        4

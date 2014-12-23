@@ -167,8 +167,7 @@ It is perhaps worth noting that all of the following is permitted:
     a command-line flag. In some scenarios, this can slightly improve
     coverage.
 
-  - Perhaps least convincingly, running the synchronized fuzzers with
-    different starting test cases (e.g., progressive and standard JPEG).
-    The synchronization mechanism ensures that the test sets will get
-    fairly homogeneous over time, but it introduces some initial variability.
-
+  - Much less convincingly, running the synchronized fuzzers with different
+    starting test cases (e.g., progressive and standard JPEG). The
+    synchronization mechanism ensures that the test sets will get fairly
+    homogeneous over time, but it introduces some initial variability.

@@ -6,6 +6,20 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 0.96b:
+--------------
+
+  - Added support for extra dictionaries, provided testcases/_extras/png/
+    as a demo.
+
+  - Fixed a minor bug in number formatting routines used by the UI.
+
+  - Added several additional PNG test cases that are relatively unlikely
+    to be hit by chance.
+
+  - Fixed afl-plot syntax for gnuplot 5.x. Reported by David Necas.
+
+--------------
 Version 0.95b:
 --------------
 
