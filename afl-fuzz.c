@@ -4121,13 +4121,15 @@ skip_interest:
   stage_cur   = 0;
   stage_max   = extras_cnt * len;
 
-  stage_cur_val = STAGE_VAL_NONE;
+  stage_val_type = STAGE_VAL_NONE;
 
   orig_hit_cnt = new_hit_cnt;
 
   for (i = 0; i < len; i++) {
 
     u32 last_len = 0;
+
+    stage_cur_byte = i;
 
     /* Extras are sorted by size, from smallest to largest. This means
        that we don't have to worry about restoring the buffer in
