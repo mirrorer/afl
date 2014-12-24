@@ -4,7 +4,8 @@ formats, including images, archives, and so on.
 In addition to this, there are several fuzzing dictionaries (-x) in
 _extras/ - see ../docs/README for more.
 
-If you wish to contribute other minimal test cases, my wishlist includes:
+If you wish to contribute other minimal test cases, the current "most
+wanted" list is:
 
   - JBIG,
   - Ogg Vorbis,

@@ -245,7 +245,7 @@ with the targeted language.
 To use this feature, place the tokens in a new directory, one per file; and then
 point the fuzzer to that directory via the -x option in the command line. One
 example of a pre-built dictionary is the collection of PNG section headers in
-testcases/_extras/png/.
+testcases/_extras/png/; another good reference point is testcases/_extras/xml/.
 
 Note that the tokens should be *extremely* short and correspond to the basic
 syntax units that the fuzzer will then clobber together in various ways;

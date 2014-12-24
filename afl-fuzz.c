@@ -1240,7 +1240,7 @@ static void load_extras(u8* dir) {
 
   qsort(extras, extras_cnt, sizeof(struct extra_data), compare_extras);
 
-  OKF("Loaded %u extra tokens, size range %s to %s.\n", extras_cnt,
+  OKF("Loaded %u extra tokens, size range %s to %s.", extras_cnt,
       DMS(min_len), DMS(max_len));
 
   if (max_len > 32)
