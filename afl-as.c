@@ -55,7 +55,8 @@ static u8*  modified_file;      /* Instrumented file for the real 'as'  */
 
 static u8   be_quiet,           /* Quiet mode (no stderr output)        */
             clang_mode,         /* Running in clang mode?               */
-            pass_thru = 0;      /* Just pass data through?              */
+            pass_thru,          /* Just pass data through?              */
+            just_version;       /* Just show version?                   */
 
 static u32  inst_ratio = 100,   /* Instrumentation probability (%)      */
             as_par_cnt = 1;     /* Number of params to 'as'             */
@@ -137,6 +138,12 @@ static void edit_params(int argc, char** argv) {
 
   if (input_file[0] == '-') {
 
+    if (!strcmp(input_file + 1, "-version")) {
+      just_version = 1;
+      modified_file = input_file;
+      goto wrap_things_up;
+    }
+
     if (input_file[1]) FATAL("Incorrect use (not called through afl-gcc?)");
       else input_file = NULL;
 
@@ -155,6 +162,8 @@ static void edit_params(int argc, char** argv) {
 
   modified_file = alloc_printf("%s/.afl-%u-%u.s", tmp_dir, getpid(),
                                (u32)time(NULL));
+
+wrap_things_up:
 
   as_params[as_par_cnt++] = modified_file;
   as_params[as_par_cnt]   = NULL;
@@ -446,7 +455,7 @@ int main(int argc, char** argv) {
 
   if (getenv("AFL_USE_ASAN") || getenv("AFL_USE_MSAN")) inst_ratio /= 3;
 
-  add_instrumentation();
+  if (!just_version) add_instrumentation();
 
   if (!(pid = fork())) {
 

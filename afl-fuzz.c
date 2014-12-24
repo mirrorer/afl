@@ -5030,7 +5030,7 @@ static void check_terminal(void) {
          "    resize the window by dragging its edges, or to adjust the dimensions in\n"
          "    the settings menu.\n");
 
-    FATAL("Please resize terminal to 80x25");
+    FATAL("Please resize terminal to 80x25 or more");
 
   }
 
@@ -5059,7 +5059,7 @@ static void usage(u8* argv0) {
 
        "  -d            - quick & dirty mode (skips deterministic steps)\n"
        "  -n            - fuzz without instrumentation (dumb mode)\n"
-       "  -x dir        - directory with an optional fuzzer dictionary\n\n"
+       "  -x dir        - optional fuzzer dictionary (see README)\n\n"
 
        "Other stuff:\n\n"
 
@@ -5634,8 +5634,11 @@ int main(int argc, char** argv) {
            to mutate it without rediscovering any of the test cases already
            found during an earlier run.
 
-           You need to point -B to the fuzz_bitmap produced by an earlier run
-           for the exact same binary... and that's it. */
+           To use this mode, you need to point -B to the fuzz_bitmap produced
+           by an earlier run for the exact same binary... and that's it.
+
+           I only used this once or twice to get variants of a particular
+           file, so I'm not making this an official setting. */
 
         in_bitmap = optarg;
         read_bitmap(in_bitmap);

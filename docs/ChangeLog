@@ -6,6 +6,18 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 0.99b:
+--------------
+
+  - Fixed minimize_corpus.sh to work with dash, as suggested by Jakub Wilk.
+
+  - Modified minimize_corpus.sh to try locate afl-showmap in $PATH and ./.
+    Requested by Jakub Wilk.
+
+  - Added support for afl-as --version, as required by one funky build
+    script. Reported by William Robinet.
+
+--------------
 Version 0.98b:
 --------------
 
@@ -16,6 +28,7 @@ Version 0.98b:
   - Switched afl-plot to /bin/sh, since it seems bashism-free. Also tried
     to remove any obvious bashisms from other experimental/ scripts,
     most notably including minimize_corpus.sh and triage_crashes.sh.
+    Requested by Jonathan Gray.
 
 --------------
 Version 0.97b:

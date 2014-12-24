@@ -140,7 +140,7 @@
 
 /* Sync interval (havoc cycles): */
 
-#define SYNC_INTERVAL       10
+#define SYNC_INTERVAL       5
 
 /* List of interesting values to use in fuzzing. */
 

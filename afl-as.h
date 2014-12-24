@@ -660,6 +660,7 @@ static const u8* main_payload_64 =
   "  movq 336(%rsp), %xmm15\n"
   "\n"
   "  leaq 352(%rsp), %rsp\n"
+  "\n"
   "  jmp __afl_return\n"
   "\n"
   ".AFL_VARS:\n"

@@ -59,9 +59,14 @@ if [ ! -d "$DIR" ]; then
   exit 1
 fi
 
-test "$AFL_PATH" = "" && AFL_PATH=/usr/local/bin
+# Try to find afl-showmap somewhere...
 
-SM="$AFL_PATH/afl-showmap"
+if [ "$AFL_PATH" = "" ]; then
+  SM=`which afl-showmap 2>/dev/null`
+  test "$SM" = "" && SM="./afl-showmap"
+else
+  SM="$AFL_PATH/afl-showmap"
+fi
 
 if [ ! -x "$SM" ]; then
   echo "Can't find $SM - please set AFL_PATH."
@@ -93,7 +98,7 @@ CUR=0
 
 for fn in `ls "$DIR"`; do
 
-  let CUR=CUR+1
+  CUR=$((CUR+1))
   printf "\\r    Processing file $CUR/$CCOUNT... "
 
   # Modify this if $BIN needs to be called with additional parameters, etc.
@@ -131,7 +136,7 @@ CUR=0
 
 while read -r cnt tuple; do
 
-  let CUR=CUR+1
+  CUR=$((CUR+1))
   printf "\\r    Processing tuple $CUR/$TCOUNT... "
 
   # If we already have this tuple, skip it.
