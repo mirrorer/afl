@@ -6,6 +6,18 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 0.98b:
+--------------
+
+  - Added a dictionary for TIFF.
+
+  - Fixed another cosmetic snafu with stage exec counts for -x.
+
+  - Switched afl-plot to /bin/sh, since it seems bashism-free. Also tried
+    to remove any obvious bashisms from other experimental/ scripts,
+    most notably including minimize_corpus.sh and triage_crashes.sh.
+
+--------------
 Version 0.97b:
 --------------
 

@@ -4141,7 +4141,7 @@ skip_interest:
       if (extras[j].len > len - i ||
           !memcmp(extras[j].data, out_buf + i, extras[j].len)) {
 
-        stage_max -= extras_cnt;
+        stage_max--;
         continue;
 
       }

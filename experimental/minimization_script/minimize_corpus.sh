@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # american fuzzy lop - corpus minimization tool
 # ---------------------------------------------
@@ -34,7 +34,8 @@
 echo "corpus minimization tool for afl-fuzz by <lcamtuf@google.com>"
 echo
 
-ulimit -v 100000
+ulimit -v 100000 2>/dev/null
+ulimit -d 100000 2>/dev/null
 
 if [ ! "$#" = "2" ]; then
   echo "Usage: $0 /path/to/corpus_dir /path/to/tested_binary" 1>&2
@@ -67,7 +68,7 @@ if [ ! -x "$SM" ]; then
   exit 1
 fi
 
-CCOUNT=`ls -- "$DIR" 2>/dev/null | wc -l`
+CCOUNT=$((`ls -- "$DIR" 2>/dev/null | wc -l`))
 
 if [ "$CCOUNT" = "0" ]; then
   echo "No inputs in the target directory - nothing to be done."
@@ -92,8 +93,8 @@ CUR=0
 
 for fn in `ls "$DIR"`; do
 
-  CUR=$[CUR+1]
-  echo -ne "\\r    Processing file $CUR/$CCOUNT... "
+  let CUR=CUR+1
+  printf "\\r    Processing file $CUR/$CCOUNT... "
 
   # Modify this if $BIN needs to be called with additional parameters, etc.
 
@@ -102,7 +103,7 @@ for fn in `ls "$DIR"`; do
   FSIZE=`wc -c <"$DIR/$fn"`
 
   cat ".traces/$fn" >>.traces/.all
-  awk '{print "'$[FSIZE]'~" $0 "~'"$fn"'"}' <".traces/$fn" >>.traces/.lookup
+  awk '{print "'$((FSIZE))'~" $0 "~'"$fn"'"}' <".traces/$fn" >>.traces/.lookup
 
 done
 
@@ -119,7 +120,7 @@ sort .traces/.all | uniq -c | sort -n >.traces/.all_uniq
 
 sort -n .traces/.lookup >.traces/.lookup_sorted
 
-TCOUNT=`grep -c . .traces/.all_uniq`
+TCOUNT=$((`grep -c . .traces/.all_uniq`))
 
 echo "[+] Found $TCOUNT unique tuples across $CCOUNT files."
 echo "[*] Minimizing..."
@@ -130,8 +131,8 @@ CUR=0
 
 while read -r cnt tuple; do
 
-  CUR=$[CUR+1]
-  echo -ne "\\r    Processing tuple $CUR/$TCOUNT... "
+  let CUR=CUR+1
+  printf "\\r    Processing tuple $CUR/$TCOUNT... "
 
   # If we already have this tuple, skip it.
 

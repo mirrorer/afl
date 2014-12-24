@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # american fuzzy lop - Advanced Persistent Graphing
 # -------------------------------------------------
