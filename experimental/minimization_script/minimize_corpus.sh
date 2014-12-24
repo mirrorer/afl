@@ -92,7 +92,7 @@ fi
 rm -rf -- "$OUT_DIR" 2>/dev/null
 mkdir "$OUT_DIR" || exit 1
 
-echo "[*] Evaluating $CCOUNT input files (this may take a while)..."
+echo "[*] Evaluating $CCOUNT input files in '$DIR'..."
 
 CUR=0
 
@@ -128,11 +128,13 @@ sort -n .traces/.lookup >.traces/.lookup_sorted
 TCOUNT=$((`grep -c . .traces/.all_uniq`))
 
 echo "[+] Found $TCOUNT unique tuples across $CCOUNT files."
-echo "[*] Minimizing..."
+echo "[*] Minimizing (this will get progressively faster)..."
 
 touch .traces/.already_have
 
 CUR=0
+
+SYS=`uname -s`
 
 while read -r cnt tuple; do
 
@@ -145,11 +147,20 @@ while read -r cnt tuple; do
 
   # Find the best (smallest) candidate for this tuple.
 
-  FN=`grep "~$tuple~" .traces/.lookup_sorted | head -1 | cut -d~ -f3-`
+  if [ "$SYS" = "Linux" ]; then
+    FN=`grep -F -m 1 "~$tuple~" .traces/.lookup_sorted | cut -d~ -f3-`
+  else
+    FN=`grep -F "~$tuple~" .traces/.lookup_sorted | head -1 | cut -d~ -f3-`
+  fi
 
-  cat "$DIR/$FN" >"$OUT_DIR/$FN"
-  cat ".traces/$FN" ".traces/.already_have" | sort -u >.traces/.tmp
-  mv -f .traces/.tmp .traces/.already_have
+  ln "$DIR/$FN" "$OUT_DIR/$FN"
+
+  if [ "$((CUR % 5))" = "0" ]; then
+    cat ".traces/$FN" ".traces/.already_have" | sort -u >.traces/.tmp
+    mv -f .traces/.tmp .traces/.already_have
+  else
+    cat ".traces/$FN" >>".traces/.already_have"
+  fi
 
 done <.traces/.all_uniq
 

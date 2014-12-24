@@ -6,6 +6,15 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 1.00b:
+--------------
+
+  - Slightly improved the performance of minimize_corpus.sh, especially on
+    Linux.
+
+  - Made a couple of improvements to calibration timeouts for resumed scans.
+
+--------------
 Version 0.99b:
 --------------
 

@@ -1736,7 +1736,7 @@ static void show_stats(void);
    new paths are discovered to detect variable behavior and so on. */
 
 static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
-                         u32 handicap) {
+                         u32 handicap, u8 from_queue) {
 
   u8  fault = 0, new_bits = 0, var_detected = 0, first_run = (q->exec_cksum == 0);
   u64 start_us, stop_us;
@@ -1744,13 +1744,13 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
   s32 old_sc = stage_cur, old_sm = stage_max, old_tmout = exec_tmout;
   u8* old_sn = stage_name;
 
-  /* Be a bit more generous about timeouts at this point; otherwise, when
-     resuming fuzzing jobs where some test cases just barely sneaked under
-     the limit, we'd see intermittent hard errors when processing the input
-     dir. */
+  /* Be a bit more generous about timeouts when resuming sessions, or when
+     trying to calibrate already-added finds. This helps avoid trouble due
+     to intermittent latency. */
 
-  if (timeout_given)
-    exec_tmout = exec_tmout * CAL_TMOUT_PERC / 100;
+  if (!from_queue || resuming_fuzz)
+    exec_tmout = MAX(exec_tmout + CAL_TMOUT_ADD,
+                     exec_tmout * CAL_TMOUT_PERC / 100);
 
   q->cal_failed = 1;
 
@@ -1891,7 +1891,7 @@ static void perform_dry_run(char** argv) {
 
     close(fd);
 
-    res = calibrate_case(argv, q, use_mem, 0);
+    res = calibrate_case(argv, q, use_mem, 0, 1);
     ck_free(use_mem);
 
     if (stop_soon) return;
@@ -2214,7 +2214,7 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
     /* Try to calibrate inline; this also calls update_bitmap_score() when
        successful. */
 
-    res = calibrate_case(argv, queue_top, mem, queue_cycle - 1);
+    res = calibrate_case(argv, queue_top, mem, queue_cycle - 1, 0);
 
     if (res == FAULT_ERROR)
       FATAL("Unable to execute target application");
@@ -3148,7 +3148,7 @@ static void show_init_stats(void) {
   if (!timeout_given) {
 
     /* Figure out the appropriate timeout. The basic idea is: 5x average or
-       1x max, plus 50 ms. */
+       1x max, plus 50 ms, rounded down to 50 ms and capped at 1 second. */
 
     exec_tmout = 50 + MAX(avg_us * 5 / 1000, max_us / 1000);
     exec_tmout = exec_tmout / 50 * 50;
@@ -3521,7 +3521,7 @@ static u8 fuzz_one(char** argv) {
 
     u8 res;
 
-    res = calibrate_case(argv, queue_cur, in_buf, queue_cycle - 1);
+    res = calibrate_case(argv, queue_cur, in_buf, queue_cycle - 1, 0);
 
     if (res == FAULT_ERROR)
       FATAL("Unable to execute target application");

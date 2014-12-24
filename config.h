@@ -215,9 +215,12 @@
 
 #define FORK_WAIT_MULT      10
 
-/* Calibration timeout multiplier (%). */
+/* Calibration timeout adjustments, to be a bit more generous when resuming
+   fuzzing sessions or trying to calibrate already-added internal finds.
+   The first value is a percentage, the other is in milliseconds: */
 
-#define CAL_TMOUT_PERC      150
+#define CAL_TMOUT_PERC      125
+#define CAL_TMOUT_ADD       50
 
 /* Map size for the traced binary (2^MAP_SIZE_POW2). Must be greater than
    2; you probably want to keep it under 18 or so for performance reasons

@@ -234,12 +234,13 @@ The afl-fuzz mutation engine is optimized for compact data formats - say,
 images, multimedia, compression schemes, regular expression syntax, or shell
 scripts. It is less suited for languages with particularly verbose and redundant
 verbiage - notably including HTML, SQL, or JavaScript. With the latter, building
-a template- or ABNF-based tool would probably give you superior results.
+a reasonably clever template- or ABNF-based tool tailored to the format would
+probably yield better results.
 
 Of course, building syntax-aware fuzzers takes time and effort. To avoid the
 hassle, afl-fuzz provides a way to seed the fuzzing process with an optional
-dictionary of keywords, magic headers, or other special tokens associated with
-the targeted language.
+dictionary of syntax keywords, magic headers, or other special tokens associated
+with the targeted language.
 
 To use this feature, place the tokens in a new directory, one per file; and then
 point the fuzzer to that directory via the -x option in the command line. One
@@ -247,8 +248,9 @@ example of a pre-built dictionary is the collection of PNG section headers in
 testcases/_extras/png/.
 
 Note that the tokens should be *extremely* short and correspond to the basic
-syntax units that the fuzzer will then clobber together in various ways. In
-fact, there is a hard limit on token length: 128 bytes.
+syntax units that the fuzzer will then clobber together in various ways;
+snippets around 2 and 16 bytes would be common. In fact, to prevent misuse,
+there is a hard limit on token length: 128 bytes.
 
 9) Crash exploration
 --------------------
@@ -256,7 +258,7 @@ fact, there is a hard limit on token length: 128 bytes.
 The coverage-based grouping of crashes usually produces a small data set that
 can be quickly triaged manually or with a very simple GDB or Valgrind script.
 
-Of course, it's important to acknowledge that some fuzzing crashes can be
+Having said that, it's important to acknowledge that some fuzzing crashes can be
 difficult quickly evaluate for exploitability without a lot of debugging and
 code analysis work. To assist with this task, afl-fuzz supports a very unique
 "crash exploration" mode enabled with the -C flag.
