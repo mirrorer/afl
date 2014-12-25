@@ -4912,6 +4912,12 @@ static void check_binary(u8* fname) {
 
   if (getenv("AFL_SKIP_CHECKS")) return;
 
+  /* Check for blatant user errors. */
+
+  if ((!strncmp(target_path, "/tmp/", 5) && !strchr(target_path + 5, '/')) ||
+      (!strncmp(target_path, "/var/tmp/", 9) && !strchr(target_path + 9, '/')))
+     FATAL("Please don't keep binaries in /tmp or /var/tmp");
+
   fd = open(target_path, O_RDONLY);
 
   if (fd < 0) PFATAL("Unable to open '%s'", target_path);

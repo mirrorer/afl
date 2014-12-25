@@ -38,6 +38,19 @@ _EOF_
 
 fi
 
+echo "$1" | grep -qE '^(|/var)/tmp/'
+T1="$?"
+
+echo "$2" | grep -qE '^(|/var)/tmp/'
+T2="$?"
+
+if [ "$T1" = "0" -o "$T2" = "0" ]; then
+
+  echo "Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
+  exit 1
+
+fi
+
 if [ ! -f "$1/plot_data" ]; then
 
   echo "[-] The input directory is not valid (missing 'plot_data')." 1>&2

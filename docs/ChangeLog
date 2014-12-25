@@ -6,6 +6,19 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 1.02b:
+--------------
+
+  - Reverted the ./ search path in minimize_corpus.sh because people did
+    not like it.
+
+  - Added very explicit warnings not to run various shell scripts that
+    read or write to /tmp/ (since this is generally a pretty bad idea on
+    multi-user systems).
+
+  - Added a check for /tmp binaries and -f locations in afl-fuzz.
+
+--------------
 Version 1.01b:
 --------------
 

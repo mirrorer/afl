@@ -25,7 +25,6 @@
 echo "crash triage utility for afl-fuzz by <lcamtuf@google.com>"
 echo
 
-
 ulimit -v 100000 2>/dev/null
 ulimit -d 100000 2>/dev/null
 
@@ -38,12 +37,23 @@ if [ ! "$#" = "2" ]; then
   exit 1
 fi
 
+DIR="$1"
+BIN="$2"
+
+echo "$DIR" | grep -qE '^(|/var)/tmp/'
+T1="$?"
+
+echo "$BIN" | grep -qE '^(|/var)/tmp/'
+T2="$?"
+
+if [ "$T1" = "0" -o "$T2" = "0" ]; then
+  echo "Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
+  exit 1
+fi
+
 if [ "$GDB" = "" ]; then
   GDB=gdb
 fi
-
-DIR="$1"
-BIN="$2"
 
 if [ ! -f "$BIN" -o ! -x "$BIN" ]; then
   echo "Error: binary '$2' not found or is not executable." 1>&2

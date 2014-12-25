@@ -49,6 +49,17 @@ fi
 DIR="`echo "$1" | sed 's/\/$//'`"
 BIN="$2"
 
+echo "$DIR" | grep -qE '^(|/var)/tmp/'
+T1="$?"
+
+echo "$BIN" | grep -qE '^(|/var)/tmp/'
+T2="$?"
+
+if [ "$T1" = "0" -o "$T2" = "0" ]; then
+  echo "Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
+  exit 1
+fi
+
 if [ ! -f "$BIN" -o ! -x "$BIN" ]; then
   echo "Error: binary '$2' not found or is not executable." 1>&2
   exit 1
@@ -63,13 +74,13 @@ fi
 
 if [ "$AFL_PATH" = "" ]; then
   SM=`which afl-showmap 2>/dev/null`
-  test "$SM" = "" && SM="./afl-showmap"
+  test "$SM" = "" && SM="/usr/local/bin/afl-showmap"
 else
   SM="$AFL_PATH/afl-showmap"
 fi
 
 if [ ! -x "$SM" ]; then
-  echo "Can't find $SM - please set AFL_PATH."
+  echo "Can't find 'afl-showmap' - please set AFL_PATH."
   exit 1
 fi
 
