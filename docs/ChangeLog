@@ -6,6 +6,15 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 1.03b:
+--------------
+
+  - Added code to skip README.txt in the input directory to make the crash
+    exploration mode work better. Suggested by Jakub Wilk.
+
+  - Added a dictionary for SQLite.
+
+--------------
 Version 1.02b:
 --------------
 
@@ -40,7 +49,7 @@ Version 0.99b:
   - Fixed minimize_corpus.sh to work with dash, as suggested by Jakub Wilk.
 
   - Modified minimize_corpus.sh to try locate afl-showmap in $PATH and ./.
-    Requested by Jakub Wilk.
+    The first part requested by Jakub Wilk.
 
   - Added support for afl-as --version, as required by one funky build
     script. Reported by William Robinet.

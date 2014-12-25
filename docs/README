@@ -251,6 +251,10 @@ Note that the tokens should be *extremely* short and correspond to the basic
 syntax units that the fuzzer will then clobber together in various ways;
 snippets between 2 and 16 bytes are the sweet spot in almost all cases.
 
+There is no way to provide more structured descriptions of the underlying
+syntax, but the fuzzer will likely figure out some of this based on the
+instrumentation feedback alone.
+
 9) Crash exploration
 --------------------
 
