@@ -54,7 +54,8 @@ static u8* trace_bits;                /* SHM with instrumentation bitmap   */
 static s32 shm_id;                    /* ID of the SHM region              */
 
 static u8  sink_output,               /* Sink program output               */
-           be_quiet;                  /* Quiet mode (tuples & errors only) */
+           be_quiet,                  /* Quiet mode (tuples & errors only) */
+           minimize_mode;             /* Called from minimize_corpus.sh?   */
 
 /* Classify tuple counts. */
 
@@ -67,12 +68,12 @@ static u8  sink_output,               /* Sink program output               */
 
 static u8 count_class_lookup[256] = {
 
-  /* 0 - 3:       4 */ 0, 1, 2, 4,
-  /* 4 - 7:      +4 */ AREP4(8),
-  /* 8 - 15:     +8 */ AREP8(16),
-  /* 16 - 31:   +16 */ AREP16(32),
-  /* 32 - 127:  +96 */ AREP64(64), AREP32(64),
-  /* 128+:     +128 */ AREP128(128)
+  /* 0 - 3:       4 */ 0, 1, 2, 3,
+  /* 4 - 7:      +4 */ AREP4(4),
+  /* 8 - 15:     +8 */ AREP8(5),
+  /* 16 - 31:   +16 */ AREP16(6),
+  /* 32 - 127:  +96 */ AREP64(7), AREP32(7),
+  /* 128+:     +128 */ AREP128(8)
 
 };
 
@@ -112,11 +113,24 @@ static inline void show_tuples(void) {
 
   classify_counts(trace_bits);
 
-  for (i = 0; i < MAP_SIZE; i++) {
+  if (minimize_mode) {
 
-    if (*current) SAYF("%05u/%u\n", i, *current);
+    for (i = 0; i < MAP_SIZE; i++) {
 
-    current++;
+      if (*current) SAYF("%u%u\n", *current, i);
+      current++;
+
+    }
+
+  } else {
+
+    for (i = 0; i < MAP_SIZE; i++) {
+
+      if (*current) SAYF("%06u:%u\n", i, *current);
+
+      current++;
+
+    }
 
   }
 
@@ -202,7 +216,7 @@ static void run_target(char** argv) {
 
   if (waitpid(child_pid, &status, WUNTRACED) <= 0) FATAL("waitpid() failed");
 
-  if (WIFSIGNALED(status))
+  if (!minimize_mode && WIFSIGNALED(status))
     SAYF("+++ Killed by signal %u +++\n", WTERMSIG(status));
 
 }
@@ -230,7 +244,9 @@ static void usage(u8* argv0) {
 
 int main(int argc, char** argv) {
 
-  if (!getenv("AFL_QUIET")) {
+  minimize_mode = !!getenv("AFL_MINIMIZE_MODE");
+
+  if (!minimize_mode && !getenv("AFL_QUIET")) {
 
     SAYF(cCYA "afl-showmap " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
          ") by <lcamtuf@google.com>\n");
@@ -241,7 +257,7 @@ int main(int argc, char** argv) {
 
   setup_shm();
 
-  if (getenv("AFL_SINK_OUTPUT")) sink_output = 1;
+  if (minimize_mode || getenv("AFL_SINK_OUTPUT")) sink_output = 1;
 
   if (!be_quiet && !sink_output)
     SAYF("\n-- Program output begins --\n");  

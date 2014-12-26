@@ -6,6 +6,16 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 1.04b:
+--------------
+
+  - Made substantial performance improvements to minimize_corpus.sh with
+    large datasets, albeit at the expense of having to switch back to bash
+    (other shells may have limits on array sizes, etc).
+
+  - Tweaked afl-showmap to support the format used by the new script.
+
+--------------
 Version 1.03b:
 --------------
 

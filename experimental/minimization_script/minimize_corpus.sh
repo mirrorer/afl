@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # american fuzzy lop - corpus minimization tool
 # ---------------------------------------------
@@ -34,8 +34,6 @@
 echo "corpus minimization tool for afl-fuzz by <lcamtuf@google.com>"
 echo
 
-ulimit -v 100000 2>/dev/null
-ulimit -d 100000 2>/dev/null
 
 if [ ! "$#" = "2" ]; then
   echo "Usage: $0 /path/to/corpus_dir /path/to/tested_binary" 1>&2
@@ -103,7 +101,47 @@ fi
 rm -rf -- "$OUT_DIR" 2>/dev/null
 mkdir "$OUT_DIR" || exit 1
 
-echo "[*] Evaluating $CCOUNT input files in '$DIR'..."
+if [ -d "$DIR/queue" ]; then
+  DIR="$DIR/queue"
+fi
+
+echo "[*] Obtaining traces for input files in '$DIR'..."
+
+(
+
+  CUR=0
+
+  ulimit -v 100000 2>/dev/null
+  ulimit -d 100000 2>/dev/null
+
+  for fn in `ls "$DIR"`; do
+
+    CUR=$((CUR+1))
+    printf "\\r    Processing file $CUR/$CCOUNT... "
+
+    # Modify this if $BIN needs to be called with additional parameters, etc.
+
+    AFL_MINIMIZE_MODE=1 "$SM" "$BIN" <"$DIR/$fn" >".traces/$fn" 2>&1
+
+  done
+
+)
+
+echo
+echo "[*] Sorting trace sets (this may take a while)..."
+
+# Sort all tuples by popularity across all datasets. The reasoning here is that
+# we need to start by adding the traces for least-popular tuples anyway (we have
+# little or no choice), and we can take care of the rest in some smarter way.
+
+ls "$DIR" | sed 's/^/.traces\//' | xargs -n 1 cat | sort | \
+  uniq -c | sort -n >.traces/.all_uniq
+
+TCOUNT=$((`grep -c . .traces/.all_uniq`))
+
+echo "[+] Found $TCOUNT unique tuples across $CCOUNT files."
+
+echo "[*] Finding best candidates for each tuple..."
 
 CUR=0
 
@@ -112,40 +150,25 @@ for fn in `ls "$DIR"`; do
   CUR=$((CUR+1))
   printf "\\r    Processing file $CUR/$CCOUNT... "
 
-  # Modify this if $BIN needs to be called with additional parameters, etc.
+  FSIZE=$((`wc -c <"$DIR/$fn"`))
 
-  AFL_SINK_OUTPUT=1 AFL_QUIET=1 "$SM" "$BIN" <"$DIR/$fn" >".traces/$fn" 2>&1
+  for tuple in `cat ".traces/$fn"`; do
 
-  FSIZE=`wc -c <"$DIR/$fn"`
+    test "$FSIZE" -ge "${BEST_SIZE[tuple]:-9999999}" && continue
 
-  cat ".traces/$fn" >>.traces/.all
-  awk '{print "'$((FSIZE))'~" $0 "~'"$fn"'"}' <".traces/$fn" >>.traces/.lookup
+    BEST_FILE[tuple]="$fn"
+    BEST_SIZE[tuple]="$FSIZE"
+
+  done
 
 done
 
 echo
-echo "[*] Sorting trace sets..."
-
-# Find the least common tuples; let's start with ones that have just one
-# or a couple test cases, since we probably won't be able to avoid these
-# test cases no matter how hard we try.
-
-sort .traces/.all | uniq -c | sort -n >.traces/.all_uniq
-
-# Prepare a list of files for each tuple, smallest first.
-
-sort -n .traces/.lookup >.traces/.lookup_sorted
-
-TCOUNT=$((`grep -c . .traces/.all_uniq`))
-
-echo "[+] Found $TCOUNT unique tuples across $CCOUNT files."
-echo "[*] Minimizing (this will get progressively faster)..."
+echo "[*] Processing candidates and writing output files..."
 
 touch .traces/.already_have
 
 CUR=0
-
-SYS=`uname -s`
 
 while read -r cnt tuple; do
 
@@ -156,13 +179,7 @@ while read -r cnt tuple; do
 
   grep -q "^$tuple\$" .traces/.already_have && continue
 
-  # Find the best (smallest) candidate for this tuple.
-
-  if [ "$SYS" = "Linux" ]; then
-    FN=`grep -F -m 1 "~$tuple~" .traces/.lookup_sorted | cut -d~ -f3-`
-  else
-    FN=`grep -F "~$tuple~" .traces/.lookup_sorted | head -1 | cut -d~ -f3-`
-  fi
+  FN=${BEST_FILE[tuple]}
 
   ln "$DIR/$FN" "$OUT_DIR/$FN"
 
