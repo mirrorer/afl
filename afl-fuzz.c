@@ -3479,8 +3479,8 @@ static u8 fuzz_one(char** argv) {
 
     /* Otherwise, still possibly skip non-favored cases, albeit less often. */
 
-    if (!queue_cur->favored && queued_paths > 10 &&
-        UR(100) < SKIP_NFAV_PROB) return 1;
+    if (!queue_cur->favored && queued_paths > 10 && UR(100) < SKIP_NFAV_PROB)
+      return 1;
 
   }
 

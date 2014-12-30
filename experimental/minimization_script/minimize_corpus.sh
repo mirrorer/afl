@@ -53,8 +53,11 @@ T1="$?"
 echo "$BIN" | grep -qE '^(|/var)/tmp/'
 T2="$?"
 
-if [ "$T1" = "0" -o "$T2" = "0" ]; then
-  echo "Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
+echo "$PWD" | grep -qE '^(|/var)/tmp/'
+T3="$?"
+
+if [ "$T1" = "0" -o "$T2" = "0" -o "$T3" = "0" ]; then
+  echo "Error: do not use this script with /tmp or /var/tmp (it's just not safe)." 1>&2
   exit 1
 fi
 
@@ -145,19 +148,14 @@ echo "[*] Finding best candidates for each tuple..."
 
 CUR=0
 
-for fn in `ls "$DIR"`; do
+for fn in `ls -rS "$DIR"`; do
 
   CUR=$((CUR+1))
   printf "\\r    Processing file $CUR/$CCOUNT... "
 
-  FSIZE=$((`wc -c <"$DIR/$fn"`))
-
   for tuple in `cat ".traces/$fn"`; do
 
-    test "$FSIZE" -ge "${BEST_SIZE[tuple]:-9999999}" && continue
-
-    BEST_FILE[tuple]="$fn"
-    BEST_SIZE[tuple]="$FSIZE"
+    BEST_FILE[tuple]="${BEST_FILE[tuple]:-$fn}"
 
   done
 
