@@ -87,12 +87,12 @@
 #define HAVOC_BLK_MEDIUM    128
 #define HAVOC_BLK_LARGE     1500
 
-/* Likelihood of using non-favored inputs when there are pending, non-fuzzed
-   test cases (and when there is nothing new pending). This is expressed as
-   percentage: */
+/* Probabilities of skipping non-favored entries in the queue, expressed as
+   percentages: */
 
-#define SKIP_TO_NEW_PROB    99
-#define SKIP_NFAV_PROB      90
+#define SKIP_TO_NEW_PROB    99 /* ...when there are new, pending favorites */
+#define SKIP_NFAV_OLD_PROB  95 /* ...no new favs, cur entry already fuzzed */
+#define SKIP_NFAV_NEW_PROB  75 /* ...no new favs, cur entry not fuzzed yet */
 
 /* Splicing cycle count: */
 

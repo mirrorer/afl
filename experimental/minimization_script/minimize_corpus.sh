@@ -24,7 +24,7 @@
 #
 # The tool assumes that the tested program reads from stdin and requires no
 # cmdline parameters; very simple edits are required to support other use
-# cases.
+# cases (search for "EDIT HERE").
 #
 # If you set AFL_EDGES_ONLY beforehand, the afl-showmap utility will only
 # report branch hit information, not hit counts, producing a more traditional
@@ -110,6 +110,8 @@ fi
 
 echo "[*] Obtaining traces for input files in '$DIR'..."
 
+# Start with the bare necessities...
+
 (
 
   CUR=0
@@ -122,7 +124,9 @@ echo "[*] Obtaining traces for input files in '$DIR'..."
     CUR=$((CUR+1))
     printf "\\r    Processing file $CUR/$CCOUNT... "
 
-    # Modify this if $BIN needs to be called with additional parameters, etc.
+    # *** EDIT HERE ***
+    # Modify the following line if "$BIN" needs to be called with additional
+    # parameters or so ("$DIR/$fn" is the actual test case).
 
     AFL_MINIMIZE_MODE=1 "$SM" "$BIN" <"$DIR/$fn" >".traces/$fn" 2>&1
 
@@ -146,6 +150,15 @@ echo "[+] Found $TCOUNT unique tuples across $CCOUNT files."
 
 echo "[*] Finding best candidates for each tuple..."
 
+# Find best file for each tuple, where "best" is simply understood as the
+# smallest containing a particular tuple in its trace; empirical evidence
+# suggests that this usually produces smaller data sets than more involved
+# approaches that would be still viable in a shell script.
+
+# The weird default-value construct is used simply because it's noticably
+# faster than a proper if / test block; the call to ls -rS takes care of
+# starting with the smallest files first.
+
 CUR=0
 
 for fn in `ls -rS "$DIR"`; do
@@ -167,6 +180,10 @@ echo "[*] Processing candidates and writing output files..."
 touch .traces/.already_have
 
 CUR=0
+
+# Grab the top pick for each tuple, unless said tuple is already set due to the
+# inclusion of an earlier candidate. Work from least popular tuples and toward
+# the most common ones.
 
 while read -r cnt tuple; do
 

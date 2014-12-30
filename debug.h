@@ -20,7 +20,9 @@
 #include "types.h"
 #include "config.h"
 
-/* Terminal colors */
+/*******************
+ * Terminal colors *
+ *******************/
 
 #ifdef USE_COLOR
 
@@ -64,7 +66,9 @@
 
 #endif /* ^USE_COLOR */
 
-/* Box drawing sequences */
+/*************************
+ * Box drawing sequences *
+ *************************/
 
 #ifdef FANCY_BOXES
 
@@ -100,13 +104,19 @@
 
 #endif /* ^FANCY_BOXES */
 
-/* Misc terminal codes */
+/***********************
+ * Misc terminal codes *
+ ***********************/
 
 #define TERM_HOME     "\x1b[H"
 #define TERM_CLEAR    TERM_HOME "\x1b[2J"
 #define cEOL          "\x1b[0K"
 
-/* Debug & error macros */
+/************************
+ * Debug & error macros *
+ ************************/
+
+/* Just print stuff to the appropriate stream. */
 
 #ifdef MESSAGES_TO_STDOUT
 #  define SAYF(x...)    printf(x)
@@ -114,25 +124,35 @@
 #  define SAYF(x...)    fprintf(stderr, x)
 #endif /* ^MESSAGES_TO_STDOUT */
 
+/* Show a prefixed warning. */
+
 #define WARNF(x...) do { \
     SAYF(cYEL "[!] " cBRI "WARNING: " cRST x); \
     SAYF(cRST "\n"); \
   } while (0)
 
-#define OKF(x...) do { \
-    SAYF(cLGN "[+] " cRST x); \
-    SAYF(cRST "\n"); \
-  } while (0)
+/* Show a prefixed "doing something" message. */
 
 #define ACTF(x...) do { \
     SAYF(cLBL "[*] " cRST x); \
     SAYF(cRST "\n"); \
   } while (0)
 
+/* Show a prefixed "success" message. */
+
+#define OKF(x...) do { \
+    SAYF(cLGN "[+] " cRST x); \
+    SAYF(cRST "\n"); \
+  } while (0)
+
+/* Show a prefixed fatal error message (not used in afl). */
+
 #define BADF(x...) do { \
     SAYF(cLRD "\n[-] " cRST x); \
     SAYF(cRST "\n"); \
   } while (0)
+
+/* Die with a verbose non-OS fatal error message. */
 
 #define FATAL(x...) do { \
     SAYF(cLRD "\n[-] PROGRAM ABORT : " cBRI x); \
@@ -141,12 +161,16 @@
     exit(1); \
   } while (0)
 
+/* Die by calling abort() to provide a core dump. */
+
 #define ABORT(x...) do { \
     SAYF(cLRD "\n[-] PROGRAM ABORT : " cBRI x); \
     SAYF(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n\n", \
          __FUNCTION__, __FILE__, __LINE__); \
     abort(); \
   } while (0)
+
+/* Die while also including the output of perror(). */
 
 #define PFATAL(x...) do { \
     fflush(stdout); \
@@ -156,6 +180,28 @@
     perror(cLRD "       OS message " cRST); \
     SAYF("\n"); \
     exit(1); \
+  } while (0)
+
+/* Die with FAULT() or PFAULT() depending on the value of res (used to
+   interpret different failure modes for read(), write(), etc). */
+
+#define RPFATAL(res, x...) do { \
+    if (res < 0) PFATAL(x); else FATAL(x); \
+  } while (0)
+
+/* Error-checking versions of read() and write() that call RPFATAL() as
+   appropriate. */
+
+#define ck_write(fd, buf, len, fn) do { \
+    u32 _len = (len); \
+    s32 _res = write(fd, buf, _len); \
+    if (_res != _len) RPFATAL(_res, "Short write to %s", fn); \
+  } while (0)
+
+#define ck_read(fd, buf, len, fn) do { \
+    u32 _len = (len); \
+    s32 _res = read(fd, buf, _len); \
+    if (_res != _len) RPFATAL(_res, "Short read from %s", fn); \
   } while (0)
 
 #endif /* ! _HAVE_DEBUG_H */

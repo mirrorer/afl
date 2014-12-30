@@ -6,12 +6,28 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 1.06b:
+--------------
+
+  - Switched to slightly more accurate (if still not very helpful) reporting
+    of short read and short write errors. These theoretically shouldn't happen
+    unless you kill the forkserver or run out of disk space. Suggested by
+    Jakub Wilk.
+
+  - Revamped some of the allocator and debug code, adding comments and
+    cleaning up other mess.
+
+  - Tweaked the odds of fuzzing non-favored test cases to make sure that
+    baseline coverage of all inputs is reached sooner.
+
+--------------
 Version 1.05b:
 --------------
 
   - Added a dictionary for WebP.
 
-  - Made some additional performance improvements to minimize_corpus.sh.
+  - Made some additional performance improvements to minimize_corpus.sh,
+    getting deeper into the bash woods.
 
 --------------
 Version 1.04b:

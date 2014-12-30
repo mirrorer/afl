@@ -109,7 +109,7 @@ static u8  virgin_bits[MAP_SIZE],     /* Regions yet untouched by fuzzing */
 static s32 shm_id;                    /* ID of the SHM region             */
 
 static volatile u8 stop_soon,         /* Ctrl-C pressed?                  */
-                   clear_screen,      /* Window resized?                  */
+                   clear_screen = 1,  /* Window resized?                  */
                    child_timed_out;   /* Traced process timed out?        */
 
 static u32 queued_paths,              /* Total number of queued testcases */
@@ -301,8 +301,7 @@ static inline u32 UR(u32 limit) {
 
     u32 seed[2];
 
-    if (read(dev_urandom_fd, &seed, sizeof(seed)) != sizeof(seed))
-      PFATAL("Short read from /dev/urandom");
+    ck_read(dev_urandom_fd, &seed, sizeof(seed), "/dev/urandom");
 
     srandom(seed[0]);
     rand_cnt = (RESEED_RNG / 2) + (seed[1] % RESEED_RNG);
@@ -648,8 +647,7 @@ static inline void write_bitmap(void) {
 
   if (fd < 0) PFATAL("Unable to open '%s'", fname);
 
-  if (write(fd, virgin_bits, MAP_SIZE) != MAP_SIZE)
-    PFATAL("Short write to '%s'", fname);
+  ck_write(fd, virgin_bits, MAP_SIZE, fname);
 
   close(fd);
   ck_free(fname);
@@ -665,8 +663,7 @@ static inline void read_bitmap(u8* fname) {
 
   if (fd < 0) PFATAL("Unable to open '%s'", fname);
 
-  if (read(fd, virgin_bits, MAP_SIZE) != MAP_SIZE)
-    PFATAL("Short read from '%s'", fname);
+  ck_read(fd, virgin_bits, MAP_SIZE, fname);
 
   close(fd);
 
@@ -1206,17 +1203,22 @@ static void load_extras(u8* dir) {
       PFATAL("Unable to access '%s'", fn);
 
     /* This also takes care of . and .. */
-    if (!S_ISREG(st.st_mode) || !st.st_size) continue;
+    if (!S_ISREG(st.st_mode) || !st.st_size) {
+
+      ck_free(fn);
+      continue;
+
+    }
 
     if (st.st_size > MAX_EXTRA_FILE)
       FATAL("Extra '%s' is too big (%s, limit is %s)", fn,
             DMS(st.st_size), DMS(MAX_EXTRA_FILE));
 
-
     if (min_len > st.st_size) min_len = st.st_size;
     if (max_len < st.st_size) max_len = st.st_size;
 
-    extras = ck_realloc(extras, (extras_cnt + 1) * sizeof(struct extra_data));
+    extras = ck_realloc_block(extras, (extras_cnt + 1) *
+               sizeof(struct extra_data));
 
     extras[extras_cnt].data = ck_alloc(st.st_size);
     extras[extras_cnt].len  = st.st_size;
@@ -1225,8 +1227,7 @@ static void load_extras(u8* dir) {
 
     if (fd < 0) PFATAL("Unable to open '%s'", fn);
 
-    if (read(fd, extras[extras_cnt].data, st.st_size) != st.st_size)
-      PFATAL("Short read from '%s'", fn);
+    ck_read(fd, extras[extras_cnt].data, st.st_size, fn);
 
     close(fd);
     ck_free(fn);
@@ -1252,6 +1253,21 @@ static void load_extras(u8* dir) {
           MAX_DET_EXTRAS);
 
 }
+
+
+/* Destroy extras. */
+
+static void destroy_extras(void) {
+
+  u32 i;
+
+  for (i = 0; i < extras_cnt; i++) 
+    ck_free(extras[i].data);
+
+  ck_free(extras);
+
+}
+
 
 
 /* Spin up fork server (instrumented mode only). The idea is explained here:
@@ -1505,7 +1521,7 @@ static void init_forkserver(char** argv) {
 static u8 run_target(char** argv) {
 
   static struct itimerval it;
-  int status;
+  int status = 0;
 
   child_timed_out = 0;
 
@@ -1587,22 +1603,28 @@ static u8 run_target(char** argv) {
 
   } else {
 
+    s32 res;
+
     /* In non-dumb mode, we have the fork server up and running, so simply
        tell it to have at it, and then read back PID. */
 
     if (!forksrv_pid) init_forkserver(argv);
 
-    if (write(fsrv_ctl_fd, &status, 4) != 4) {
+    if ((res = write(fsrv_ctl_fd, &status, 4)) != 4) {
+
       if (stop_soon) return 0;
-      PFATAL("Unable to request new process from fork server");
+      RPFATAL(res, "Unable to request new process from fork server");
+
     }
 
-    if (read(fsrv_st_fd, &child_pid, 4) != 4) {
+    if ((res = read(fsrv_st_fd, &child_pid, 4)) != 4) {
+
       if (stop_soon) return 0;
-      PFATAL("Unable to request new process from fork server");
+      RPFATAL(res, "Unable to request new process from fork server");
+
     }
 
-    if (child_pid <= 0) PFATAL("Fork server is misbehaving, sorry");
+    if (child_pid <= 0) FATAL("Fork server is misbehaving, sorry");
 
   }
 
@@ -1621,10 +1643,12 @@ static u8 run_target(char** argv) {
 
   } else {
 
-    if (read(fsrv_st_fd, &status, 4) != 4) {
+    s32 res;
+
+    if ((res = read(fsrv_st_fd, &status, 4)) != 4) {
 
       if (stop_soon) return 0;
-      PFATAL("Unable to communicate with fork server");
+      RPFATAL(res, "Unable to communicate with fork server");
 
     }
 
@@ -1683,8 +1707,7 @@ static void write_to_testcase(void* mem, u32 len) {
 
   } else lseek(fd, 0, SEEK_SET);
 
-  if (write(fd, mem, len) != len) 
-    PFATAL("Short write to output file");
+  ck_write(fd, mem, len, out_file);
 
   if (!out_file) {
 
@@ -1713,11 +1736,9 @@ static void write_with_gap(void* mem, u32 len, u32 skip_at, u32 skip_len) {
 
   } else lseek(fd, 0, SEEK_SET);
 
-  if (skip_at && write(fd, mem, skip_at) != skip_at) 
-    PFATAL("Short write to output file");
+  if (skip_at) ck_write(fd, mem, skip_at, out_file);
 
-  if (tail_len && write(fd, mem + skip_at + skip_len, tail_len) != tail_len) 
-    PFATAL("Short write to output file");
+  if (tail_len) ck_write(fd, mem + skip_at + skip_len, tail_len, out_file);
 
   if (!out_file) {
 
@@ -2016,7 +2037,7 @@ static void link_or_copy(u8* old_path, u8* new_path) {
   tmp = ck_alloc(64 * 1024);
 
   while ((i = read(sfd, tmp, 64 * 1024)) > 0) 
-    if (write(dfd, tmp, i) != i) PFATAL("Short write to '%s'", new_path);
+    ck_write(dfd, tmp, i, new_path);
 
   if (i < 0) PFATAL("read() failed");
 
@@ -2171,7 +2192,7 @@ static void write_crash_readme(void) {
 
              "  http://lcamtuf.coredump.cx/afl/\n\n"
 
-             "Thanks :-)\n");
+             "Thanks :-)\n"); /* ignore errors */
 
   fclose(f);
 
@@ -2221,7 +2242,7 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 
     fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
     if (fd < 0) PFATAL("Unable to create '%s'\n", fn);
-    if (write(fd, mem, len) != len) PFATAL("Short write to '%s'", fn);
+    ck_write(fd, mem, len, fn);
     close(fd);
 
     keeping = 1;
@@ -2297,7 +2318,7 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 
   fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
   if (fd < 0) PFATAL("Unable to create '%s'\n", fn);
-  if (write(fd, mem, len) != len) PFATAL("Short write to '%s'", fn);
+  ck_write(fd, mem, len, fn);
   close(fd);
 
   ck_free(fn);
@@ -2348,7 +2369,7 @@ static void write_stats_file(double bitmap_cvg, double eps) {
              queued_discovered, queued_imported, max_depth,
              current_entry, pending_favored, pending_not_fuzzed,
              queued_variable, bitmap_cvg, unique_crashes, unique_hangs,
-             use_banner);
+             use_banner); /* ignore errors */
 
   fclose(f);
 
@@ -2386,7 +2407,7 @@ static void maybe_update_plot_file(double bitmap_cvg, double eps) {
           "%llu, %llu, %u, %u, %u, %u, %0.02f%%, %llu, %llu, %u, %0.02f\n",
           get_cur_time() / 1000, queue_cycle - 1, current_entry, queued_paths,
           pending_not_fuzzed, pending_favored, bitmap_cvg, unique_crashes,
-          unique_hangs, max_depth, eps);
+          unique_hangs, max_depth, eps); /* ignore errors */
 
   fflush(plot_file);
 
@@ -3283,9 +3304,7 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
 
     if (fd < 0) PFATAL("Unable to create '%s'", q->fname);
 
-    if (write(fd, in_buf, q->len) != q->len)
-      PFATAL("Short write to '%s'", q->fname);
-
+    ck_write(fd, in_buf, q->len, q->fname);
     close(fd);
 
     memcpy(trace_bits, clean_trace, MAP_SIZE);
@@ -3475,12 +3494,21 @@ static u8 fuzz_one(char** argv) {
     if ((queue_cur->was_fuzzed || !queue_cur->favored) &&
         UR(100) < SKIP_TO_NEW_PROB) return 1;
 
-  } else if (!dumb_mode) {
+  } else if (!dumb_mode && !queue_cur->favored && queued_paths > 10) {
 
-    /* Otherwise, still possibly skip non-favored cases, albeit less often. */
+    /* Otherwise, still possibly skip non-favored cases, albeit less often.
+       The odds of skipping stuff are higher for already-fuzzed inputs and
+       lower for never-fuzzed entries. */
 
-    if (!queue_cur->favored && queued_paths > 10 && UR(100) < SKIP_NFAV_PROB)
-      return 1;
+    if (queue_cycle > 1 && !queue_cur->was_fuzzed) {
+
+      if (UR(100) < SKIP_NFAV_NEW_PROB) return 1;
+
+    } else {
+
+      if (UR(100) < SKIP_NFAV_OLD_PROB) return 1;
+
+    }
 
   }
 
@@ -4627,8 +4655,7 @@ retry_splicing:
 
     new_buf = ck_alloc_nozero(target->len);
 
-    if (read(fd, new_buf, target->len) != target->len)
-      PFATAL("Short read from '%s'", target->fname);
+    ck_read(fd, new_buf, target->len, target->fname);
 
     close(fd);
 
@@ -4807,8 +4834,7 @@ static void sync_fuzzers(char** argv) {
 
     }
 
-    if (write(id_fd, &next_min_accept, sizeof(u32)) != sizeof(u32))
-      PFATAL("Short write to '%s'", qd_synced_path);
+    ck_write(id_fd, &next_min_accept, sizeof(u32), qd_synced_path);
 
     close(id_fd);
     closedir(qd);
@@ -5160,6 +5186,7 @@ static void setup_dirs_fds(void) {
   fprintf(plot_file, "# unix_time, cycles_done, cur_path, paths_total, "
                      "pending_total, pending_favs, map_size, unique_crashes, "
                      "unique_hangs, max_depth, execs_per_sec\n");
+                     /* ignore errors */
 
 }
 
@@ -5732,8 +5759,6 @@ int main(int argc, char** argv) {
     if (stop_soon) goto stop_fuzzing;
   }
 
-  clear_screen = 1;
-
   while (1) {
 
     u8 skipped_fuzz;
@@ -5803,6 +5828,9 @@ stop_fuzzing:
 
   fclose(plot_file);
   destroy_queue();
+  destroy_extras();
+  ck_free(target_path);
+
   alloc_report();
 
   OKF("We're done here. Have a nice day!\n");
