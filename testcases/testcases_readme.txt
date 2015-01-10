@@ -4,8 +4,8 @@ This directory contains two sets of data:
     data formats, including images, archives, and so on. You can use them
     directly with the -i option when running afl-fuzz.
 
-  - A smaller set of fuzzing dictionaries (in _extras/) to be used with the -x
-    option, as discussed in the README.
+  - A smaller set of fuzzing dictionaries, provided in _extras/ subdirectory and
+    to be used with the -x option, as discussed in the README.
 
 The first data set probably requires no special discussion. The other provides
 good examples of syntax tokens both for binary files (e.g., PNG, TIFF) and for
@@ -27,5 +27,4 @@ initial samples, my current "most wanted" list inclues:
   - AAC,
   - WebM,
   - Small JPEG with ICC (LCMS),
-  - Small font (Freetype),
-  - Perhaps a couple more exotic compression formats.
+  - Small font (Freetype).

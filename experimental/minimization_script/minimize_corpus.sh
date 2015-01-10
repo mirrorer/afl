@@ -155,7 +155,7 @@ echo "[*] Finding best candidates for each tuple..."
 # suggests that this usually produces smaller data sets than more involved
 # approaches that would be still viable in a shell script.
 
-# The weird default-value construct is used simply because it's noticably
+# The weird default-value construct is used simply because it's noticeably
 # faster than a proper if / test block; the call to ls -rS takes care of
 # starting with the smallest files first.
 

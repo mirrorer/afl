@@ -89,7 +89,8 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            uses_asan,                 /* Target uses ASAN?                */
            no_forkserver,             /* Disable forkserver?              */
            crash_mode,                /* Crash mode! Yeah!                */
-           in_place_resume;           /* Attempt in-place resume?         */
+           in_place_resume,           /* Attempt in-place resume?         */
+           auto_changed;              /* Auto-generated tokens changed?   */
     
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
@@ -213,10 +214,14 @@ static struct queue_entry*
 struct extra_data {
   u8* data;                           /* Dictionary token data            */
   u32 len;                            /* Dictionary token length          */
+  u32 hit_cnt;                        /* Use count in the corpus          */
 };
 
 static struct extra_data* extras;     /* Extra tokens to fuzz with        */
 static u32 extras_cnt;                /* Total number of tokens read      */
+
+static struct extra_data* a_extras;   /* Automatically selected extras    */
+static u32 a_extras_cnt;              /* Total number of tokens available */
 
 /* Interesting values, as per config.h */
 
@@ -1171,11 +1176,18 @@ static void read_testcases(void) {
 
 /* Helper function for load_extras. */
 
-static int compare_extras(const void* p1, const void* p2) {
+static int compare_extras_len(const void* p1, const void* p2) {
   struct extra_data *e1 = (struct extra_data*)p1,
                     *e2 = (struct extra_data*)p2;
 
   return e1->len - e2->len;
+}
+
+static int compare_extras_use_d(const void* p1, const void* p2) {
+  struct extra_data *e1 = (struct extra_data*)p1,
+                    *e2 = (struct extra_data*)p2;
+
+  return e2->hit_cnt - e1->hit_cnt;
 }
 
 
@@ -1239,7 +1251,7 @@ static void load_extras(u8* dir) {
   closedir(d);
   if (!extras_cnt) FATAL("No usable files in '%s'", dir);
 
-  qsort(extras, extras_cnt, sizeof(struct extra_data), compare_extras);
+  qsort(extras, extras_cnt, sizeof(struct extra_data), compare_extras_len);
 
   OKF("Loaded %u extra tokens, size range %s to %s.", extras_cnt,
       DMS(min_len), DMS(max_len));
@@ -1255,6 +1267,186 @@ static void load_extras(u8* dir) {
 }
 
 
+/* Helper function for maybe_add_auto() */
+
+static inline u8 memcmp_nocase(u8* m1, u8* m2, u32 len) {
+
+  while (len--) if (tolower(*(m1++)) ^ tolower(*(m2++))) return 1;
+  return 0;
+
+}
+
+
+/* Maybe add automatic extra. */
+
+static void maybe_add_auto(u8* mem, u32 len) {
+
+  u32 i;
+
+  /* Allow users to specify that they don't want auto dictionaries. */
+
+  if (!MAX_AUTO_EXTRAS || !USE_AUTO_EXTRAS) return;
+
+  /* Reject builtin interesting values. */
+
+  if (len == 2) {
+
+    i = sizeof(interesting_16) >> 1;
+
+    while (i--) 
+      if (*((u16*)mem) == interesting_16[i] ||
+          *((u16*)mem) == SWAP16(interesting_16[i])) return;
+
+  }
+
+  if (len == 4) {
+
+    i = sizeof(interesting_32) >> 2;
+
+    while (i--) 
+      if (*((u32*)mem) == interesting_32[i] ||
+          *((u32*)mem) == SWAP32(interesting_32[i])) return;
+
+  }
+
+  /* Reject anything that matches existing extras. Do a case-insensitive
+     match. We optimize by exploiting the fact that extras[] are sorted
+     by size. */
+
+  for (i = 0; i < extras_cnt; i++)
+    if (extras[i].len >= len) break;
+
+  for (; i < extras_cnt && extras[i].len == len; i++)
+    if (!memcmp_nocase(extras[i].data, mem, len)) return;
+
+  /* Last but not least, check a_extras[] for matches. There are no
+     guarantees of a particular sort order. */
+
+  auto_changed = 1;
+
+  for (i = 0; i < a_extras_cnt; i++) {
+
+    if (a_extras[i].len == len && !memcmp_nocase(a_extras[i].data, mem, len)) {
+
+      a_extras[i].hit_cnt++;
+      goto sort_a_extras;
+
+    }
+
+  }
+
+  /* At this point, looks like we're dealing with a new entry. So, let's
+     append it if we have room. Otherwise, let's randomly evict some other
+     entry from the bottom half of the list. */
+
+  if (a_extras_cnt < MAX_AUTO_EXTRAS) {
+
+    a_extras = ck_realloc_block(a_extras, (a_extras_cnt + 1) *
+                                sizeof(struct extra_data));
+
+    a_extras[a_extras_cnt].data = ck_memdup(mem, len);
+    a_extras[a_extras_cnt].len  = len;
+    a_extras_cnt++;
+
+  } else {
+
+    i = MAX_AUTO_EXTRAS / 2 +
+        UR((MAX_AUTO_EXTRAS + 1) / 2);
+
+    ck_free(a_extras[i].data);
+
+    a_extras[i].data    = ck_memdup(mem, len);
+    a_extras[i].len     = len;
+    a_extras[i].hit_cnt = 0;
+
+  }
+
+sort_a_extras:
+
+  /* First, sort all auto extras by use count, descending order. */
+
+  qsort(a_extras, a_extras_cnt, sizeof(struct extra_data),
+        compare_extras_use_d);
+
+  /* Then, sort the top USE_AUTO_EXTRAS entries by size. */
+
+  qsort(a_extras, MIN(USE_AUTO_EXTRAS, a_extras_cnt),
+        sizeof(struct extra_data), compare_extras_len);
+
+}
+
+
+/* Save automatically generated extras. */
+
+static void save_auto(void) {
+
+  u32 i;
+
+  if (!auto_changed) return;
+  auto_changed = 0;
+
+  for (i = 0; i < MIN(USE_AUTO_EXTRAS, a_extras_cnt); i++) {
+
+    u8* fn = alloc_printf("%s/queue/.state/auto_extras/auto_%06u", out_dir, i);
+    s32 fd;
+
+    fd = open(fn, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+
+    if (fd < 0) PFATAL("Unable to create '%s'", fn);
+
+    ck_write(fd, a_extras[i].data, a_extras[i].len, fn);
+
+    close(fd);
+    ck_free(fn);
+
+  }
+
+}
+
+
+/* Load automatically generated extras. */
+
+static void load_auto(void) {
+
+  u32 i;
+
+  for (i = 0; i < USE_AUTO_EXTRAS; i++) {
+
+    u8  tmp[MAX_AUTO_LEN + 1];
+    u8* fn = alloc_printf("%s/.state/auto_extras/auto_%06u", in_dir, i);
+    s32 fd, len;
+
+    fd = open(fn, O_RDONLY, 0600);
+
+    if (fd < 0) {
+
+      if (errno != ENOENT) PFATAL("Unable to open '%s'", fn);
+      ck_free(fn);
+      break;
+
+    }
+
+    /* We read one byte more to cheaply detect tokens that are too
+       long (and skip them). */
+
+    len = read(fd, tmp, MAX_AUTO_LEN + 1);
+
+    if (len < 0) PFATAL("Unable to read from '%s'", fn);
+
+    if (len >= MIN_AUTO_LEN && len <= MAX_AUTO_LEN)
+      maybe_add_auto(tmp, len);
+
+    close(fd);
+    ck_free(fn);
+
+  }
+
+  if (i) OKF("Loaded %u auto-discovered dictionary tokens.", i);
+  else OKF("No auto-generated dictionary tokens to reuse.");
+
+}
+
+
 /* Destroy extras. */
 
 static void destroy_extras(void) {
@@ -1266,8 +1458,12 @@ static void destroy_extras(void) {
 
   ck_free(extras);
 
-}
+  for (i = 0; i < a_extras_cnt; i++) 
+    ck_free(a_extras[i].data);
 
+  ck_free(a_extras);
+
+}
 
 
 /* Spin up fork server (instrumented mode only). The idea is explained here:
@@ -2510,6 +2706,10 @@ static void nuke_resume_dir(void) {
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
 
+  fn = alloc_printf("%s/_resume/.state/auto_extras", out_dir);
+  if (delete_files(fn, "auto_")) goto dir_cleanup_failed;
+  ck_free(fn);
+
   fn = alloc_printf("%s/_resume/.state/redundant_edges", out_dir);
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
   ck_free(fn);
@@ -2631,6 +2831,10 @@ static void maybe_delete_out_dir(void) {
 
   fn = alloc_printf("%s/queue/.state/deterministic_done", out_dir);
   if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  ck_free(fn);
+
+  fn = alloc_printf("%s/queue/.state/auto_extras", out_dir);
+  if (delete_files(fn, "auto_")) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/queue/.state/redundant_edges", out_dir);
@@ -2793,12 +2997,13 @@ static void show_stats(void) {
   t_bytes = count_non_255_bytes(virgin_bits);
   t_byte_ratio = ((double)t_bytes * 100) / MAP_SIZE;
 
-  /* Roughly every minute, update fuzzer stats. */
+  /* Roughly every minute, update fuzzer stats and save auto tokens. */
 
   if (cur_ms - last_stats_ms > STATS_UPDATE_SEC * 1000) {
 
     last_stats_ms = cur_ms;
     write_stats_file(t_byte_ratio, avg_exec);
+    save_auto();
 
   }
 
@@ -3298,7 +3503,7 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
 
     s32 fd;
 
-    unlink(q->fname); /* Ignore errors */
+    unlink(q->fname); /* ignore errors */
 
     fd = open(q->fname, O_WRONLY | O_CREAT | O_EXCL, 0600);
 
@@ -3476,6 +3681,10 @@ static u8 fuzz_one(char** argv) {
 
   u8  ret_val = 1;
 
+  u8  a_collect[MAX_AUTO_LEN];
+  u32 a_len = 0;
+  u32 prev_cksum;
+
 #ifdef IGNORE_FINDS
 
   /* In IGNORE_FINDS mode, skip any entries that weren't in the
@@ -3593,16 +3802,16 @@ static u8 fuzz_one(char** argv) {
 
   perf_score = calculate_score(queue_cur);
 
-  /* We want to skip deterministic stages if -d is given; if we have done
-     any fuzzing on this case ourselves (was_fuzzed); or if it came marked
-     as such from an earlier fuzzing run (!was_fuzzed but passed_det). */
+  /* Skip right away if -d is given, if we have done deterministic fuzzing on
+     this entry ourselves (was_fuzzed), or if it has gone through deterministic
+     testing in earlier, resumed runs (passed_det). */
 
   if (skip_deterministic || queue_cur->was_fuzzed || queue_cur->passed_det)
     goto havoc_stage;
 
-  /******************
-   * SIMPLE BITFLIP *
-   ******************/
+  /*********************************************
+   * SIMPLE BITFLIP (+dictionary construction) *
+   *********************************************/
 
 #define FLIP_BIT(_ar, _b) do { \
     u8* _arf = (u8*)(_ar); \
@@ -3612,13 +3821,15 @@ static u8 fuzz_one(char** argv) {
 
   /* Single walking bit. */
 
-  stage_name  = "bitflip 1/1";
   stage_short = "flip1";
   stage_max   = len << 3;
+  stage_name  = "bitflip 1/1";
 
   stage_val_type = STAGE_VAL_NONE;
 
   orig_hit_cnt = queued_paths + unique_crashes;
+
+  prev_cksum = queue_cur->exec_cksum;
 
   for (stage_cur = 0; stage_cur < stage_max; stage_cur++) {
 
@@ -3630,12 +3841,75 @@ static u8 fuzz_one(char** argv) {
 
     FLIP_BIT(out_buf, stage_cur);
 
+    /* While flipping the least significant bit in every byte, pull of an extra
+       trick to detect possible syntax tokens. In essence, the ideas is that if
+       you have a binary blob like this:
+
+       xxxxxxxxIHDRxxxxxxxx
+
+       ...and changing the heading and trailing bytes causes variable or no
+       changes in program flow, but touching any character in the "IHDR" string
+       always causes the same, distinct control flow, it's highly likely that
+       "IDR" is an atomically-checked magic value of special significance to
+       the fuzzer format.
+
+       We do this here, rather than as a separate stage, because it's a nice
+       way to keep the operation approximately "free" (i.e., no extra execs).
+       
+       Empirically, performing the check when flipping the least significant bit
+       is advantageous, compared to doing it at the time of more disruptive
+       changes, where the program flow may be affected in more violent ways.
+
+      */
+
+    if ((stage_cur & 7) == 7) {
+
+      u32 cksum = hash32(trace_bits, MAP_SIZE, 0xa5b35705);
+
+      if (stage_cur == stage_max - 1 && cksum == prev_cksum) {
+
+        /* If at end of file and we are still collecting a string, grab the
+           final character and force output. */
+
+        if (a_len < MAX_AUTO_LEN) a_collect[a_len] = out_buf[stage_cur >> 3];        
+        a_len++;
+
+        if (a_len >= MIN_AUTO_LEN && a_len <= MAX_AUTO_LEN)
+          maybe_add_auto(a_collect, a_len);
+
+      } else if (cksum != prev_cksum) {
+
+        /* Otherwise, if the checksum has changed, see if we have something
+           worthwhile queued up, and collect that if the answer is yes. */
+
+        if (a_len >= MIN_AUTO_LEN && a_len <= MAX_AUTO_LEN)
+          maybe_add_auto(a_collect, a_len);
+
+        a_len = 0;
+        prev_cksum = cksum;
+
+      }
+
+      /* Continue collecting string, but only if the bit flip actually made
+         any difference - we don't want no-op tokens. */
+
+      if (cksum != queue_cur->exec_cksum) {
+
+        if (a_len < MAX_AUTO_LEN) a_collect[a_len] = out_buf[stage_cur >> 3];        
+        a_len++;
+
+      }
+
+    }
+
   }
 
   new_hit_cnt = queued_paths + unique_crashes;
 
   stage_finds[STAGE_FLIP1]  += new_hit_cnt - orig_hit_cnt;
   stage_cycles[STAGE_FLIP1] += stage_max;
+
+  if (queue_cur->passed_det) goto havoc_stage;
 
   /* Two walking bits. */
 
@@ -4140,11 +4414,11 @@ skip_interest:
    * USER-SUPPLIED EXTRAS *
    ************************/
 
-  if (!extras_cnt || extras_cnt > MAX_DET_EXTRAS) goto skip_extras;
+  if (!extras_cnt && extras_cnt > MAX_DET_EXTRAS) goto skip_user_extras;
 
   /* Setting 32-bit integers, both endians. */
 
-  stage_name  = "extras";
+  stage_name  = "extras (user)";
   stage_short = "extra";
   stage_cur   = 0;
   stage_max   = extras_cnt * len;
@@ -4176,6 +4450,45 @@ skip_interest:
 
       last_len = extras[j].len;
       memcpy(out_buf + i, extras[j].data, last_len);
+
+      if (common_fuzz_stuff(argv, out_buf, len)) goto abandon_entry;
+
+      stage_cur++;
+
+    }
+
+    /* Restore all the clobbered memory. */
+    memcpy(out_buf + i, in_buf + i, last_len);
+
+  }
+
+skip_user_extras:
+
+  if (!a_extras_cnt) goto skip_extras;
+
+  stage_name  = "extras (auto)";
+  stage_short = "extra";
+  stage_cur   = 0;
+  stage_max   = MIN(a_extras_cnt, USE_AUTO_EXTRAS) * len;
+
+  for (i = 0; i < len; i++) {
+
+    u32 last_len = 0;
+
+    stage_cur_byte = i;
+
+    for (j = 0; j < MIN(a_extras_cnt, USE_AUTO_EXTRAS); j++) {
+
+      if (a_extras[j].len > len - i ||
+          !memcmp(a_extras[j].data, out_buf + i, a_extras[j].len)) {
+
+        stage_max--;
+        continue;
+
+      }
+
+      last_len = a_extras[j].len;
+      memcpy(out_buf + i, a_extras[j].data, last_len);
 
       if (common_fuzz_stuff(argv, out_buf, len)) goto abandon_entry;
 
@@ -4245,7 +4558,7 @@ havoc_stage:
  
     for (i = 0; i < use_stacking; i++) {
 
-      switch (UR(15 + (extras_cnt ? 2 : 0))) {
+      switch (UR(15 + ((extras_cnt + a_extras_cnt) ? 2 : 0))) {
 
         case 0:
 
@@ -4514,14 +4827,29 @@ havoc_stage:
 
             /* Overwrite bytes with an user-specified extra. */
 
-            u32 use_extra = UR(extras_cnt);
-            u32 extra_len = extras[use_extra].len;
-            u32 insert_at;
+            if (!extras_cnt || UR(2)) {
 
-            if (extra_len > temp_len) break;
+              u32 use_extra = UR(a_extras_cnt);
+              u32 extra_len = a_extras[use_extra].len;
+              u32 insert_at;
 
-            insert_at = UR(temp_len - extra_len + 1);
-            memcpy(out_buf + insert_at, extras[use_extra].data, extra_len);
+              if (extra_len > temp_len) break;
+
+              insert_at = UR(temp_len - extra_len + 1);
+              memcpy(out_buf + insert_at, a_extras[use_extra].data, extra_len);
+
+            } else {
+
+              u32 use_extra = UR(extras_cnt);
+              u32 extra_len = extras[use_extra].len;
+              u32 insert_at;
+
+              if (extra_len > temp_len) break;
+
+              insert_at = UR(temp_len - extra_len + 1);
+              memcpy(out_buf + insert_at, extras[use_extra].data, extra_len);
+
+            }
 
             break;
 
@@ -4529,22 +4857,42 @@ havoc_stage:
 
         case 17: {
 
-            /* Insert an user-specified extra. */
-
-            u32 use_extra = UR(extras_cnt);
-            u32 extra_len = extras[use_extra].len;
-            u32 insert_at = UR(temp_len);
+            u32 use_extra, extra_len, insert_at = UR(temp_len);
             u8* new_buf;
 
-            if (temp_len + extra_len >= MAX_FILE) break;
+            /* Insert an user-specified extra. */
 
-            new_buf = ck_alloc_nozero(temp_len + extra_len);
+            if (!extras_cnt || UR(2)) {
 
-            /* Head */
-            memcpy(new_buf, out_buf, insert_at);
+              use_extra = UR(a_extras_cnt);
+              extra_len = a_extras[use_extra].len;
 
-            /* Inserted part */
-            memcpy(new_buf + insert_at, extras[use_extra].data, extra_len);
+              if (temp_len + extra_len >= MAX_FILE) break;
+
+              new_buf = ck_alloc_nozero(temp_len + extra_len);
+
+              /* Head */
+              memcpy(new_buf, out_buf, insert_at);
+
+              /* Inserted part */
+              memcpy(new_buf + insert_at, a_extras[use_extra].data, extra_len);
+
+            } else {
+
+              use_extra = UR(extras_cnt);
+              extra_len = extras[use_extra].len;
+
+              if (temp_len + extra_len >= MAX_FILE) break;
+
+              new_buf = ck_alloc_nozero(temp_len + extra_len);
+
+              /* Head */
+              memcpy(new_buf, out_buf, insert_at);
+
+              /* Inserted part */
+              memcpy(new_buf + insert_at, extras[use_extra].data, extra_len);
+
+            }
 
             /* Tail */
             memcpy(new_buf + insert_at + extra_len, out_buf + insert_at,
@@ -5133,25 +5481,45 @@ static void setup_dirs_fds(void) {
 
   }
 
+  /* Queue directory for any starting & discoered paths. */
+
   tmp = alloc_printf("%s/queue", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
+
+  /* Top-level directory for queue metadata used for session
+     resume and related tasks. */
 
   tmp = alloc_printf("%s/queue/.state/", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
 
+  /* Directory for flagging queue entries that went through
+     deterministic fuzzing in the past. */
+
   tmp = alloc_printf("%s/queue/.state/deterministic_done/", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
+
+  /* Directory with the auto-selected dictionary entries. */
+
+  tmp = alloc_printf("%s/queue/.state/auto_extras/", out_dir);
+  if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
+  ck_free(tmp);
+
+  /* The set of paths currently deemed redundant. */
 
   tmp = alloc_printf("%s/queue/.state/redundant_edges/", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
 
+  /* The set of paths showing variable behavior. */
+
   tmp = alloc_printf("%s/queue/.state/variable_behavior/", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
+
+  /* Sync directory for keeping track of cooperating fuzzers. */
 
   if (sync_id) {
 
@@ -5161,19 +5529,27 @@ static void setup_dirs_fds(void) {
 
   }
 
+  /* All recorded crashes. */
+
   tmp = alloc_printf("%s/crashes", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
 
+  /* All recorded hangs. */
+
   tmp = alloc_printf("%s/hangs", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);
   ck_free(tmp);
+
+  /* Generally useful file descriptors. */
 
   dev_null_fd = open("/dev/null", O_RDWR);
   if (dev_null_fd < 0) PFATAL("Unable to open /dev/null");
 
   dev_urandom_fd = open("/dev/urandom", O_RDONLY);
   if (dev_urandom_fd < 0) PFATAL("Unable to open /dev/urandom");
+
+  /* Gnuplot output file. */
 
   tmp = alloc_printf("%s/plot_data", out_dir);
   fd = open(tmp, O_WRONLY | O_CREAT | O_EXCL, 0600);
@@ -5728,6 +6104,7 @@ int main(int argc, char** argv) {
   setup_dirs_fds();
 
   read_testcases();
+  load_auto();
 
   pivot_inputs();
 
@@ -5750,6 +6127,7 @@ int main(int argc, char** argv) {
   if (stop_soon) goto stop_fuzzing;
 
   write_stats_file(0, 0);
+  save_auto();
 
   /* Woop woop woop */
 
@@ -5814,6 +6192,8 @@ int main(int argc, char** argv) {
 
 stop_fuzzing:
 
+  save_auto();
+
   SAYF(cLRD "\n+++ Testing aborted by user +++\n" cRST);
 
   /* Running for more than 30 minutes but still doing first cycle? */
@@ -5822,7 +6202,7 @@ stop_fuzzing:
 
     SAYF("\n" cYEL "[!] " cRST
            "Stopped during the first cycle, results may be incomplete.\n"
-           "    (For info on resuming, see %s/README.)\n", DOC_PATH);
+           "    (For info on resuming, see %s/README.)\n", doc_path);
 
   }
 

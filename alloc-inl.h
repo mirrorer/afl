@@ -332,7 +332,7 @@ static inline u8* DFL_ck_memdup_str(u8* mem, u32 size) {
 
 #ifndef DEBUG_BUILD
 
-/* In non-debug mode, we just do straigtforward aliasing of the above functions
+/* In non-debug mode, we just do straightforward aliasing of the above functions
    to user-visible names such as ck_alloc(). */
 
 #define ck_alloc          DFL_ck_alloc

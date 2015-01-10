@@ -181,8 +181,10 @@ now. It tells you about the current stage, which can be any of:
   - interest L/8 - deterministic value overwrite. The fuzzer has a list of known
     "interesting" 8-, 16-, and 32-bit values to try. The stepover is 8 bits.
 
-  - extras - deterministic insertion of dictionary terms (only when -x is
-    specified).
+  - extras - deterministic insertion of dictionary terms. This has two flavors:
+    "extras (user)" is shown when going through the optional dictionary
+    specified via -x; while "extras (auto)" is reserved for processing syntax
+    auto-selected by afl-fuzz based on the analysis of input files.
 
   - havoc - a sort-of-fixed-length cycle with stacked random tweaks. The
     operations attempted during this stage include bit flips, overwrites with

@@ -628,8 +628,6 @@ static const u8* main_payload_64 =
   "\n"
   "  incb __afl_setup_failure(%rip)\n"
   "\n"
-  "__afl_setup_pop_and_continue:\n"
-  "\n"
   "  movq %r12, %rsp\n"
   "  popq %r12\n"
   "\n"

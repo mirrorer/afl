@@ -113,6 +113,7 @@
 #define TRIM_START_STEPS    16
 #define TRIM_END_STEPS      1024
 
+
 /* Maximum size of input file, in bytes (keep under 100MB): */
 
 #define MAX_FILE            (1 * 1024 * 1024)
@@ -120,6 +121,19 @@
 /* Maximum "extra" token size (-x), in bytes: */
 
 #define MAX_EXTRA_FILE      128
+
+/* Maximum length of an auto-selected "extra" tokens. This only governs
+   auto-generated dictionaries, not the user-specified ones: */
+
+#define MIN_AUTO_LEN        3
+#define MAX_AUTO_LEN        32
+
+/* Maximum number of auto-extracted "extras" to actually use, and to keep
+   in memory as candidates. The latter should be much higher than the
+   former. */
+
+#define USE_AUTO_EXTRAS     50
+#define MAX_AUTO_EXTRAS     (USE_AUTO_EXTRAS * 10)
 
 /* Maximum number of extras to still carry out deterministic steps: */
 

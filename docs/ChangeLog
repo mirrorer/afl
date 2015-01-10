@@ -6,6 +6,20 @@ is 0.90b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 1.07b:
+--------------
+
+  - Added code that automatically finds and extracts syntax tokens from the
+    input corpus.
+
+  - Fixed a problem with ld dead-code removal option on MacOS X, reported
+    by Filipe Cabecinhas.
+
+  - Corrected minor typos spotted by Jakub Wilk.
+
+  - Added a couple of more exotic archive format samples.
+
+--------------
 Version 1.06b:
 --------------
 

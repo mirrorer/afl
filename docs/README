@@ -58,7 +58,7 @@ form of edge coverage to easily detect subtle, local-scale changes to program
 control flow, without being bogged down by complex comparisons between multiple
 long-winded execution paths.
 
-The overall algorithm can be summed up as:
+Simplifying a bit, the overall algorithm can be summed up as:
 
   1) Load user-supplied initial test cases into the queue,
 
@@ -253,7 +253,14 @@ snippets between 2 and 16 bytes are the sweet spot in almost all cases.
 
 There is no way to provide more structured descriptions of the underlying
 syntax, but the fuzzer will likely figure out some of this based on the
-instrumentation feedback alone.
+instrumentation feedback alone. This actually works in practice, say:
+
+  https://www.mail-archive.com/sqlite-users@sqlite.org/msg88058.html
+
+Even when no explicit dictionary is given, afl-fuzz will try to extract
+existing syntax tokens in the input corpus by watching the instrumentation
+very closely during deterministic byte flips. This works for some types of
+parsers and grammars, but isn't nearly as good as the -x mode.
 
 9) Crash exploration
 --------------------
@@ -368,7 +375,8 @@ bug reports, or patches from:
   - Ryan Govostes,
   - Michael Rash,
   - William Robinet,
-  - Jonathan Gray.
+  - Jonathan Gray,
+  - Filipe Cabecinhas.
 
 Thank you!
 
