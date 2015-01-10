@@ -260,7 +260,10 @@ instrumentation feedback alone. This actually works in practice, say:
 Even when no explicit dictionary is given, afl-fuzz will try to extract
 existing syntax tokens in the input corpus by watching the instrumentation
 very closely during deterministic byte flips. This works for some types of
-parsers and grammars, but isn't nearly as good as the -x mode.
+parsers and grammars, but isn't nearly as good as the -x mode. You can read
+about it here:
+
+  http://lcamtuf.blogspot.com/2015/01/afl-fuzz-making-up-grammar-with.html
 
 9) Crash exploration
 --------------------

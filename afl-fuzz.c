@@ -4827,7 +4827,7 @@ havoc_stage:
 
             /* Overwrite bytes with an user-specified extra. */
 
-            if (!extras_cnt || UR(2)) {
+            if (!extras_cnt || (a_extras_cnt && UR(2))) {
 
               u32 use_extra = UR(a_extras_cnt);
               u32 extra_len = a_extras[use_extra].len;
@@ -4862,7 +4862,7 @@ havoc_stage:
 
             /* Insert an user-specified extra. */
 
-            if (!extras_cnt || UR(2)) {
+            if (!extras_cnt || (a_extras_cnt && UR(2))) {
 
               use_extra = UR(a_extras_cnt);
               extra_len = a_extras[use_extra].len;
