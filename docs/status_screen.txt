@@ -298,9 +298,13 @@ explanations for variable behavior of the tested program:
     write to stdout or to /dev/null to avoid surprises (and disable the
     creation of temporary files, if applicable).
 
+  - Hitting functionality that is actually designed to behave randomly. For
+    example, when fuzzing sqlite, the fuzzer will hit variable behavior with:
+
+    select random();
+
 Less likely causes may include running out of disk space, SHM handles, or other
-globally limited resources; or the program being intentionally designed to
-behave randomly.
+globally limited resources.
 
 The paths where variable behavior is detected are marked with with a matching
 entry in the <out_dir>/.state/variable_behavior/ directory.

@@ -80,7 +80,7 @@ The discovered test cases are also periodically culled to eliminate ones that
 have been obsoleted by newer, higher-coverage finds.
 
 The strategies mentioned in step 4 are fairly straightforward, but go well
-beyond the functionality of  tools such as zzuf and honggfuzz and lead to
+beyond the functionality of tools such as zzuf and honggfuzz and lead to
 additional finds; this is discussed in more detail at http://goo.gl/SoZJ47.
 
 As a side result of the fuzzing process, the tool creates a small,
@@ -186,7 +186,8 @@ but less systematic and less in-depth results right away.
 The fuzzing process will continue until you press Ctrl-C. See the
 status_screen.txt file for information on how to interpret the displayed stats
 and monitor the health of the process. At the *very* minimum, you want to allow
-the fuzzer to complete one queue cycle, which may take a day or so.
+the fuzzer to complete one queue cycle, which may take anywhere from a couple
+of hours to a week or so.
 
 There are three subdirectories created within the output directory and updated
 in real time:
@@ -211,7 +212,16 @@ early in the process, but this should quickly taper off.
 The file names for crashes and hangs should let you correlate them with the
 parent, non-faulting queue entries. This should help with debugging.
 
-Any existing output directory can be also used to resume aborted jobs; simply do:
+When you can't reproduce a crash found by afl-fuzz, the most likely cause is
+that you are not setting the same memory limit as used by the tool. Try:
+
+$ LIMIT_MB=50
+$ ( ulimit -Sv $[LIMIT_MB << 10]; /path/to/tested_binary ... )
+
+Change LIMIT_MB to match the -m parameter passed to afl-fuzz. On OpenBSD,
+also change -Sv to -Sd.
+
+Any existing output directory can be also used to resume aborted jobs; try:
 
 $ ./afl-fuzz -i- -o existing_output_dir [...etc...]
 
@@ -230,17 +240,17 @@ machines, please refer to parallel_fuzzing.txt.
 8) Fuzzer dictionaries
 ----------------------
 
-The afl-fuzz mutation engine is optimized for compact data formats - say,
-images, multimedia, compressed data, regular expression syntax, or shell
+By default, afl-fuzz mutation engine is optimized for compact data formats -
+say, images, multimedia, compressed data, regular expression syntax, or shell
 scripts. It is somewhat less suited for languages with particularly verbose and
-redundant verbiage - notably including HTML, SQL, or JavaScript. With the
-latter data types, building a reasonably clever template- or ABNF-based tool
-tailored to the format at hand would probably yield better results.
+redundant verbiage - notably including HTML, SQL, or JavaScript.
 
-Of course, building syntax-aware fuzzers takes time and effort. To avoid the
-hassle, afl-fuzz provides a way to seed the fuzzing process with an optional
-dictionary of language keywords, magic headers, or other special tokens
-associated with the targeted data type.
+To avoid the hassle of building syntax-aware tools, afl-fuzz provides a way to
+seed the fuzzing process with an optional dictionary of language keywords,
+magic headers, or other special tokens associated with the targeted data type
+- and use that to reconstruct the underlying grammar on the go:
+
+  http://lcamtuf.blogspot.com/2015/01/afl-fuzz-making-up-grammar-with.html
 
 To use this feature, place the tokens in a new directory, one per file; and then
 point the fuzzer to that directory via the -x option in the command line. One
@@ -257,13 +267,10 @@ instrumentation feedback alone. This actually works in practice, say:
 
   https://www.mail-archive.com/sqlite-users@sqlite.org/msg88058.html
 
-Even when no explicit dictionary is given, afl-fuzz will try to extract
+PS. Even when no explicit dictionary is given, afl-fuzz will try to extract
 existing syntax tokens in the input corpus by watching the instrumentation
 very closely during deterministic byte flips. This works for some types of
-parsers and grammars, but isn't nearly as good as the -x mode. You can read
-about it here:
-
-  http://lcamtuf.blogspot.com/2015/01/afl-fuzz-making-up-grammar-with.html
+parsers and grammars, but isn't nearly as good as the -x mode.
 
 9) Crash exploration
 --------------------

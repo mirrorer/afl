@@ -2388,7 +2388,10 @@ static void write_crash_readme(void) {
 
              "  http://lcamtuf.coredump.cx/afl/\n\n"
 
-             "Thanks :-)\n"); /* ignore errors */
+             "Thanks :-)\n\n"
+
+             "PS. If you need a tool to minimize test cases, tmin works pretty well:\n"
+             "http://lcamtuf.coredump.cx/soft/tmin.tgz\n"); /* ignore errors */
 
   fclose(f);
 
@@ -3842,16 +3845,16 @@ static u8 fuzz_one(char** argv) {
     FLIP_BIT(out_buf, stage_cur);
 
     /* While flipping the least significant bit in every byte, pull of an extra
-       trick to detect possible syntax tokens. In essence, the ideas is that if
+       trick to detect possible syntax tokens. In essence, the idea is that if
        you have a binary blob like this:
 
        xxxxxxxxIHDRxxxxxxxx
 
-       ...and changing the heading and trailing bytes causes variable or no
+       ...and changing the leading and trailing bytes causes variable or no
        changes in program flow, but touching any character in the "IHDR" string
-       always causes the same, distinct control flow, it's highly likely that
-       "IDR" is an atomically-checked magic value of special significance to
-       the fuzzer format.
+       always produces the same, distinctive path, it's highly likely that
+       "IHDR" is an atomically-checked magic value of special significance to
+       the fuzzed format.
 
        We do this here, rather than as a separate stage, because it's a nice
        way to keep the operation approximately "free" (i.e., no extra execs).
@@ -3859,6 +3862,9 @@ static u8 fuzz_one(char** argv) {
        Empirically, performing the check when flipping the least significant bit
        is advantageous, compared to doing it at the time of more disruptive
        changes, where the program flow may be affected in more violent ways.
+
+       The caveat is that we won't generate dictionaries in the -d mode or -S
+       mode - but that's probably a fair trade-off.
 
       */
 
@@ -4462,6 +4468,11 @@ skip_interest:
 
   }
 
+  new_hit_cnt = queued_paths + unique_crashes;
+
+  stage_finds[STAGE_EXTRAS]  += new_hit_cnt - orig_hit_cnt;
+  stage_cycles[STAGE_EXTRAS] += stage_max;
+
 skip_user_extras:
 
   if (!a_extras_cnt) goto skip_extras;
@@ -4470,6 +4481,10 @@ skip_user_extras:
   stage_short = "extra";
   stage_cur   = 0;
   stage_max   = MIN(a_extras_cnt, USE_AUTO_EXTRAS) * len;
+
+  stage_val_type = STAGE_VAL_NONE;
+
+  orig_hit_cnt = new_hit_cnt;
 
   for (i = 0; i < len; i++) {
 
@@ -5481,7 +5496,7 @@ static void setup_dirs_fds(void) {
 
   }
 
-  /* Queue directory for any starting & discoered paths. */
+  /* Queue directory for any starting & discovered paths. */
 
   tmp = alloc_printf("%s/queue", out_dir);
   if (mkdir(tmp, 0700)) PFATAL("Unable to create '%s'", tmp);

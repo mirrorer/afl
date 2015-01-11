@@ -12,7 +12,7 @@ jobs.
 
 This is probably the single most important step to take! Large test cases do
 not merely take more time and memory to be parsed by the tested binary, but
-they also make the fuzzing process dramatically less efficient in some other
+they also make the fuzzing process dramatically less efficient in several other
 ways.
 
 To illustrate, let's say that you're randomly flipping bits in a file, one bit
@@ -63,7 +63,8 @@ calling other utilities via exec*(), popen(), system(), or equivalent calls.
 
 Last but not least, if you are using ASAN and the performance is unacceptable,
 consider turning it off for now, and manually examining the generated corpus
-with an ASAN-enabled binary later on.
+with an ASAN-enabled binary later on. The same goes for any features such as
+gcov.
 
 4) Avoid instrumenting ALL THE THINGS
 -------------------------------------
@@ -95,14 +96,15 @@ limit defined with -t - without necessarily sacrificing coverage.
 
 There are several OS-level factors that may affect fuzzing speed:
 
-  - High system load. Use idle machines where possible.
+  - High system load. Use idle machines where possible. Kill any non-essential
+    CPU hogs (idle browser windows, media players, complex screensavers, etc).
 
   - Network filesystems, either used for fuzzer input / output, or accessed by
     the fuzzed binary to read configuration files (pay special attention to the
     home directory).
 
   - On-demand CPU scaling. The Linux 'ondemand' governor runs on a specific
-    schedule and is known to underestimate the cost of short-lived processes
+    schedule and is known to underestimate the needs of short-lived processes
     spawned by afl-fuzz (or any other fuzzer). On Linux, this can be fixed with:
 
     cd /sys/devices/system/cpu
