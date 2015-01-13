@@ -159,8 +159,8 @@ static s32 stage_cur_byte,            /* Byte offset of current stage op  */
 
 static u8  stage_val_type;            /* Value type (STAGE_VAL_*)         */
 
-static u64 stage_finds[15],           /* Patterns found per fuzz stage    */
-           stage_cycles[15];          /* Execs per fuzz stage             */
+static u64 stage_finds[32],           /* Patterns found per fuzz stage    */
+           stage_cycles[32];          /* Execs per fuzz stage             */
 
 static u32 rand_cnt = RESEED_RNG;     /* Random number counter            */
 
@@ -232,21 +232,23 @@ static s32 interesting_32[] = { INTERESTING_8, INTERESTING_16, INTERESTING_32 };
 /* Fuzzing stages */
 
 enum {
-  STAGE_FLIP1,
-  STAGE_FLIP2,
-  STAGE_FLIP4,
-  STAGE_FLIP8,
-  STAGE_FLIP16,
-  STAGE_FLIP32,
-  STAGE_ARITH8,
-  STAGE_ARITH16,
-  STAGE_ARITH32,
-  STAGE_INTEREST8,
-  STAGE_INTEREST16,
-  STAGE_INTEREST32,
-  STAGE_EXTRAS,
-  STAGE_HAVOC,
-  STAGE_SPLICE
+  /* 00 */ STAGE_FLIP1,
+  /* 01 */ STAGE_FLIP2,
+  /* 02 */ STAGE_FLIP4,
+  /* 03 */ STAGE_FLIP8,
+  /* 04 */ STAGE_FLIP16,
+  /* 05 */ STAGE_FLIP32,
+  /* 06 */ STAGE_ARITH8,
+  /* 07 */ STAGE_ARITH16,
+  /* 08 */ STAGE_ARITH32,
+  /* 09 */ STAGE_INTEREST8,
+  /* 10 */ STAGE_INTEREST16,
+  /* 11 */ STAGE_INTEREST32,
+  /* 12 */ STAGE_EXTRAS_UO,
+  /* 13 */ STAGE_EXTRAS_UI,
+  /* 14 */ STAGE_EXTRAS_AO,
+  /* 15 */ STAGE_HAVOC,
+  /* 16 */ STAGE_SPLICE
 };
 
 /* Stage value types */
@@ -3029,7 +3031,7 @@ static void show_stats(void) {
 
   if (clear_screen) {
 
-    SAYF(TERM_CLEAR);
+    SAYF(TERM_CLEAR CURSOR_HIDE);
     clear_screen = 0;
 
   }
@@ -3257,12 +3259,20 @@ static void show_stats(void) {
 
 
   sprintf(tmp, "%s/%s, %s/%s, %s/%s",
-          DI(stage_finds[STAGE_EXTRAS]), DI(stage_cycles[STAGE_EXTRAS]),
+          DI(stage_finds[STAGE_EXTRAS_UO]), DI(stage_cycles[STAGE_EXTRAS_UO]),
+          DI(stage_finds[STAGE_EXTRAS_UI]), DI(stage_cycles[STAGE_EXTRAS_UI]),
+          DI(stage_finds[STAGE_EXTRAS_AO]), DI(stage_cycles[STAGE_EXTRAS_AO]));
+
+  SAYF(bV bSTOP "  dictionary : " cNOR "%-37s " bSTG bV bSTOP
+       "  imported : " cNOR "%-10s " bSTG bV "\n", tmp, DI(queued_imported));
+
+  sprintf(tmp, "%s/%s, %s/%s",
           DI(stage_finds[STAGE_HAVOC]), DI(stage_cycles[STAGE_HAVOC]),
           DI(stage_finds[STAGE_SPLICE]), DI(stage_cycles[STAGE_SPLICE]));
 
-  SAYF(bV bSTOP "  havoc & co : " cNOR "%-37s " bSTG bV bSTOP
-       "  imported : " cNOR "%-10s " bSTG bV "\n", tmp, DI(queued_imported));
+  SAYF(bV bSTOP "       havoc : " cNOR "%-37s " bSTG bV bSTOP 
+       "  variable : %s%-10s " bSTG bV "\n", tmp, queued_variable ? cLRD : cNOR,
+       DI(queued_variable));
 
   if (!bytes_trim_out) {
 
@@ -3276,11 +3286,8 @@ static void show_stats(void) {
 
   }
 
-  SAYF(bV bSTOP "        trim : " cNOR "%-37s " bSTG bV bSTOP 
-       "  variable : %s%-10s " bSTG bV "\n", tmp, queued_variable ? cLRD : cNOR,
-       DI(queued_variable));
-
-  SAYF(bLB bH30 bH20 bH2 bH bHT bH20 bH2 bH2 bRB bSTOP cRST "\n");
+  SAYF(bV bSTOP "        trim : " cNOR "%-37s " bSTG bVR bH20 bH2 bH2 bRB "\n"
+       bLB bH30 bH20 bH2 bH bRB bSTOP cRST, tmp);
 
   /* Provide some CPU utilization stats. */
 
@@ -3300,10 +3307,10 @@ static void show_stats(void) {
 
     if (cur_utilization >= 150) cpu_color = cLRD;
 
-    SAYF(SP20 SP20 SP20 SP5 cGRA "    [cpu:%s%3u%%" cGRA "]\r" cRST,
+    SAYF(SP10 cGRA "   [cpu:%s%3u%%" cGRA "]\r" cRST,
          cpu_color, cur_utilization < 999 ? cur_utilization : 999);
 
-  }
+  } else SAYF("\r");
 
   /* Hallelujah! */
 
@@ -4473,13 +4480,19 @@ skip_interest:
 
   }
 
-  stage_cycles[STAGE_EXTRAS] += stage_max;
+  new_hit_cnt = queued_paths + unique_crashes;
+
+  stage_finds[STAGE_EXTRAS_UO]  += new_hit_cnt - orig_hit_cnt;
+  stage_cycles[STAGE_EXTRAS_UO] += stage_max;
 
   /* Insertion of user-supplied extras. */
 
   stage_name  = "user extras (insert)";
   stage_short = "ext_UI";
   stage_cur   = 0;
+  stage_max   = extras_cnt * len;
+
+  orig_hit_cnt = new_hit_cnt;
 
   ex_tmp = ck_alloc(len + MAX_DICT_FILE);
 
@@ -4513,8 +4526,8 @@ skip_interest:
 
   new_hit_cnt = queued_paths + unique_crashes;
 
-  stage_finds[STAGE_EXTRAS]  += new_hit_cnt - orig_hit_cnt;
-  stage_cycles[STAGE_EXTRAS] += stage_max;
+  stage_finds[STAGE_EXTRAS_UI]  += new_hit_cnt - orig_hit_cnt;
+  stage_cycles[STAGE_EXTRAS_UI] += stage_max;
 
 skip_user_extras:
 
@@ -4563,8 +4576,8 @@ skip_user_extras:
 
   new_hit_cnt = queued_paths + unique_crashes;
 
-  stage_finds[STAGE_EXTRAS]  += new_hit_cnt - orig_hit_cnt;
-  stage_cycles[STAGE_EXTRAS] += stage_max;
+  stage_finds[STAGE_EXTRAS_AO]  += new_hit_cnt - orig_hit_cnt;
+  stage_cycles[STAGE_EXTRAS_AO] += stage_max;
 
 skip_extras:
 
@@ -6262,7 +6275,7 @@ stop_fuzzing:
 
   save_auto();
 
-  SAYF(cLRD "\n+++ Testing aborted by user +++\n" cRST);
+  SAYF(CURSOR_SHOW cLRD "\n\n+++ Testing aborted by user +++\n" cRST);
 
   /* Running for more than 30 minutes but still doing first cycle? */
 
@@ -6282,7 +6295,6 @@ stop_fuzzing:
   alloc_report();
 
   OKF("We're done here. Have a nice day!\n");
-
 
   exit(0);
 

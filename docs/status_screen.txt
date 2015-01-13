@@ -184,12 +184,11 @@ now. It tells you about the current stage, which can be any of:
   - interest L/8 - deterministic value overwrite. The fuzzer has a list of known
     "interesting" 8-, 16-, and 32-bit values to try. The stepover is 8 bits.
 
-  - extras - deterministic injection of dictionary terms. This has two
-    modifiers. The first one describes the origin of the dictionary: "user"
-    corresponds to the data loaded through the optional -x flag, while "auto"
-    stands for tokens auto-detected by afl-fuzz. The second modifier describes
-    injection mode: "over" is a simple overwrite, while "insert" is an insertion
-    that shifts the remainder of the file.
+  - extras - deterministic injection of dictionary terms. This can be shown as
+    "user" or "auto", depending on whether the fuzzer is using an user-supplied
+    dictionary (-x) or an auto-detected one; and "over" or "insert", depending
+    on whether the dictionary words overwrite existing data or are inserted by
+    offsetting the remaining data to accommodate their length.
 
   - havoc - a sort-of-fixed-length cycle with stacked random tweaks. The
     operations attempted during this stage include bit flips, overwrites with
@@ -241,7 +240,8 @@ additional, more detailed counters for crashes and hangs.
   |  byte flips : 0/36.2k, 4/35.7k, 7/34.6k             |
   | arithmetics : 53/2.54M, 0/537k, 0/55.2k             |
   |  known ints : 8/322k, 12/1.32M, 10/1.70M            |
-  |  havoc & co : 0/0, 1903/20.0M, 0/0                  |
+  |  dictionary : 9/52k, 1/53k, 1/24k                   |
+  |       havoc : 1903/20.0M, 0/0                       |
   |        trim : 139.4 kB/9201 (20.31% gain)           |
   +-----------------------------------------------------+
 

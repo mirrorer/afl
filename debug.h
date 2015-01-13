@@ -111,6 +111,8 @@
 #define TERM_HOME     "\x1b[H"
 #define TERM_CLEAR    TERM_HOME "\x1b[2J"
 #define cEOL          "\x1b[0K"
+#define CURSOR_HIDE   "\x1b[?25l"
+#define CURSOR_SHOW   "\x1b[?25h"
 
 /************************
  * Debug & error macros *
@@ -155,7 +157,7 @@
 /* Die with a verbose non-OS fatal error message. */
 
 #define FATAL(x...) do { \
-    SAYF(cLRD "\n[-] PROGRAM ABORT : " cBRI x); \
+    SAYF(CURSOR_SHOW cLRD "\n[-] PROGRAM ABORT : " cBRI x); \
     SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", \
          __FUNCTION__, __FILE__, __LINE__); \
     exit(1); \
@@ -164,7 +166,7 @@
 /* Die by calling abort() to provide a core dump. */
 
 #define ABORT(x...) do { \
-    SAYF(cLRD "\n[-] PROGRAM ABORT : " cBRI x); \
+    SAYF(CURSOR_SHOW cLRD "\n[-] PROGRAM ABORT : " cBRI x); \
     SAYF(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n\n", \
          __FUNCTION__, __FILE__, __LINE__); \
     abort(); \
@@ -174,7 +176,7 @@
 
 #define PFATAL(x...) do { \
     fflush(stdout); \
-    SAYF(cLRD "\n[-]  SYSTEM ERROR : " cBRI x); \
+    SAYF(CURSOR_SHOW cLRD "\n[-]  SYSTEM ERROR : " cBRI x); \
     SAYF(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n", \
          __FUNCTION__, __FILE__, __LINE__); \
     perror(cLRD "       OS message " cRST); \
