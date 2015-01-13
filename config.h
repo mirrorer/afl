@@ -118,26 +118,27 @@
 
 #define MAX_FILE            (1 * 1024 * 1024)
 
-/* Maximum "extra" token size (-x), in bytes: */
+/* Maximum dictionary token size (-x), in bytes: */
 
-#define MAX_EXTRA_FILE      128
+#define MAX_DICT_FILE       128
 
-/* Maximum length of an auto-selected "extra" tokens. This only governs
-   auto-generated dictionaries, not the user-specified ones: */
+/* Length limits for auto-detected dictionary tokens: */
 
-#define MIN_AUTO_LEN        3
-#define MAX_AUTO_LEN        32
+#define MIN_AUTO_EXTRA      3
+#define MAX_AUTO_EXTRA      32
 
-/* Maximum number of auto-extracted "extras" to actually use, and to keep
-   in memory as candidates. The latter should be much higher than the
-   former. */
+/* Maximum number of user-specified dictionary tokens to use in deterministic
+   steps; past this point, the "extras/user" step will be still carried out,
+   but with proportionally lower odds: */
+
+#define MAX_DET_EXTRAS      200
+
+/* Maximum number of auto-extracted dictionary tokens to actually use in fuzzing
+   (first value), and to keep in memory as candidates. The latter should be much
+   higher than the former. */
 
 #define USE_AUTO_EXTRAS     50
 #define MAX_AUTO_EXTRAS     (USE_AUTO_EXTRAS * 10)
-
-/* Maximum number of extras to still carry out deterministic steps: */
-
-#define MAX_DET_EXTRAS      500
 
 /* UI refresh frequency (Hz): */
 

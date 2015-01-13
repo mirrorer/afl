@@ -104,6 +104,9 @@ This box tells you how far along the fuzzer is with the current queue cycle: the
 ID of the test case it is currently working on, plus the number of inputs it
 decided to ditch because they were persistently timing out.
 
+The "*" suffix sometimes shown in the first line means that the currently
+processed path is not favored (as discussed section 6).
+
 If you feel that the fuzzer is progressing too slowly, see the note about the -d
 option in section 2 of this doc.
 
@@ -181,10 +184,12 @@ now. It tells you about the current stage, which can be any of:
   - interest L/8 - deterministic value overwrite. The fuzzer has a list of known
     "interesting" 8-, 16-, and 32-bit values to try. The stepover is 8 bits.
 
-  - extras - deterministic insertion of dictionary terms. This has two flavors:
-    "extras (user)" is shown when going through the optional dictionary
-    specified via -x; while "extras (auto)" is reserved for processing syntax
-    auto-selected by afl-fuzz based on the analysis of input files.
+  - extras - deterministic injection of dictionary terms. This has two
+    modifiers. The first one describes the origin of the dictionary: "user"
+    corresponds to the data loaded through the optional -x flag, while "auto"
+    stands for tokens auto-detected by afl-fuzz. The second modifier describes
+    injection mode: "over" is a simple overwrite, while "insert" is an insertion
+    that shifts the remainder of the file.
 
   - havoc - a sort-of-fixed-length cycle with stacked random tweaks. The
     operations attempted during this stage include bit flips, overwrites with

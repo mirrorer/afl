@@ -1197,7 +1197,7 @@ static void load_extras(u8* dir) {
 
   DIR* d;
   struct dirent* de;
-  u32 min_len = MAX_EXTRA_FILE, max_len = 0;
+  u32 min_len = MAX_DICT_FILE, max_len = 0;
 
   ACTF("Loading extra dictionary from '%s'...", dir);
 
@@ -1222,9 +1222,9 @@ static void load_extras(u8* dir) {
 
     }
 
-    if (st.st_size > MAX_EXTRA_FILE)
+    if (st.st_size > MAX_DICT_FILE)
       FATAL("Extra '%s' is too big (%s, limit is %s)", fn,
-            DMS(st.st_size), DMS(MAX_EXTRA_FILE));
+            DMS(st.st_size), DMS(MAX_DICT_FILE));
 
     if (min_len > st.st_size) min_len = st.st_size;
     if (max_len < st.st_size) max_len = st.st_size;
@@ -1261,7 +1261,7 @@ static void load_extras(u8* dir) {
           DMS(max_len));
 
   if (extras_cnt > MAX_DET_EXTRAS)
-    WARNF("More than %u tokens - ignored for deterministic tests.",
+    WARNF("More than %u tokens - will use them probabilistically.",
           MAX_DET_EXTRAS);
 
 }
@@ -1412,7 +1412,7 @@ static void load_auto(void) {
 
   for (i = 0; i < USE_AUTO_EXTRAS; i++) {
 
-    u8  tmp[MAX_AUTO_LEN + 1];
+    u8  tmp[MAX_AUTO_EXTRA + 1];
     u8* fn = alloc_printf("%s/.state/auto_extras/auto_%06u", in_dir, i);
     s32 fd, len;
 
@@ -1429,11 +1429,11 @@ static void load_auto(void) {
     /* We read one byte more to cheaply detect tokens that are too
        long (and skip them). */
 
-    len = read(fd, tmp, MAX_AUTO_LEN + 1);
+    len = read(fd, tmp, MAX_AUTO_EXTRA + 1);
 
     if (len < 0) PFATAL("Unable to read from '%s'", fn);
 
-    if (len >= MIN_AUTO_LEN && len <= MAX_AUTO_LEN)
+    if (len >= MIN_AUTO_EXTRA && len <= MAX_AUTO_EXTRA)
       maybe_add_auto(tmp, len);
 
     close(fd);
@@ -3674,7 +3674,7 @@ static u8 fuzz_one(char** argv) {
   s32 len, fd, temp_len;
   s32 i, j;
 
-  u8  *in_buf, *out_buf, *orig_in;
+  u8  *in_buf, *out_buf, *orig_in, *ex_tmp;
 
   u64 havoc_queued;
   u64 orig_hit_cnt, new_hit_cnt;
@@ -3684,7 +3684,7 @@ static u8 fuzz_one(char** argv) {
 
   u8  ret_val = 1;
 
-  u8  a_collect[MAX_AUTO_LEN];
+  u8  a_collect[MAX_AUTO_EXTRA];
   u32 a_len = 0;
   u32 prev_cksum;
 
@@ -3877,10 +3877,10 @@ static u8 fuzz_one(char** argv) {
         /* If at end of file and we are still collecting a string, grab the
            final character and force output. */
 
-        if (a_len < MAX_AUTO_LEN) a_collect[a_len] = out_buf[stage_cur >> 3];        
+        if (a_len < MAX_AUTO_EXTRA) a_collect[a_len] = out_buf[stage_cur >> 3];
         a_len++;
 
-        if (a_len >= MIN_AUTO_LEN && a_len <= MAX_AUTO_LEN)
+        if (a_len >= MIN_AUTO_EXTRA && a_len <= MAX_AUTO_EXTRA)
           maybe_add_auto(a_collect, a_len);
 
       } else if (cksum != prev_cksum) {
@@ -3888,7 +3888,7 @@ static u8 fuzz_one(char** argv) {
         /* Otherwise, if the checksum has changed, see if we have something
            worthwhile queued up, and collect that if the answer is yes. */
 
-        if (a_len >= MIN_AUTO_LEN && a_len <= MAX_AUTO_LEN)
+        if (a_len >= MIN_AUTO_EXTRA && a_len <= MAX_AUTO_EXTRA)
           maybe_add_auto(a_collect, a_len);
 
         a_len = 0;
@@ -3901,7 +3901,7 @@ static u8 fuzz_one(char** argv) {
 
       if (cksum != queue_cur->exec_cksum) {
 
-        if (a_len < MAX_AUTO_LEN) a_collect[a_len] = out_buf[stage_cur >> 3];        
+        if (a_len < MAX_AUTO_EXTRA) a_collect[a_len] = out_buf[stage_cur >> 3];        
         a_len++;
 
       }
@@ -4416,16 +4416,16 @@ skip_arith:
 
 skip_interest:
 
-  /************************
-   * USER-SUPPLIED EXTRAS *
-   ************************/
+  /********************
+   * DICTIONARY STUFF *
+   ********************/
 
-  if (!extras_cnt && extras_cnt > MAX_DET_EXTRAS) goto skip_user_extras;
+  if (!extras_cnt) goto skip_user_extras;
 
-  /* Setting 32-bit integers, both endians. */
+  /* Overwrite with user-supplied extras. */
 
-  stage_name  = "extras (user)";
-  stage_short = "extra";
+  stage_name  = "user extras (over)";
+  stage_short = "ext_UO";
   stage_cur   = 0;
   stage_max   = extras_cnt * len;
 
@@ -4446,7 +4446,12 @@ skip_interest:
 
     for (j = 0; j < extras_cnt; j++) {
 
-      if (extras[j].len > len - i ||
+      /* Skip extras probablistically if extras_cnt > MAX_DET_EXTRAS. Also
+         skip them if there's no room to insert the payload, or if the token
+         is redundant. */
+
+      if ((extras_cnt > MAX_DET_EXTRAS && UR(extras_cnt) >= MAX_DET_EXTRAS) ||
+          extras[j].len > len - i ||
           !memcmp(extras[j].data, out_buf + i, extras[j].len)) {
 
         stage_max--;
@@ -4468,6 +4473,44 @@ skip_interest:
 
   }
 
+  stage_cycles[STAGE_EXTRAS] += stage_max;
+
+  /* Insertion of user-supplied extras. */
+
+  stage_name  = "user extras (insert)";
+  stage_short = "ext_UI";
+  stage_cur   = 0;
+
+  ex_tmp = ck_alloc(len + MAX_DICT_FILE);
+
+  for (i = 0; i < len; i++) {
+
+    stage_cur_byte = i;
+
+    for (j = 0; j < extras_cnt; j++) {
+
+      /* Insert token */
+      memcpy(ex_tmp + i, extras[j].data, extras[j].len);
+
+      /* Copy tail */
+      memcpy(ex_tmp + i + extras[j].len, out_buf + i, len - i);
+
+      if (common_fuzz_stuff(argv, ex_tmp, len + extras[j].len)) {
+        ck_free(ex_tmp);
+        goto abandon_entry;
+      }
+
+      stage_cur++;
+
+    }
+
+    /* Copy head */
+    ex_tmp[i] = out_buf[i];
+
+  }
+
+  ck_free(ex_tmp);
+
   new_hit_cnt = queued_paths + unique_crashes;
 
   stage_finds[STAGE_EXTRAS]  += new_hit_cnt - orig_hit_cnt;
@@ -4477,8 +4520,8 @@ skip_user_extras:
 
   if (!a_extras_cnt) goto skip_extras;
 
-  stage_name  = "extras (auto)";
-  stage_short = "extra";
+  stage_name  = "auto extras (over)";
+  stage_short = "ext_AO";
   stage_cur   = 0;
   stage_max   = MIN(a_extras_cnt, USE_AUTO_EXTRAS) * len;
 
@@ -4493,6 +4536,8 @@ skip_user_extras:
     stage_cur_byte = i;
 
     for (j = 0; j < MIN(a_extras_cnt, USE_AUTO_EXTRAS); j++) {
+
+      /* See the comment in the earlier code; extras are sorted by size. */
 
       if (a_extras[j].len > len - i ||
           !memcmp(a_extras[j].data, out_buf + i, a_extras[j].len)) {
@@ -4577,7 +4622,7 @@ havoc_stage:
 
         case 0:
 
-          /* Flip a single bit. */
+          /* Flip a single bit somwhere. Spooky! */
 
           FLIP_BIT(out_buf, UR(temp_len << 3));
           break;
@@ -4777,7 +4822,7 @@ havoc_stage:
 
           if (temp_len + HAVOC_BLK_LARGE < MAX_FILE) {
 
-            /* Clone bytes or insert a block of constant bytes. */
+            /* Clone bytes (75%) or insert a block of constant bytes (25%). */
 
             u32 clone_from, clone_to, clone_len;
             u8* new_buf;
@@ -4814,7 +4859,8 @@ havoc_stage:
 
         case 14: {
 
-            /* Overwrite bytes with a randomly selected chunk or fixed bytes. */
+            /* Overwrite bytes with a randomly selected chunk (75%) or fixed
+               bytes (25%). */
 
             u32 copy_from, copy_to, copy_len;
 
@@ -4836,13 +4882,17 @@ havoc_stage:
 
           }
 
-        /* Values 16 and 17 can be selected only if extras_cnt > 0. */
+        /* Values 16 and 17 can be selected only if there are any extras
+           present in the dictionaries. */
 
         case 16: {
 
-            /* Overwrite bytes with an user-specified extra. */
+            /* Overwrite bytes with an extra. */
 
             if (!extras_cnt || (a_extras_cnt && UR(2))) {
+
+              /* No user-specified extras or odds in our favor. Let's use an
+                 auto-detected one. */
 
               u32 use_extra = UR(a_extras_cnt);
               u32 extra_len = a_extras[use_extra].len;
@@ -4854,6 +4904,8 @@ havoc_stage:
               memcpy(out_buf + insert_at, a_extras[use_extra].data, extra_len);
 
             } else {
+
+              /* No auto extras or odds in our favor. Use the dictionary. */
 
               u32 use_extra = UR(extras_cnt);
               u32 extra_len = extras[use_extra].len;
@@ -4875,7 +4927,8 @@ havoc_stage:
             u32 use_extra, extra_len, insert_at = UR(temp_len);
             u8* new_buf;
 
-            /* Insert an user-specified extra. */
+            /* Insert an extra. Do the same dice-rolling stuff as for the
+               previous case. */
 
             if (!extras_cnt || (a_extras_cnt && UR(2))) {
 
@@ -4914,7 +4967,7 @@ havoc_stage:
                    temp_len - insert_at);
 
             ck_free(out_buf);
-            out_buf  = new_buf;
+            out_buf   = new_buf;
             temp_len += extra_len;
 
             break;
