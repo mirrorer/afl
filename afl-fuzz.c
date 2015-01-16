@@ -126,7 +126,8 @@ static u32 queued_paths,              /* Total number of queued testcases */
            cur_depth,                 /* Current path depth               */
            max_depth,                 /* Max path depth                   */
            useless_at_start,          /* Number of useless starting paths */
-           current_entry;             /* Current queue entry ID           */
+           current_entry,             /* Current queue entry ID           */
+           havoc_div = 1;             /* Cycle count divisor for havoc    */
 
 static u64 total_crashes,             /* Total number of crashes          */
            unique_crashes,            /* Crashes with unique signatures   */
@@ -683,35 +684,80 @@ static inline void read_bitmap(u8* fname) {
    Updates the map, so subsequent calls will always return 0.
 
    This function is called after every exec() on a fairly large buffer, so
-   it needs to be fast. */
+   it needs to be fast. We do this in 32-bit and 64-bit flavors. */
+
+#define FFL(_b) (0xffULL << ((_b) << 3))
+#define FF(_b)  (0xff << ((_b) << 3))
 
 static inline u8 has_new_bits(u8* virgin_map) {
+
+#ifdef __x86_64__
+
+  u64* current = (u64*)trace_bits;
+  u64* virgin  = (u64*)virgin_map;
+
+  u32  i = (MAP_SIZE >> 3);
+
+#else
 
   u32* current = (u32*)trace_bits;
   u32* virgin  = (u32*)virgin_map;
 
   u32  i = (MAP_SIZE >> 2);
+
+#endif /* ^__x86_64__ */
+
   u8   ret = 0;
 
   while (i--) {
 
+#ifdef __x86_64__
+
+    u64 cur = *current;
+    u64 vir = *virgin;
+
+#else
+
+    u32 cur = *current;
+    u32 vir = *virgin;
+
+#endif /* ^__x86_64__ */
+
     /* Optimize for *current == ~*virgin, since this will almost always be the
        case. */
 
-    if (*current & *virgin) {
+    if (cur & vir) {
 
       if (ret < 2) {
 
-        u8* cur = (u8*)current;
-        u8* vir = (u8*)virgin;
+        /* This trace did not have any new bytes yet; see if there's any
+           current[] byte that is non-zero when virgin[] is 0xff. */
 
-        if ((cur[0] && vir[0] == 255) || (cur[1] && vir[1] == 255) ||
-            (cur[2] && vir[2] == 255) || (cur[3] && vir[3] == 255)) ret = 2;
+#ifdef __x86_64__
+
+        if (((cur & FFL(0)) && (vir & FFL(0)) == FFL(0)) ||
+            ((cur & FFL(1)) && (vir & FFL(1)) == FFL(1)) ||
+            ((cur & FFL(2)) && (vir & FFL(2)) == FFL(2)) ||
+            ((cur & FFL(3)) && (vir & FFL(3)) == FFL(3)) ||
+            ((cur & FFL(4)) && (vir & FFL(4)) == FFL(4)) ||
+            ((cur & FFL(5)) && (vir & FFL(5)) == FFL(5)) ||
+            ((cur & FFL(6)) && (vir & FFL(6)) == FFL(6)) ||
+            ((cur & FFL(7)) && (vir & FFL(7)) == FFL(7))) ret = 2;
         else ret = 1;
+
+#else
+
+        if (((cur & FF(0)) && (vir & FF(0)) == FF(0)) ||
+            ((cur & FF(1)) && (vir & FF(1)) == FF(1)) ||
+            ((cur & FF(2)) && (vir & FF(2)) == FF(2)) ||
+            ((cur & FF(3)) && (vir & FF(3)) == FF(3))) ret = 2;
+        else ret = 1;
+
+#endif /* ^__x86_64__ */
 
       }
 
-      *virgin &= ~*current;
+      *virgin = vir & ~cur;
 
     }
 
@@ -728,7 +774,7 @@ static inline u8 has_new_bits(u8* virgin_map) {
 
 
 /* Count the number of bits set in the provided bitmap. Used for the status
-   screen, does not have to be fast. */
+   screen several times every second, does not have to be fast. */
 
 static inline u32 count_bits(u8* mem) {
 
@@ -760,7 +806,8 @@ static inline u32 count_bits(u8* mem) {
 
 
 /* Count the number of bytes set in the bitmap. Called fairly sporadically,
-   mostly to calibrate and examine confirmed new paths. */
+   mostly to update the status screen or calibrate and examine confirmed
+   new paths. */
 
 static inline u32 count_bytes(u8* mem) {
 
@@ -773,10 +820,10 @@ static inline u32 count_bytes(u8* mem) {
     u32 v = *(ptr++);
 
     if (!v) continue;
-    if (v & 0x000000ff) ret++;
-    if (v & 0x0000ff00) ret++;
-    if (v & 0x00ff0000) ret++;
-    if (v & 0xff000000) ret++;
+    if (v & FF(0)) ret++;
+    if (v & FF(1)) ret++;
+    if (v & FF(2)) ret++;
+    if (v & FF(3)) ret++;
 
   }
 
@@ -786,7 +833,7 @@ static inline u32 count_bytes(u8* mem) {
 
 
 /* Count the number of non-255 bytes set in the bitmap. Used strictly for the
-   status screen. */
+   status screen, several calls per second or so. */
 
 static inline u32 count_non_255_bytes(u8* mem) {
 
@@ -802,10 +849,10 @@ static inline u32 count_non_255_bytes(u8* mem) {
        case. */
 
     if (v == 0xffffffff) continue;
-    if ((v & 0x000000ff) != 0x000000ff) ret++;
-    if ((v & 0x0000ff00) != 0x0000ff00) ret++;
-    if ((v & 0x00ff0000) != 0x00ff0000) ret++;
-    if ((v & 0xff000000) != 0xff000000) ret++;
+    if ((v & FF(0)) != FF(0)) ret++;
+    if ((v & FF(1)) != FF(1)) ret++;
+    if ((v & FF(2)) != FF(2)) ret++;
+    if ((v & FF(3)) != FF(3)) ret++;
 
   }
 
@@ -836,6 +883,39 @@ static u8 simplify_lookup[256] = {
   /* +128 */ AREP128(128)
 };
 
+#ifdef __x86_64__
+
+static void simplify_trace(u64* mem) {
+
+  u32 i = MAP_SIZE >> 3;
+
+  while (i--) {
+
+    /* Optimize for sparse bitmaps. */
+
+    if (*mem) {
+
+      u8* mem8 = (u8*)mem;
+
+      mem8[0] = simplify_lookup[mem8[0]];
+      mem8[1] = simplify_lookup[mem8[1]];
+      mem8[2] = simplify_lookup[mem8[2]];
+      mem8[3] = simplify_lookup[mem8[3]];
+      mem8[4] = simplify_lookup[mem8[4]];
+      mem8[5] = simplify_lookup[mem8[5]];
+      mem8[6] = simplify_lookup[mem8[6]];
+      mem8[7] = simplify_lookup[mem8[7]];
+
+    } else *mem = 0x0101010101010101ULL;
+
+    mem++;
+
+  }
+
+}
+
+#else
+
 static void simplify_trace(u32* mem) {
 
   u32 i = MAP_SIZE >> 2;
@@ -860,6 +940,8 @@ static void simplify_trace(u32* mem) {
 
 }
 
+#endif /* ^__x86_64__ */
+
 
 /* Destructively classify execution counts in a trace. This is used as a
    preprocessing step for any newly acquired traces. Called on every exec,
@@ -875,6 +957,39 @@ static u8 count_class_lookup[256] = {
   /* 128+:     +128 */ AREP128(128)
 
 };
+
+#ifdef __x86_64__
+
+static void classify_counts(u64* mem) {
+
+  u32 i = MAP_SIZE >> 3;
+
+  while (i--) {
+
+    /* Optimize for sparse bitmaps. */
+
+    if (*mem) {
+
+      u8* mem8 = (u8*)mem;
+
+      mem8[0] = count_class_lookup[mem8[0]];
+      mem8[1] = count_class_lookup[mem8[1]];
+      mem8[2] = count_class_lookup[mem8[2]];
+      mem8[3] = count_class_lookup[mem8[3]];
+      mem8[4] = count_class_lookup[mem8[4]];
+      mem8[5] = count_class_lookup[mem8[5]];
+      mem8[6] = count_class_lookup[mem8[6]];
+      mem8[7] = count_class_lookup[mem8[7]];
+
+    }
+
+    mem++;
+
+  }
+
+}
+
+#else
 
 static void classify_counts(u32* mem) {
 
@@ -900,6 +1015,8 @@ static void classify_counts(u32* mem) {
   }
 
 }
+
+#endif /* ^__x86_64__ */
 
 
 /* Get rid of shared memory (atexit handler). */
@@ -1288,6 +1405,13 @@ static void maybe_add_auto(u8* mem, u32 len) {
   /* Allow users to specify that they don't want auto dictionaries. */
 
   if (!MAX_AUTO_EXTRAS || !USE_AUTO_EXTRAS) return;
+
+  /* Skip runs of identical bytes. */
+
+  for (i = 1; i < len; i++)
+    if (mem[0] ^ mem[i]) break;
+
+  if (i == len) return;
 
   /* Reject builtin interesting values. */
 
@@ -1858,7 +1982,11 @@ static u8 run_target(char** argv) {
 
   setitimer(ITIMER_REAL, &it, NULL);
 
+#ifdef __x86_64__
+  classify_counts((u64*)trace_bits);
+#else
   classify_counts((u32*)trace_bits);
+#endif /* ^__x86_64__ */
 
   total_execs++;
 
@@ -2465,7 +2593,11 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 
       if (!dumb_mode) {
 
+#ifdef __x86_64__
+        simplify_trace((u64*)trace_bits);
+#else
         simplify_trace((u32*)trace_bits);
+#endif /* ^__x86_64__ */
 
         if (!has_new_bits(virgin_hang)) return keeping;
 
@@ -2491,7 +2623,11 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 
       if (!dumb_mode) {
 
+#ifdef __x86_64__
+        simplify_trace((u64*)trace_bits);
+#else
         simplify_trace((u32*)trace_bits);
+#endif /* ^__x86_64__ */
 
         if (!has_new_bits(virgin_crash)) return keeping;
 
@@ -3064,8 +3200,8 @@ static void show_stats(void) {
 
   /* Lord, forgive me this. */
 
-  SAYF(bSTG bLT bH bSTOP cCYA " process timing " bSTG bH30 bH5 bH2 bHB bH
-       bSTOP cCYA " overall results " bSTG bH5 bRT "\n");
+  SAYF(SET_G1 bSTG bLT bH bSTOP cCYA " process timing " bSTG bH30 bH5 bH2 bHB
+       bH bSTOP cCYA " overall results " bSTG bH5 bRT "\n");
 
   if (dumb_mode) {
 
@@ -3287,7 +3423,7 @@ static void show_stats(void) {
   }
 
   SAYF(bV bSTOP "        trim : " cNOR "%-37s " bSTG bVR bH20 bH2 bH2 bRB "\n"
-       bLB bH30 bH20 bH2 bH bRB bSTOP cRST, tmp);
+       bLB bH30 bH20 bH2 bH bRB bSTOP cRST RESET_G1, tmp);
 
   /* Provide some CPU utilization stats. */
 
@@ -3351,6 +3487,16 @@ static void show_init_stats(void) {
   if (avg_us > 10000) 
     WARNF(cLRD "The target binary is pretty slow! See %s/perf_tips.txt.",
           doc_path);
+
+  /* Let's keep things moving when using -d against slow binaries. */
+
+  if (skip_deterministic) {
+
+    if (avg_us > 100000) havoc_div = 10;    /* 0-9 execs/sec    */
+    else if (avg_us > 50000) havoc_div = 5; /* 10-49 execs/sec  */
+    else if (avg_us > 10000) havoc_div = 2; /* 50-100 execs/sec */
+
+  }
 
   if (!resuming_fuzz) {
 
@@ -3481,7 +3627,6 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
 
         memmove(in_buf + remove_pos, in_buf + remove_pos + trim_avail, 
                 move_tail);
-
 
         /* Let's save a clean trace, which will be needed by
            update_bitmap_score once we're done with the trimming stuff. */
@@ -4453,7 +4598,7 @@ skip_interest:
 
     for (j = 0; j < extras_cnt; j++) {
 
-      /* Skip extras probablistically if extras_cnt > MAX_DET_EXTRAS. Also
+      /* Skip extras probabilistically if extras_cnt > MAX_DET_EXTRAS. Also
          skip them if there's no room to insert the payload, or if the token
          is redundant. */
 
@@ -4602,7 +4747,7 @@ havoc_stage:
 
     stage_name  = "havoc";
     stage_short = "havoc";
-    stage_max   = HAVOC_CYCLES * perf_score / 100;
+    stage_max   = HAVOC_CYCLES * perf_score / havoc_div / 100;
 
   } else {
 
@@ -4610,9 +4755,11 @@ havoc_stage:
     sprintf(tmp, "splice %u", splice_cycle);
     stage_name  = tmp;
     stage_short = "splice";
-    stage_max   = SPLICE_HAVOC * perf_score / 100;
+    stage_max   = SPLICE_HAVOC * perf_score / havoc_div / 100;
 
   }
+
+  if (!stage_max) stage_max = 10;
 
   temp_len = len;
 
@@ -4635,7 +4782,7 @@ havoc_stage:
 
         case 0:
 
-          /* Flip a single bit somwhere. Spooky! */
+          /* Flip a single bit somewhere. Spooky! */
 
           FLIP_BIT(out_buf, UR(temp_len << 3));
           break;
@@ -6248,6 +6395,9 @@ int main(int argc, char** argv) {
       } else cycles_wo_finds = 0;
 
       prev_queued = queued_paths;
+
+      if (sync_id && queue_cycle == 1 && getenv("AFL_IMPORT_FIRST"))
+        sync_fuzzers(argv + optind);
 
     }
 

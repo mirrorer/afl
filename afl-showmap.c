@@ -57,6 +57,7 @@ static u8  sink_output,               /* Sink program output               */
            be_quiet,                  /* Quiet mode (tuples & errors only) */
            minimize_mode;             /* Called from minimize_corpus.sh?   */
 
+
 /* Classify tuple counts. */
 
 #define AREP4(_sym) (_sym), (_sym), (_sym), (_sym)

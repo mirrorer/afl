@@ -354,8 +354,8 @@ directory. This includes:
   - paths_imported - number of entries imported from other instances
   - max_depth      - number of levels in the generated data set
   - cur_path       - currently processed entry number
-  - pending_favs   - number of entries still waiting to be fuzzed
-  - pending_total  - number of favored entries waiting to be fuzzed
+  - pending_favs   - number of favored entries still waiting to be fuzzed
+  - pending_total  - number of all entries waiting to be fuzzed
   - variable_paths - number of test cases showing variable behavior
   - unique_crashes - number of unique crashes recorded
   - unique_hangs   - number of unique hangs encountered

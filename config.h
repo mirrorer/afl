@@ -113,7 +113,6 @@
 #define TRIM_START_STEPS    16
 #define TRIM_END_STEPS      1024
 
-
 /* Maximum size of input file, in bytes (keep under 100MB): */
 
 #define MAX_FILE            (1 * 1024 * 1024)
@@ -240,8 +239,8 @@
 /* Map size for the traced binary (2^MAP_SIZE_POW2). Must be greater than
    2; you probably want to keep it under 18 or so for performance reasons
    (adjusting AFL_INST_RATIO when compiling is probably a better way to solve
-   problems). You need to recompile the target binary after changing this -
-   otherwise, SEGVs may ensue. */
+   problems with complex programs). You need to recompile the target binary
+   after changing this - otherwise, SEGVs may ensue. */
 
 #define MAP_SIZE_POW2       16
 #define MAP_SIZE            (1 << MAP_SIZE_POW2)

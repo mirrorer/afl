@@ -6,6 +6,26 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer build.
 
 --------------
+Version 1.12b:
+--------------
+
+  - Made an improvement to dictionary generation to avoid runs of identical
+    bytes.
+
+  - Added havoc cycle scaling to help with slow binaries in -d mode. Based on
+    a thread with Sami Liedes.
+
+  - Added AFL_SYNC_FIRST for afl-fuzz. This is useful for those who obsess
+    over stats, no special purpose otherwise.
+
+  - Switched to more robust box drawing codes, suggested by Jakub Wilk.
+
+  - Created faster 64-bit variants of several critical-path bitmap functions
+    (sorry, no difference on 32 bits).
+
+  - Fixed moar typos, as reported by Jakub Wilk.
+
+--------------
 Version 1.11b:
 --------------
 

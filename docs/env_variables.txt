@@ -91,6 +91,18 @@ handy in scripting environments.
     Note that this setting inhibits some of the user-friendly diagnostics
     normally done when starting up the forkserver.
 
+  - When running in the -M or -S mode, setting AFL_IMPORT_FIRST causes the
+    fuzzer to import test cases from other instances before doing anything
+    else.
+
+    The default mode is to allow the instances to run on their own for a while
+    before syncing, so that they acquire some initial variability in their
+    respective input sets.
+
+    The benefit of AFL_IMPORT_FIRST is that it makes the "own finds" counter
+    in the UI indicate the number of findings made by the instance that the
+    remaining ones did not already have.
+
   - By default, LD_BIND_NOW is set to 1 to speed up fuzzing, but you can,
     theoretically, override it. I don't think there's any reason to.
 
