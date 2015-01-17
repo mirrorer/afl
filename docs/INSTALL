@@ -115,4 +115,5 @@ The fuzzer will not work under Cygwin; it could be ported fairly easily, but
 doing so is probably a bad idea: you will get much better results with a Linux
 machine or a hardware-accelerated VM.
 
-Stock Android kernel will probably not work due to removed support for SHM.
+Stock Android kernel will probably not work even on x86 due to removed support
+for SHM.

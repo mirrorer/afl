@@ -341,7 +341,7 @@ Here are some of the most important caveats for AFL:
 
     As a simple example, a patch for libpng to bypass CRC checksums is provided 
     in experimental/libpng_no_checksum/libpng-nocrc.patch. A more complex
-    real-world harness for fwknop can be found at:
+    real-world testing harness for fwknop can be found at:
 
       https://github.com/mrash/fwknop/tree/master/test/afl
 
@@ -351,7 +351,7 @@ Here are some of the most important caveats for AFL:
 
   - Instrumentation of binary-only code is theoretically possible, but not
     supported today. Leveraging pin or DynamoRIO seems like a pretty simple
-    project.
+    project, at least in theory.
 
   - There are some unfortunate trade-offs with ASAN and 64-bit binaries. This
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for

@@ -1946,7 +1946,7 @@ static u8 run_target(char** argv) {
 
     }
 
-    if (child_pid <= 0) FATAL("Fork server is misbehaving, sorry");
+    if (child_pid <= 0) FATAL("Fork server can't create a process (out of memory?)");
 
   }
 
@@ -4759,7 +4759,7 @@ havoc_stage:
 
   }
 
-  if (!stage_max) stage_max = 10;
+  if (stage_max < HAVOC_MIN) stage_max = HAVOC_MIN;
 
   temp_len = len;
 

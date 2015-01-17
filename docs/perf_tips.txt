@@ -76,9 +76,9 @@ and libxml2 to test a single program is an overkill.
 5) Parallelize your fuzzers
 ---------------------------
 
-The fuzzer is designed to need ~1 core per job. This means that on an 8-core
-system, you can easily run eight parallel fuzzing jobs with relatively little
-performance hit. For tips on how to do that, see parallel_fuzzing.txt.
+The fuzzer is designed to need ~1 core per job. This means that on a, say,
+4-core system, you can easily run four parallel fuzzing jobs with relatively
+little performance hit. For tips on how to do that, see parallel_fuzzing.txt.
 
 6) Keep memory use and timeouts in check
 ----------------------------------------

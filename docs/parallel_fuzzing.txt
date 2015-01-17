@@ -7,23 +7,20 @@ Tips for parallel fuzzing
 1) Introduction
 ---------------
 
-Every copy of afl-fuzz will take up one full CPU core. This means that on an
-n-core system, you can safely run up to n different fuzzing jobs with virtually
-no performance hit.
+Every copy of afl-fuzz will take up one CPU core. This means that on an
+n-core system, you can almost always run around n concurrent fuzzing jobs with
+virtually no performance hit.
 
-In fact, depending on the design of the fuzzed program, you may be able run one
-fuzzer per every virtual core on HT-enabled system at very little cost.
-
-(Conversely, if you stick to a single job on a multi-core machine, you will be
-underutilizing the hardware, as indicated by the CPU load widget in the bottom
-right corner of the screen.)
+In fact, if you rely on just a single job on a multi-core system, you will
+be underutilizing the hardware. So, parallelization is usually the right
+way to go.
 
 When targeting multiple unrelated binaries or using the tool in "dumb" (-n)
-mode, it is perfectly fine to run fully separate instances of afl-fuzz - be it
-on a single machine or across a large fleet. The picture gets more complicated
-when you want to have multiple fuzzers hammering a common target: if a
-hard-to-hit but interesting test case is synthesized by one fuzzer, the
-remaining instances will not be able to use that input to guide their work.
+mode, it is perfectly fine to just start up several fully separate instances
+of afl-fuzz. The picture gets more complicated when you want to have multiple
+fuzzers hammering a common target: if a hard-to-hit but interesting test case
+is synthesized by one fuzzer, the remaining instances will not be able to use
+that input to guide their work.
 
 To help with this problem, afl-fuzz offers a simple way to synchronize test
 cases on the fly.
@@ -77,7 +74,8 @@ write a simple script that performs two actions:
   - Uses SSH with authorized_keys to connect to every machine and retrieve
     a tar archive of the /path/to/sync_dir/<fuzzer_id>/queue/ directories for
     every <fuzzer_id> local to the machine. It's best to use a naming scheme
-    that includes host name in the fuzzer ID, so that you can do:
+    that includes host name in the fuzzer ID, so that you can do something
+    like:
 
     for s in {1..10}; do
       ssh user@host${s} "tar -czf - sync/host${s}_fuzzid*/queue" >host${s}.tgz
@@ -98,7 +96,7 @@ When developing custom test case sync code, there are several optimizations
 to keep in mind:
 
   - The synchronization does not have to happen very often; running the
-    task every 15-30 minutes or so may be perfectly fine.
+    task every 30 minutes or so may be perfectly fine.
 
   - There is no need to synchronize crashes/ or hangs/; you only need to
     copy over queue/*.
@@ -121,22 +119,22 @@ to keep in mind:
     This arrangement would allow test interesting cases to propagate across
     the fleet without having to copy every fuzzer queue to every single host.
 
-  - You do not need a "master" instance of afl-fuzz on every system; you can
+  - You do not want a "master" instance of afl-fuzz on every system; you should
     run them all with -S, and just designate a single process somewhere within
     the fleet to run with -M.
 
 It is *not* advisable to skip the synchronization script and run the fuzzers
-directly on a network filesystem; unexpected latency and unkillable I/O
-wait processes can mess things up.
+directly on a network filesystem; unexpected latency and unkillable processes
+in I/O wait state can mess things up.
 
 4) Remote monitoring and data collection
 ----------------------------------------
 
-You can use screen, nohup, or something equivalent to run remote instances of
-afl-fuzz. If you redirect the program's output to a file, it will automatically
-switch from a fancy UI to more limited status reports. There is also basic
-machine-readable information always written to the fuzzer_stats file in the
-output directory.
+You can use screen, nohup, tmux, or something equivalent to run remote
+instances of afl-fuzz. If you redirect the program's output to a file, it will
+automatically switch from a fancy UI to more limited status reports. There is
+also basic machine-readable information always written to the fuzzer_stats file
+in the output directory.
 
 Use the status screen of the master (-M) instance to monitor the overall
 fuzzing progress and decide when to stop. You can also rely on that
@@ -149,25 +147,27 @@ Keep in mind that crashing inputs are *not* automatically propagated to the
 master instance, so you may still want to monitor for crashes fleet-wide
 from within your synchronization or health checking scripts.
 
-5) Closing remarks
-------------------
+5) Asymmetric setups
+--------------------
 
 It is perhaps worth noting that all of the following is permitted:
 
   - Running some of the synchronized fuzzers with different (but related)
     target binaries. For example, simultaneously stress-testing several
-    different JPEG parsers (say, IJG jpeg and libjpeg-turbo) can have
-    synergistic effects and improve the overall coverage.
+    different JPEG parsers (say, IJG jpeg and libjpeg-turbo) while sharing
+    the discovered test cases can have synergistic effects and improve the
+    overall coverage.
 
-    (In this case, running one -M instance per each binary can be
-    worthwhile.)
+    (In this case, running one -M instance per each binary is a good
+    plan.)
 
   - Having some of the fuzzers invoke the binary in different ways.
     For example, 'djpeg' supports several DCT modes, configurable with
-    a command-line flag. In some scenarios, this can slightly improve
-    coverage.
+    a command-line flag, while 'dwebp' supports incremental and one-shot
+    decoding. In some scenarios, going after multiple distinct modes and then
+    pooling test cases will improve coverage.
 
   - Much less convincingly, running the synchronized fuzzers with different
-    starting test cases (e.g., progressive and standard JPEG). The
-    synchronization mechanism ensures that the test sets will get fairly
+    starting test cases (e.g., progressive and standard JPEG) or dictionaries.
+    The synchronization mechanism ensures that the test sets will get fairly
     homogeneous over time, but it introduces some initial variability.

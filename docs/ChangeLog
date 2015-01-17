@@ -3,7 +3,16 @@ sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
 is 1.10b. If you're stuck on an earlier release, it's strongly advisable
-to download a newer build.
+to download a newer one.
+
+--------------
+Version 1.13b:
+--------------
+
+  - Improved the performance of minimize_corpus.sh by switching to a
+    sort-based approach.
+
+  - Made several minor revisions to the docs.
 
 --------------
 Version 1.12b:

@@ -69,6 +69,10 @@
 
 #define HAVOC_MAX_MULT      16
 
+/* Absolute minimum number of havoc cycles (after all adjustments): */
+
+#define HAVOC_MIN           10
+
 /* Maximum stacking for havoc-stage tweaks. The actual value is calculated
    like this: 
 

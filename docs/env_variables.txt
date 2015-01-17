@@ -80,13 +80,13 @@ handy in scripting environments.
     instrumentation (e.g., for interpreted languages or binary-only code).
 
   - Setting AFL_SKIP_CPUFREQ skips the check for CPU scaling policy. This is
-    useful if you can't change the defaults and are OK with some performance
-    loss.
+    useful if you can't change the defaults (e.g., no root access to the
+    system) and are OK with some performance loss.
 
   - Setting AFL_NO_FORKSRV disables the forkserver optimization, reverting to
     fork + execve() call for every tested input. This is useful mostly when
     working with unruly libraries that create threads or do other crazy
-    things when initializing.
+    things when initializing before the instrumentation has a chance to run.
 
     Note that this setting inhibits some of the user-friendly diagnostics
     normally done when starting up the forkserver.
@@ -100,11 +100,11 @@ handy in scripting environments.
     respective input sets.
 
     The benefit of AFL_IMPORT_FIRST is that it makes the "own finds" counter
-    in the UI indicate the number of findings made by the instance that the
-    remaining ones did not already have.
+    in the UI more accurately reflect the number of findings made by the
+    instance that the remaining ones did not already have.
 
-  - By default, LD_BIND_NOW is set to 1 to speed up fuzzing, but you can,
-    theoretically, override it. I don't think there's any reason to.
+  - By default, LD_BIND_NOW is set to 1 to speed up fuzzing, but you can
+    override it. I don't think there's any reason to.
 
   - By default, ASAN_OPTIONS are set to:
 
