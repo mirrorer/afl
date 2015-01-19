@@ -6,6 +6,16 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer one.
 
 --------------
+Version 1.14b:
+--------------
+
+  - Added a (partial) dictionary for JavaScript.
+
+  - Added AFL_NO_CPU_RED, as suggested by Jakub Wilk.
+
+  - Tweaked the havoc scaling logic added in 1.12b.
+
+--------------
 Version 1.13b:
 --------------
 

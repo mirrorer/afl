@@ -30,14 +30,11 @@ handy in scripting environments.
     and MSAN can't be used at the same time. The caveats for MSAN are similar
     to the situation with ASAN.
 
-  - Setting AFL_CC and AFL_CXX lets you use alternate downstream compilers,
-    rather than the default 'clang' or 'gcc' binary in your $PATH.
+  - Setting AFL_CC, AFL_CXX, and AFL_AS lets you use alternate downstream
+    compilation tools, rather than the default 'clang', 'gcc', or 'as' binaries
+    in your $PATH.
 
-  - Setting AFL_AS has a similar effect, but is used for selecting the
-    path for the downstream GNU assembler invoked when afl-as is done.
-
-  - AFL_PATH can be used to point to an alternate location of afl-as.
-
+  - AFL_PATH can be used to point afl-gcc to an alternate location of afl-as.
     One possible use of this is experimental/clang_asm_normalize/, which lets
     you instrument hand-written assembly when compiling clang code by plugging
     a normalizer into the chain. (There is no equivalent feature for GCC.)
@@ -71,6 +68,7 @@ handy in scripting environments.
     instrumentation. Very useful for test case de-duplication scripts.
 
   - Setting AFL_EDGES_ONLY makes the tool hide the edge hit count information.
+    This can be handy in conjunction with tools such as minimize_corpus.sh.
 
 3) Settings for afl-fuzz
 ------------------------
@@ -89,22 +87,21 @@ handy in scripting environments.
     things when initializing before the instrumentation has a chance to run.
 
     Note that this setting inhibits some of the user-friendly diagnostics
-    normally done when starting up the forkserver.
+    normally done when starting up the forkserver and causes a pretty
+    significant performance drop.
 
   - When running in the -M or -S mode, setting AFL_IMPORT_FIRST causes the
     fuzzer to import test cases from other instances before doing anything
-    else.
-
-    The default mode is to allow the instances to run on their own for a while
-    before syncing, so that they acquire some initial variability in their
-    respective input sets.
+    else. This is in contrast with the default mode, where the instances are
+    allowed to run on their own for a while before syncing, so that they
+    acquire some initial variability in their respective input sets.
 
     The benefit of AFL_IMPORT_FIRST is that it makes the "own finds" counter
     in the UI more accurately reflect the number of findings made by the
     instance that the remaining ones did not already have.
 
   - By default, LD_BIND_NOW is set to 1 to speed up fuzzing, but you can
-    override it. I don't think there's any reason to.
+    override it (I don't think there's any reason to).
 
   - By default, ASAN_OPTIONS are set to:
 
@@ -122,3 +119,7 @@ handy in scripting environments.
     msan_track_origins=0
 
     Be sure to include the first one when customizing anything.
+
+  - The CPU widget shown at the bottom of the screen is fairly simplistic and
+    may complain of high load prematurely, especially on systems with low core
+    counts. To avoid the alarming red color, you can set AFL_NO_CPU_RED.

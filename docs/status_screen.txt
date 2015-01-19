@@ -138,7 +138,8 @@ hit, in proportion to how much the bitmap can hold. Be wary of extremes:
     AFL_INST_RATIO=10 or so (see env_variables.txt).
 
     The fuzzer will flag high percentages in red. Chances are, you will never
-    see that.
+    see that unless you're fuzzing extremely hairy software (say, v8, perl,
+    ffmpeg).
 
 The other line deals with the variability in tuple hit counts seen in the
 binary. In essence, if every taken branch is always taken a fixed number of
@@ -290,13 +291,12 @@ explanations for variable behavior of the tested program:
   - Use of uninitialized memory in conjunction with some intrinsic sources of
     entropy in the tested binary. This can be indicative of a security bug.
 
-  - Multiple threads executing at once in semi-random order. To avoid hiccups,
-    it's best to restrict instrumented programs to a single thread. Check
-    compile-time options or run-time flags.
+  - Multiple threads executing at once in semi-random order. Not a big deal,
+    but to avoid hiccups, it's best to restrict instrumented programs to a
+    single thread. Check compile-time options or run-time flags.
 
-    As far as I know, the only cases where this is a (very minor) issue are
-    ImageMagick (remedied with ./configure --without-threads), and ffmpeg
-    (fixed with ./configure --disable-pthreads).
+    For example, you can do this for ImageMagick (./configure 
+    --without-threads) and ffmpeg (./configure --disable-pthreads).
 
   - Attempts to create files that were already created during previous runs.
     This is harmless, but you may want to instruct the targeted program to
@@ -304,7 +304,8 @@ explanations for variable behavior of the tested program:
     creation of temporary files, if applicable).
 
   - Hitting functionality that is actually designed to behave randomly. For
-    example, when fuzzing sqlite, the fuzzer will hit variable behavior with:
+    example, when fuzzing sqlite, the fuzzer will hit variable behavior once
+    the mutation engine generates something like:
 
     select random();
 

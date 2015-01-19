@@ -90,8 +90,9 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            no_forkserver,             /* Disable forkserver?              */
            crash_mode,                /* Crash mode! Yeah!                */
            in_place_resume,           /* Attempt in-place resume?         */
-           auto_changed;              /* Auto-generated tokens changed?   */
-    
+           auto_changed,              /* Auto-generated tokens changed?   */
+           no_cpu_meter_red;          /* Feng shui on the status screen   */
+
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
            dev_null_fd,               /* Persistent fd for /dev/null      */
@@ -1935,18 +1936,18 @@ static u8 run_target(char** argv) {
     if ((res = write(fsrv_ctl_fd, &status, 4)) != 4) {
 
       if (stop_soon) return 0;
-      RPFATAL(res, "Unable to request new process from fork server");
+      RPFATAL(res, "Unable to request new process from fork server (OOM?)");
 
     }
 
     if ((res = read(fsrv_st_fd, &child_pid, 4)) != 4) {
 
       if (stop_soon) return 0;
-      RPFATAL(res, "Unable to request new process from fork server");
+      RPFATAL(res, "Unable to request new process from fork server (OOM?)");
 
     }
 
-    if (child_pid <= 0) FATAL("Fork server can't create a process (out of memory?)");
+    if (child_pid <= 0) FATAL("Fork server is misbehaving (OOM?)");
 
   }
 
@@ -3441,7 +3442,7 @@ static void show_stats(void) {
 
     /* If we're clearly oversubscribed, use red. */
 
-    if (cur_utilization >= 150) cpu_color = cLRD;
+    if (!no_cpu_meter_red && cur_utilization >= 150) cpu_color = cLRD;
 
     SAYF(SP10 cGRA "   [cpu:%s%3u%%" cGRA "]\r" cRST,
          cpu_color, cur_utilization < 999 ? cur_utilization : 999);
@@ -3488,15 +3489,11 @@ static void show_init_stats(void) {
     WARNF(cLRD "The target binary is pretty slow! See %s/perf_tips.txt.",
           doc_path);
 
-  /* Let's keep things moving when using -d against slow binaries. */
+  /* Let's keep things moving with slow binaries. */
 
-  if (skip_deterministic) {
-
-    if (avg_us > 100000) havoc_div = 10;    /* 0-9 execs/sec    */
-    else if (avg_us > 50000) havoc_div = 5; /* 10-49 execs/sec  */
-    else if (avg_us > 10000) havoc_div = 2; /* 50-100 execs/sec */
-
-  }
+  if (avg_us > 50000) havoc_div = 10;     /* 0-19 execs/sec   */
+  else if (avg_us > 20000) havoc_div = 5; /* 20-49 execs/sec  */
+  else if (avg_us > 10000) havoc_div = 2; /* 50-100 execs/sec */
 
   if (!resuming_fuzz) {
 
@@ -6313,11 +6310,12 @@ int main(int argc, char** argv) {
   if (sync_id) fix_up_sync();
 
   if (!strcmp(in_dir, out_dir))
-    FATAL("Input and output directories can't be the same!");
+    FATAL("Input and output directories can't be the same");
 
   if (dumb_mode && crash_mode) FATAL("-C and -n are mutually exclusive");
 
   if (getenv("AFL_NO_FORKSRV")) no_forkserver = 1;
+  if (getenv("AFL_NO_CPU_RED")) no_cpu_meter_red = 1;
 
   fix_up_banner(argv[optind]);
 
