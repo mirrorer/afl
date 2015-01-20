@@ -6,6 +6,20 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer one.
 
 --------------
+Version 1.15b:
+--------------
+
+  - Added support for AFL_NO_VAR_CHECK to speed up resumption and inhibit
+    variable path warnings for some programs.
+
+  - Made the trimmer run even for variable paths, since there is no special
+    harm in doing so and it can be very beneficial if the trimming still
+    pans out.
+
+  - Made the UI a bit more descriptive by adding "n/a" instead of "0" in a
+    couple of corner cases.
+
+--------------
 Version 1.14b:
 --------------
 

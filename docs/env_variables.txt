@@ -26,9 +26,8 @@ handy in scripting environments.
     compiler supports that. Note that fuzzing with ASAN is problematic - see
     notes_for_asan.txt.
 
-  - Setting AFL_USE_MSAN has a similar effect, but enables MSAN. Note that ASAN
-    and MSAN can't be used at the same time. The caveats for MSAN are similar
-    to the situation with ASAN.
+    (You can also enable MSAN via AFL_USE_MSAN; ASAN and MSAN come with the
+    same gotchas; the modes are mutually exclusive.)
 
   - Setting AFL_CC, AFL_CXX, and AFL_AS lets you use alternate downstream
     compilation tools, rather than the default 'clang', 'gcc', or 'as' binaries
@@ -42,7 +41,7 @@ handy in scripting environments.
   - Setting AFL_INST_RATIO to a percentage between 0 and 100% controls the
     probability of instrumenting every branch. This is (very rarely) useful
     when dealing with exceptionally complex programs that saturate the output
-    bitmap. 
+    bitmap. Examples include v8, ffmpeg, and perl.
 
     (If this ever happens, afl-fuzz will warn you ahead of the time by
     displaying the "bitmap density" field in fiery red.)
@@ -90,6 +89,11 @@ handy in scripting environments.
     normally done when starting up the forkserver and causes a pretty
     significant performance drop.
 
+  - Setting AFL_NO_VAR_CHECK skips the detection of variable test cases,
+    greatly speeding up session resumption and path discovery for complex
+    multi-threaded apps (but depriving you of a potentially useful signal
+    in more orderly programs).
+
   - When running in the -M or -S mode, setting AFL_IMPORT_FIRST causes the
     fuzzer to import test cases from other instances before doing anything
     else. This is in contrast with the default mode, where the instances are
@@ -100,8 +104,16 @@ handy in scripting environments.
     in the UI more accurately reflect the number of findings made by the
     instance that the remaining ones did not already have.
 
-  - By default, LD_BIND_NOW is set to 1 to speed up fuzzing, but you can
-    override it (I don't think there's any reason to).
+  - The CPU widget shown at the bottom of the screen is fairly simplistic and
+    may complain of high load prematurely, especially on systems with low core
+    counts. To avoid the alarming red color, you can set AFL_NO_CPU_RED.
+
+4) Third-party variables set by afl-fuzz
+----------------------------------------
+
+  - By default, LD_BIND_NOW is set to 1 to speed up fuzzing by forcing the
+    linker to do all the work before the fork server kicks in. You can
+    override the value, but this is almost certainly pointless.
 
   - By default, ASAN_OPTIONS are set to:
 
@@ -119,7 +131,3 @@ handy in scripting environments.
     msan_track_origins=0
 
     Be sure to include the first one when customizing anything.
-
-  - The CPU widget shown at the bottom of the screen is fairly simplistic and
-    may complain of high load prematurely, especially on systems with low core
-    counts. To avoid the alarming red color, you can set AFL_NO_CPU_RED.

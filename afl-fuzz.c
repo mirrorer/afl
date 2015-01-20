@@ -91,7 +91,8 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            crash_mode,                /* Crash mode! Yeah!                */
            in_place_resume,           /* Attempt in-place resume?         */
            auto_changed,              /* Auto-generated tokens changed?   */
-           no_cpu_meter_red;          /* Feng shui on the status screen   */
+           no_cpu_meter_red,          /* Feng shui on the status screen   */
+           no_var_check;              /* Don't detect variable behavior   */
 
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
@@ -2103,7 +2104,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
   q->cal_failed = 1;
 
   stage_name = "calibration";
-  stage_max  = CAL_CYCLES;
+  stage_max  = no_var_check ? CAL_CYCLES_NO_VAR : CAL_CYCLES;
 
   start_us = get_cur_time_us();
 
@@ -2134,7 +2135,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
       u8 hnb = has_new_bits(virgin_bits);
       if (hnb > new_bits) new_bits = hnb;
 
-      if (q->exec_cksum) {
+      if (!no_var_check && q->exec_cksum) {
 
         var_detected = 1;
         stage_max    = CAL_CYCLES_LONG;
@@ -3362,46 +3363,58 @@ static void show_stats(void) {
   SAYF(bVR bH cCYA bSTOP " fuzzing strategy yields " bSTG bH10 bH bHT bH10
        bH5 bHB bH bSTOP cCYA " path geometry " bSTG bH5 bH2 bH bVL "\n");
 
-  sprintf(tmp, "%s/%s, %s/%s, %s/%s",
-          DI(stage_finds[STAGE_FLIP1]), DI(stage_cycles[STAGE_FLIP1]),
-          DI(stage_finds[STAGE_FLIP4]), DI(stage_cycles[STAGE_FLIP2]),
-          DI(stage_finds[STAGE_FLIP4]), DI(stage_cycles[STAGE_FLIP4]));
+  if (skip_deterministic) {
+
+    strcpy(tmp, "n/a, n/a, n/a");
+
+  } else {
+
+    sprintf(tmp, "%s/%s, %s/%s, %s/%s",
+            DI(stage_finds[STAGE_FLIP1]), DI(stage_cycles[STAGE_FLIP1]),
+            DI(stage_finds[STAGE_FLIP4]), DI(stage_cycles[STAGE_FLIP2]),
+            DI(stage_finds[STAGE_FLIP4]), DI(stage_cycles[STAGE_FLIP4]));
+
+  }
 
   SAYF(bV bSTOP "   bit flips : " cNOR "%-37s " bSTG bV bSTOP "    levels : "
        cNOR "%-10s " bSTG bV "\n", tmp, DI(max_depth));
 
-  sprintf(tmp, "%s/%s, %s/%s, %s/%s",
-          DI(stage_finds[STAGE_FLIP8]), DI(stage_cycles[STAGE_FLIP8]),
-          DI(stage_finds[STAGE_FLIP16]), DI(stage_cycles[STAGE_FLIP16]),
-          DI(stage_finds[STAGE_FLIP32]), DI(stage_cycles[STAGE_FLIP32]));
+  if (!skip_deterministic)
+    sprintf(tmp, "%s/%s, %s/%s, %s/%s",
+            DI(stage_finds[STAGE_FLIP8]), DI(stage_cycles[STAGE_FLIP8]),
+            DI(stage_finds[STAGE_FLIP16]), DI(stage_cycles[STAGE_FLIP16]),
+            DI(stage_finds[STAGE_FLIP32]), DI(stage_cycles[STAGE_FLIP32]));
 
   SAYF(bV bSTOP "  byte flips : " cNOR "%-37s " bSTG bV bSTOP "   pending : "
        cNOR "%-10s " bSTG bV "\n", tmp, DI(pending_not_fuzzed));
 
-  sprintf(tmp, "%s/%s, %s/%s, %s/%s",
-          DI(stage_finds[STAGE_ARITH8]), DI(stage_cycles[STAGE_ARITH8]),
-          DI(stage_finds[STAGE_ARITH16]), DI(stage_cycles[STAGE_ARITH16]),
-          DI(stage_finds[STAGE_ARITH32]), DI(stage_cycles[STAGE_ARITH32]));
+  if (!skip_deterministic)
+    sprintf(tmp, "%s/%s, %s/%s, %s/%s",
+            DI(stage_finds[STAGE_ARITH8]), DI(stage_cycles[STAGE_ARITH8]),
+            DI(stage_finds[STAGE_ARITH16]), DI(stage_cycles[STAGE_ARITH16]),
+            DI(stage_finds[STAGE_ARITH32]), DI(stage_cycles[STAGE_ARITH32]));
 
   SAYF(bV bSTOP " arithmetics : " cNOR "%-37s " bSTG bV bSTOP "  pend fav : "
        cNOR "%-10s " bSTG bV "\n", tmp, DI(pending_favored));
 
-  sprintf(tmp, "%s/%s, %s/%s, %s/%s",
-          DI(stage_finds[STAGE_INTEREST8]), DI(stage_cycles[STAGE_INTEREST8]),
-          DI(stage_finds[STAGE_INTEREST16]), DI(stage_cycles[STAGE_INTEREST16]),
-          DI(stage_finds[STAGE_INTEREST32]), DI(stage_cycles[STAGE_INTEREST32]));
+  if (!skip_deterministic)
+    sprintf(tmp, "%s/%s, %s/%s, %s/%s",
+            DI(stage_finds[STAGE_INTEREST8]), DI(stage_cycles[STAGE_INTEREST8]),
+            DI(stage_finds[STAGE_INTEREST16]), DI(stage_cycles[STAGE_INTEREST16]),
+            DI(stage_finds[STAGE_INTEREST32]), DI(stage_cycles[STAGE_INTEREST32]));
 
   SAYF(bV bSTOP "  known ints : " cNOR "%-37s " bSTG bV bSTOP " own finds : "
        cNOR "%-10s " bSTG bV "\n", tmp, DI(queued_discovered));
 
-
-  sprintf(tmp, "%s/%s, %s/%s, %s/%s",
-          DI(stage_finds[STAGE_EXTRAS_UO]), DI(stage_cycles[STAGE_EXTRAS_UO]),
-          DI(stage_finds[STAGE_EXTRAS_UI]), DI(stage_cycles[STAGE_EXTRAS_UI]),
-          DI(stage_finds[STAGE_EXTRAS_AO]), DI(stage_cycles[STAGE_EXTRAS_AO]));
+  if (!skip_deterministic)
+    sprintf(tmp, "%s/%s, %s/%s, %s/%s",
+            DI(stage_finds[STAGE_EXTRAS_UO]), DI(stage_cycles[STAGE_EXTRAS_UO]),
+            DI(stage_finds[STAGE_EXTRAS_UI]), DI(stage_cycles[STAGE_EXTRAS_UI]),
+            DI(stage_finds[STAGE_EXTRAS_AO]), DI(stage_cycles[STAGE_EXTRAS_AO]));
 
   SAYF(bV bSTOP "  dictionary : " cNOR "%-37s " bSTG bV bSTOP
-       "  imported : " cNOR "%-10s " bSTG bV "\n", tmp, DI(queued_imported));
+       "  imported : " cNOR "%-10s " bSTG bV "\n", tmp,
+       sync_id ? DI(queued_imported) : (u8*)"n/a");
 
   sprintf(tmp, "%s/%s, %s/%s",
           DI(stage_finds[STAGE_HAVOC]), DI(stage_cycles[STAGE_HAVOC]),
@@ -3409,7 +3422,7 @@ static void show_stats(void) {
 
   SAYF(bV bSTOP "       havoc : " cNOR "%-37s " bSTG bV bSTOP 
        "  variable : %s%-10s " bSTG bV "\n", tmp, queued_variable ? cLRD : cNOR,
-       DI(queued_variable));
+      no_var_check ? (u8*)"n/a" : DI(queued_variable));
 
   if (!bytes_trim_out) {
 
@@ -3571,7 +3584,11 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
   u32 remove_len;
   u32 len_p2;
 
-  if (q->len < 5 || q->var_behavior) return 0;
+  /* Although the trimmer will be less useful when variable behavior is
+     detected, it will still work to some extent, so we don't check for
+     this. */
+
+  if (q->len < 5) return 0;
 
   stage_name = tmp;
   bytes_trim_in += q->len;
@@ -4014,6 +4031,9 @@ static u8 fuzz_one(char** argv) {
 
        The caveat is that we won't generate dictionaries in the -d mode or -S
        mode - but that's probably a fair trade-off.
+
+       This won't work particularly well with paths that exhibit variable
+       behavior, but fails gracefully, so we'll carry out the checks anyway.
 
       */
 
@@ -6314,8 +6334,9 @@ int main(int argc, char** argv) {
 
   if (dumb_mode && crash_mode) FATAL("-C and -n are mutually exclusive");
 
-  if (getenv("AFL_NO_FORKSRV")) no_forkserver = 1;
-  if (getenv("AFL_NO_CPU_RED")) no_cpu_meter_red = 1;
+  if (getenv("AFL_NO_FORKSRV"))   no_forkserver    = 1;
+  if (getenv("AFL_NO_CPU_RED"))   no_cpu_meter_red = 1;
+  if (getenv("AFL_NO_VAR_CHECK")) no_var_check     = 1;
 
   fix_up_banner(argv[optind]);
 
