@@ -92,7 +92,8 @@ handy in scripting environments.
   - Setting AFL_NO_VAR_CHECK skips the detection of variable test cases,
     greatly speeding up session resumption and path discovery for complex
     multi-threaded apps (but depriving you of a potentially useful signal
-    in more orderly programs).
+    in more orderly programs and making timeout calculations a bit less
+    accurate).
 
   - When running in the -M or -S mode, setting AFL_IMPORT_FIRST causes the
     fuzzer to import test cases from other instances before doing anything

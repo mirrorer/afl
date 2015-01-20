@@ -2667,6 +2667,39 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 }
 
 
+/* When resuming, try to find the queue position to start from. */
+
+static u32 find_start_position(void) {
+
+  static u8 tmp[4096]; /* Ought to be enough for anybody. */
+
+  u8  *fn, *off;
+  s32 fd, i;
+  u32 ret;
+
+  if (!resuming_fuzz) return 0;
+
+  if (in_place_resume) fn = alloc_printf("%s/fuzzer_stats", out_dir);
+  else fn = alloc_printf("%s/../fuzzer_stats", in_dir);
+
+  fd = open(fn, O_RDONLY);
+  ck_free(fn);
+
+  if (fd < 0) return 0;
+
+  i = read(fd, tmp, sizeof(tmp) - 1); /* Ignore errors */
+  close(fd);
+
+  off = strstr(tmp, "cur_path       : ");
+  if (!off) return 0;
+
+  ret = atoi(off + 17);
+  if (ret > queued_paths) ret = 0;
+  return ret;
+
+}
+
+
 /* Update stats file for unattended monitoring. */
 
 static void write_stats_file(double bitmap_cvg, double eps) {
@@ -2878,14 +2911,13 @@ dir_cleanup_failed:
 }
 
 
-
 /* Delete fuzzer output directory if we recognize it as ours, if the fuzzer
    is not currently running, and if the last run time isn't too great. */
 
 static void maybe_delete_out_dir(void) {
 
   FILE* f;
-  u8* fn = alloc_printf("%s/fuzzer_stats", out_dir);
+  u8 *fn = alloc_printf("%s/fuzzer_stats", out_dir);
 
   f = fopen(fn, "r");
 
@@ -3058,9 +3090,11 @@ static void maybe_delete_out_dir(void) {
   if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
   ck_free(fn);
 
-  fn = alloc_printf("%s/fuzzer_stats", out_dir);
-  if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
-  ck_free(fn);
+  if (!in_place_resume) {
+    fn  = alloc_printf("%s/fuzzer_stats", out_dir);
+    if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
+    ck_free(fn);
+  }
 
   fn = alloc_printf("%s/plot_data", out_dir);
   if (unlink(fn) && errno != ENOENT) goto dir_cleanup_failed;
@@ -3540,9 +3574,15 @@ static void show_init_stats(void) {
   if (!timeout_given) {
 
     /* Figure out the appropriate timeout. The basic idea is: 5x average or
-       1x max, plus 50 ms, rounded down to 50 ms and capped at 1 second. */
+       1x max, plus 50 ms, rounded down to 50 ms and capped at 1 second.
 
-    exec_tmout = 50 + MAX(avg_us * 5 / 1000, max_us / 1000);
+       If the program is slow (>20 ms), we use 3x average, rather than 5x. */
+
+    if (avg_us > 20000)
+      exec_tmout = 50 + MAX(avg_us * 3 / 1000, max_us / 1000);
+    else
+      exec_tmout = 50 + MAX(avg_us * 5 / 1000, max_us / 1000);
+
     exec_tmout = exec_tmout / 50 * 50;
 
     if (exec_tmout > EXEC_TIMEOUT) exec_tmout = EXEC_TIMEOUT;
@@ -6184,7 +6224,7 @@ int main(int argc, char** argv) {
 
   s32 opt;
   u64 prev_queued = 0;
-  u32 sync_interval_cnt = 0;
+  u32 sync_interval_cnt = 0, seek_to;
   u8* extras_dir = 0;
 
   SAYF(cCYA "afl-fuzz " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
@@ -6349,7 +6389,6 @@ int main(int argc, char** argv) {
   setup_shm();
 
   setup_dirs_fds();
-
   read_testcases();
   load_auto();
 
@@ -6372,6 +6411,8 @@ int main(int argc, char** argv) {
   show_init_stats();
 
   if (stop_soon) goto stop_fuzzing;
+
+  seek_to = find_start_position();
 
   write_stats_file(0, 0);
   save_auto();
@@ -6396,6 +6437,12 @@ int main(int argc, char** argv) {
       current_entry     = 0;
       cur_skipped_paths = 0;
       queue_cur         = queue;
+
+      while (seek_to) {
+        current_entry++;
+        seek_to--;
+        queue = queue->next;
+      }
 
       show_stats();
 

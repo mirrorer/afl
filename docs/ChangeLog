@@ -6,6 +6,17 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer one.
 
 --------------
+Version 1.16b:
+--------------
+
+  - Added a bit of code to make resumption pick up from the last known
+    offset in the queue, rather than always rewinding to the start. Suggested
+    by Jakub Wilk.
+
+  - Switched to tighter timeout control for slow programs (3x rather than
+    5x average exec speed at init).
+
+--------------
 Version 1.15b:
 --------------
 
