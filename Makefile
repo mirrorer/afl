@@ -4,7 +4,7 @@
 #
 # Written and maintained by Michal Zalewski <lcamtuf@google.com>
 # 
-# Copyright 2013, 2014 Google Inc. All rights reserved.
+# Copyright 2013, 2014, 2015 Google Inc. All rights reserved.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.16b
+VERSION     = 1.17b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin

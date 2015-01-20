@@ -4,7 +4,7 @@
 
    Written and maintained by Michal Zalewski <lcamtuf@google.com>
 
-   Copyright 2013, 2014 Google Inc. All rights reserved.
+   Copyright 2013, 2014, 2015 Google Inc. All rights reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -48,9 +48,12 @@
 /* Number of calibration cycles per every new test case (and for test
    cases that show variable behavior): */
 
-#define CAL_CYCLES_NO_VAR   4
 #define CAL_CYCLES          10
 #define CAL_CYCLES_LONG     40
+
+/* The same, but when AFL_NO_VAR_CHECK is set in the environment: */
+
+#define CAL_CYCLES_NO_VAR   4
 
 /* Number of subsequent hangs before abandoning an input file: */
 
@@ -157,7 +160,7 @@
 
 #define AVG_SMOOTHING       25
 
-/* Sync interval (havoc cycles): */
+/* Sync interval (every n havoc cycles): */
 
 #define SYNC_INTERVAL       5
 
@@ -253,6 +256,10 @@
 /* Maximum allocator request size (keep well under INT_MAX): */
 
 #define MAX_ALLOC           0x40000000
+
+/* A made-up hashing seed: */
+
+#define HASH_CONST          0xa5b35705
 
 /* Uncomment this to use inferior line-coverage-based instrumentation. Note
    that you need to recompile the target binary for this to have any effect: */

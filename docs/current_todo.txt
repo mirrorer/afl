@@ -6,10 +6,15 @@ TODO
 
 Here's the list of stuff I'm currently thinking about:
 
+  - More test cases and dictionaries! Contributions welcome - see
+    testcases/wishlist.txt.
+
+  - Better CPU widget? Get a sense of the proportion of "our" CPU slices,
+    versus the ones allocated to others. Some sort of a times()-based hack
+    may do the trick.
+
   - Investigation of x86 hardware branch tracing (Via the Linux perf API?)
     as an alternative to injected instrumentation.
-
-  - More test cases! Contributions welcome - see testcases/wishlist.txt.
 
   - Detection of multi-threaded apps or apps that call execve(), to tell
     the user about trade-offs.
@@ -22,7 +27,7 @@ Here's the list of stuff I'm currently thinking about:
 
   - Incorporation of the second part of Jann's fork server patch, allowing
     afl to skip over program initialization steps and stop precisely at first
-    read.
+    read or other relevant file op (tricky).
 
   - A pluggable version of fuzz_one() to make it easy to write syntax-aware
     mutators without navigating a huge blob of code.

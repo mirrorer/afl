@@ -6,6 +6,19 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer one.
 
 --------------
+Version 1.17b:
+--------------
+
+  - Fixed a compiler warning introduced in 1.16b for newer versions of GCC.
+    Thanks to Jakub Wilk and Ilfak Guilfanov.
+
+  - Improved the consistency of saving fuzzer_stats, bitmap info, and
+    auto-dictionaries when aborting fuzzing sessions.
+
+  - Made several noticeable performance improvements to deterministic arith
+    and known int steps.
+
+--------------
 Version 1.16b:
 --------------
 
