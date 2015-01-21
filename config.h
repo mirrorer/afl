@@ -244,6 +244,10 @@
 #define CAL_TMOUT_PERC      125
 #define CAL_TMOUT_ADD       50
 
+/* Number of chances to calibrate a case before giving up: */
+
+#define CAL_CHANCES         3
+
 /* Map size for the traced binary (2^MAP_SIZE_POW2). Must be greater than
    2; you probably want to keep it under 18 or so for performance reasons
    (adjusting AFL_INST_RATIO when compiling is probably a better way to solve

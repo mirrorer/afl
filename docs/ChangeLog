@@ -6,6 +6,15 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer one.
 
 --------------
+Version 1.18b:
+--------------
+
+  - Fixed a serious but short-lived bug in the resumption behavior introduced
+    in version 1.16b.
+
+  - Added -t nn+ mode for soft-skipping timing-out paths.
+
+--------------
 Version 1.17b:
 --------------
 

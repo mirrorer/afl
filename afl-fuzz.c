@@ -2108,7 +2108,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
     exec_tmout = MAX(exec_tmout + CAL_TMOUT_ADD,
                      exec_tmout * CAL_TMOUT_PERC / 100);
 
-  q->cal_failed = 1;
+  q->cal_failed++;
 
   stage_name = "calibration";
   stage_max  = no_var_check ? CAL_CYCLES_NO_VAR : CAL_CYCLES;
@@ -2226,6 +2226,7 @@ static void perform_dry_run(char** argv) {
 
   struct queue_entry* q = queue;
   u32 id = 0;
+  u32 cal_failures = 0;
 
   while (q) {
 
@@ -2270,7 +2271,26 @@ static void perform_dry_run(char** argv) {
 
         if (timeout_given) {
 
-          FATAL("Test case '%s' results in a hang (adjusting -t may help)", fn);
+          /* The -t nn+ syntax in the command line sets timeout_given to '2' and
+             instructs afl-fuzz to tolerate but skip queue entries that time
+             out. */
+
+          if (timeout_given == 2) {
+            WARNF("Test case '%s' results in a hang (skipping)", fn);
+            q->cal_failed = CAL_CHANCES;
+            cal_failures++;
+            break;
+          }
+
+          SAYF("\n" cLRD "[-] " cRST
+               "The program took more than %u ms to process one of the initial test cases.\n"
+               "    Usually, the right thing to do is to relax the -t option - or to delete it\n"
+               "    altogether and allow the fuzzer to auto-calibrate. That said, if you know\n"
+               "    what you are doing and want to simply skip the unruly test cases, append\n"
+               "    '+' at the end of the value passed to -t ('-t %u+').\n", exec_tmout,
+               exec_tmout);
+
+          FATAL("Test case '%s' results in a hang", fn);
 
         } else {
 
@@ -2345,6 +2365,19 @@ static void perform_dry_run(char** argv) {
 
     q = q->next;
     id++;
+
+  }
+
+  if (cal_failures) {
+
+    if (cal_failures == queued_paths)
+      FATAL("All test cases time out, giving up!");
+
+    WARNF("Skipped %u test cases (%0.02f%%) due to timeouts.", cal_failures,
+          ((double)cal_failures) * 100 / queued_paths);
+
+    if (cal_failures * 5 > queued_paths)
+      WARNF(cLRD "High percentage of rejected test cases, check settings!");
 
   }
 
@@ -3988,12 +4021,16 @@ static u8 fuzz_one(char** argv) {
 
   if (queue_cur->cal_failed) {
 
-    u8 res;
+    u8 res = FAULT_HANG;
 
-    res = calibrate_case(argv, queue_cur, in_buf, queue_cycle - 1, 0);
+    if (queue_cur->cal_failed < CAL_CHANCES) {
 
-    if (res == FAULT_ERROR)
-      FATAL("Unable to execute target application");
+      res = calibrate_case(argv, queue_cur, in_buf, queue_cycle - 1, 0);
+
+      if (res == FAULT_ERROR)
+        FATAL("Unable to execute target application");
+
+    }
 
     if (stop_soon || res != crash_mode) {
       cur_skipped_paths++;
@@ -6339,12 +6376,20 @@ int main(int argc, char** argv) {
         extras_dir = optarg;
         break;
 
-      case 't':
+      case 't': {
 
-        exec_tmout = atoi(optarg);
-        if (exec_tmout < 20) FATAL("Bad or dangerously low value of -t");
-        timeout_given = 1;
-        break;
+          u8 suffix = 0;
+
+          if (sscanf(optarg, "%u%c", &exec_tmout, &suffix) < 1)
+            FATAL("Bad syntax used for -t");
+
+          if (exec_tmout < 20) FATAL("Dangerously low value of -t");
+
+          if (suffix == '+') timeout_given = 2; else timeout_given = 1;
+
+          break;
+
+      }
 
       case 'm': {
 
@@ -6507,7 +6552,7 @@ int main(int argc, char** argv) {
       while (seek_to) {
         current_entry++;
         seek_to--;
-        queue = queue->next;
+        queue_cur = queue_cur->next;
       }
 
       show_stats();
