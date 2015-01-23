@@ -6,6 +6,23 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer one.
 
 --------------
+Version 1.20b:
+--------------
+
+  - Added AFL_DUMB_FORKSRV, as requested by Jakub Wilk. This works only
+    in -n mode and allows afl-fuzz to run with "dummy" fork servers that
+    don't output any instrumentation, but follow the same protocol.
+
+  - Renamed AFL_SKIP_CHECKS to AFL_SKIP_BIN_CHECK to make it at least
+    somewhat descriptive.
+
+  - Switched to using clang as the default assembler on MacOS X to work
+    around Xcode issues with newer builds of clang. Testing and patch by
+    Nico Weber.
+
+  - Fixed a typo (via Jakub Wilk).
+
+--------------
 Version 1.19b:
 --------------
 

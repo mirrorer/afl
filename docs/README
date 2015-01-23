@@ -312,7 +312,7 @@ afl-fuzz.
 10) Common-sense risks
 ----------------------
 
-Please keep in mind that, similarly to many other computationally-expensive
+Please keep in mind that, similarly to many other computationally-intensive
 tasks, fuzzing may put strain on your hardware and on the OS. In particular:
 
   - Your CPU will run hot and will need adequate cooling. In most cases, if
@@ -397,7 +397,8 @@ bug reports, or patches from:
   - Michael Rash,
   - William Robinet,
   - Jonathan Gray,
-  - Filipe Cabecinhas.
+  - Filipe Cabecinhas,
+  - Nico Weber.
 
 Thank you!
 

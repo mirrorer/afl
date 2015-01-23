@@ -1193,7 +1193,7 @@ static void setup_shm(void) {
      fork server commands. This should be replaced with better auto-detection
      later on, perhaps? */
 
-  if (!dumb_mode)
+  if (dumb_mode != 1)
     setenv(SHM_ENV_VAR, shm_str, 1);
 
   ck_free(shm_str);
@@ -1864,7 +1864,7 @@ static u8 run_target(char** argv) {
      execve(). There is a bit of code duplication between here and 
      init_forkserver(), but c'est la vie. */
 
-  if (dumb_mode || no_forkserver) {
+  if (dumb_mode == 1 || no_forkserver) {
 
     child_pid = fork();
 
@@ -1970,7 +1970,7 @@ static u8 run_target(char** argv) {
 
   /* The SIGALRM handler simply kills the child_pid and sets child_timed_out. */
 
-  if (dumb_mode || no_forkserver) {
+  if (dumb_mode == 1 || no_forkserver) {
 
     if (waitpid(child_pid, &status, WUNTRACED) <= 0) PFATAL("waitpid() failed");
 
@@ -2020,7 +2020,7 @@ static u8 run_target(char** argv) {
     return FAULT_CRASH;
   }
 
-  if ((dumb_mode || no_forkserver) && tb4 == EXEC_FAIL_SIG)
+  if ((dumb_mode == 1 || no_forkserver) && tb4 == EXEC_FAIL_SIG)
     return FAULT_ERROR;
 
   return FAULT_NONE;
@@ -2566,8 +2566,10 @@ static void write_crash_readme(void) {
 
              "Thanks :-)\n\n"
 
-             "PS. If you need a tool to minimize test cases, check out afl-tmin!\n");
-             /* ignore errors */
+             "PS. If you need a tool to minimize test cases, check out afl-tmin!\n\n"
+
+             "PPS. Can't reproduce a crash outside of afl-fuzz? Be sure to set the same\n"
+             "memory limit (currently: %s).\n", DMS(mem_limit << 20)); /* ignore errors */
 
   fclose(f);
 
@@ -4360,15 +4362,16 @@ skip_bitflip:
          compare them to XOR results that can be produced by bitflips.
 
          Single bitflips can yield 1, 2, 4, 8, 16, 32, 64, 128,
-         Two-in-a-row can yield 3, 6, 12, 24, 48, 96, 192,
-         Four-in-a-row gives 15, 30, 60, 120, 240,
-         Full-byte flip takes care of 255.
+         Two-in-a-row can yield 1*, 3, 6, 12, 24, 48, 96, 128*, 192,
+         Four in a row: 1*, 3*, 7, 15, 30, 60, 120, 128*, 192*, 224, 240,
+         Full-byte flip (with a 1-byte stepover) takes care of 255.
 
        */
 
-      if (r > 4 && r != 8 && r != 16 && r != 32 && r != 64 && r != 128 &&
+      if (r > 4 && r != 8  && r != 16 && r != 32 && r != 64 && r != 128 &&
           r != 6 && r != 12 && r != 24 && r != 48 && r != 96 && r != 192 &&
-          r != 15 && r != 30 && r != 60 && r != 120 && r != 240 && r != 255) {
+          r != 7 && r != 15 && r != 30 && r != 60 && r != 120 && r != 224 &&
+          r != 240 && r != 255) {
 
         stage_cur_val = j;
         out_buf[i] = orig + j;
@@ -4427,7 +4430,7 @@ skip_bitflip:
          & 0xff overflow checks).
 
          Since we're looking only at multi-byte operations, the
-         overlap with biflips will be relatively modest and we don't
+         overlap with bitflips will be relatively modest and we don't
          test for it here. */
 
       stage_val_type = STAGE_VAL_LE; 
@@ -5691,7 +5694,7 @@ static void check_binary(u8* fname) {
 
   }
 
-  if (getenv("AFL_SKIP_CHECKS")) return;
+  if (getenv("AFL_SKIP_BIN_CHECK")) return;
 
   /* Check for blatant user errors. */
 
@@ -6476,7 +6479,8 @@ int main(int argc, char** argv) {
 
       case 'n':
 
-        dumb_mode = 1;
+        if (getenv("AFL_DUMB_FORKSRV")) dumb_mode = 2 ; else dumb_mode = 1;
+
         break;
 
       case 'T':
@@ -6507,6 +6511,9 @@ int main(int argc, char** argv) {
   if (getenv("AFL_NO_FORKSRV"))   no_forkserver    = 1;
   if (getenv("AFL_NO_CPU_RED"))   no_cpu_meter_red = 1;
   if (getenv("AFL_NO_VAR_CHECK")) no_var_check     = 1;
+
+  if (dumb_mode == 2 && no_forkserver)
+    FATAL("AFL_DUMB_FORKSRV and AFL_NO_FORKSRV are mutually exclusive");
 
   fix_up_banner(argv[optind]);
 

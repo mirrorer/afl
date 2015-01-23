@@ -2,7 +2,7 @@ This directory contains replacement files that should enable experimental
 ARMv7 instrumentation in place of the default x86 code. Several notes:
 
   - This code is behind the "mainstream" version and lacks some of the
-    features and checks added recently.
+    features and sanity checks added recently.
 
   - The code is confirmed to work only in the sense that it allows libpng 
     and jpeg9c to be compiled with ./configure --disable-shared and run

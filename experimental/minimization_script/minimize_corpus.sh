@@ -151,7 +151,7 @@ echo "[+] Found $TCOUNT unique tuples across $CCOUNT files."
 echo "[*] Finding best candidates for each tuple..."
 
 # Find best file for each tuple, where "best" is simply understood as the
-# smallest containing a particular tuple in its trace; empirical evidence
+# smallest one containing a particular tuple in its trace; empirical evidence
 # suggests that this usually produces smaller data sets than more involved
 # approaches that would be still viable in a shell script.
 

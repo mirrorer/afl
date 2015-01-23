@@ -72,7 +72,7 @@ handy in scripting environments.
 3) Settings for afl-fuzz
 ------------------------
 
-  - Setting AFL_SKIP_CHECKS skips the checks to detect instrumented binaries
+  - Setting AFL_SKIP_BIN_CHECK skips the checks to detect instrumented binaries
     and shell scripts. This is useful mostly if you develop your own
     instrumentation (e.g., for interpreted languages or binary-only code).
 
@@ -88,6 +88,10 @@ handy in scripting environments.
     Note that this setting inhibits some of the user-friendly diagnostics
     normally done when starting up the forkserver and causes a pretty
     significant performance drop.
+
+  - Setting AFL_DUMB_FORKSRV makes afl-fuzz expect a fork server on the other
+    side when running in -n mode. This may be useful for custom projects. The
+    variable has no effect unless -n is specified.
 
   - Setting AFL_NO_VAR_CHECK skips the detection of variable test cases,
     greatly speeding up session resumption and path discovery for complex

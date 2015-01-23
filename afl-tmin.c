@@ -74,6 +74,7 @@ static volatile u8
            stop_soon,                 /* Ctrl-C pressed?                   */
            child_timed_out;           /* Child timed out?                  */
 
+
 /* Classify tuple counts. */
 
 #define AREP4(_sym) (_sym), (_sym), (_sym), (_sym)
@@ -521,12 +522,12 @@ next_del_blksize:
       alpha_del2, alpha_del2 == 1 ? "" : "s");
 
   SAYF("\n"
-      cGRA "    File size reducted by : " cNOR "%0.02f%% (to %u byte%s)\n"
-      cGRA "    Characters simplified : " cNOR "%0.02f%%\n"
-      cGRA "     Number of execs done : " cNOR "%u\n\n",
-      100 - ((double)in_len) * 100 / orig_len, in_len, in_len == 1 ? "" : "s",
-      ((double)(alpha_del1 + alpha_del2)) * 100 / (in_len ? in_len : 1),
-      total_execs);
+       cGRA "    File size reducted by : " cNOR "%0.02f%% (to %u byte%s)\n"
+       cGRA "    Characters simplified : " cNOR "%0.02f%%\n"
+       cGRA "     Number of execs done : " cNOR "%u\n\n",
+       100 - ((double)in_len) * 100 / orig_len, in_len, in_len == 1 ? "" : "s",
+       ((double)(alpha_del1 + alpha_del2)) * 100 / (in_len ? in_len : 1),
+       total_execs);
 
 }
 
@@ -656,11 +657,11 @@ static void usage(u8* argv0) {
        "Required parameters:\n\n"
 
        "  -i file       - input test case to be shrunk by the tool\n"
-       "  -o file       - output file for the minimized data\n\n"
+       "  -o file       - final output location for the minimized data\n\n"
 
        "Execution control settings:\n\n"
 
-       "  -f file       - location read by the tested program (stdin)\n"
+       "  -f file       - input file read by the tested program (stdin)\n"
        "  -t msec       - timeout for each run (%u ms)\n"
        "  -m megs       - memory limit for child process (%u MB)\n"
        "  -x            - treat non-zero exit codes as crashes\n\n"
