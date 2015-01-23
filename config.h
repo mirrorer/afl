@@ -125,6 +125,10 @@
 
 #define MAX_FILE            (1 * 1024 * 1024)
 
+/* The same, for the test case minimizer: */
+
+#define TMIN_MAX_FILE       (10 * 1024 * 1024)
+
 /* Maximum dictionary token size (-x), in bytes: */
 
 #define MAX_DICT_FILE       128
@@ -222,9 +226,12 @@
 #define CLANG_ENV_VAR       "__AFL_CLANG_MODE"
 #define AS_LOOP_ENV_VAR     "__AFL_AS_LOOPCHECK"
 
-/* Distinctive exit code used to indicate failed execution: */
+/* Distinctive bitmap signature used to indicate failed execution: */
 
-#define EXEC_FAIL           85
+#define EXEC_FAIL_SIG       0xfee1dead
+
+/* Distinctive exit code used to indicate MSAN trip condition: */
+
 #define MSAN_ERROR          86
 
 /* Designated file desciptors for forkserver commands (the application will

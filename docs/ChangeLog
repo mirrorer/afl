@@ -6,6 +6,16 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to download a newer one.
 
 --------------
+Version 1.19b:
+--------------
+
+  - Improved exec failure detection in afl-fuzz and afl-showmap.
+
+  - Improved Ctrl-C handling in afl-showmap.
+
+  - Added afl-tmin, a handy instrumentation-enabled minimizer.
+
+--------------
 Version 1.18b:
 --------------
 

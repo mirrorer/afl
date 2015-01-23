@@ -43,7 +43,7 @@ Here's the list of stuff I'm currently thinking about:
 
 There is also one thing I get asked to do but am a bit unconvinced about:
 support for fuzzing network services. When you want to fuzz a non-modified
-daemon, you need to deal with multiple different process models, e.g.:
+daemon, you need to deal with quite a few different process models:
 
   - One-shot (inetd-style),
   - Single process (traditional UDP services),

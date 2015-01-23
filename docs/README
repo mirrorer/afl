@@ -296,7 +296,18 @@ what degree of control the attacker has over the faulting address, or whether
 it is possible to get past an initial out-of-bounds read - and see what lies
 beneath.
 
-Oh - for test case minimization, consider https://code.google.com/p/tmin/.
+Oh, one more thing: for test case minimization, give afl-tmin a try. The tool
+can be operated in a very simple way:
+
+$ ./afl-tmin -i test_case -o minimized_result -- /path/to/program [...]
+
+The tool works with crashing and non-crashing test cases alike. In the crash
+mode, it will happily accept instrumented and non-instrumented binaries. In the
+non-crashing mode, the minimizer relies on standard AFL instrumentation to make
+the file simpler without altering the execution path.
+
+The minimizer accepts the -m, -t, -f and @@ syntax in a manner compatible with
+afl-fuzz.
 
 10) Common-sense risks
 ----------------------

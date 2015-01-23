@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.18b
+VERSION     = 1.19b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -22,7 +22,7 @@ HELPER_PATH = $(PREFIX)/lib/afl
 DOC_PATH    = $(PREFIX)/share/doc/afl
 MISC_PATH   = $(PREFIX)/share/afl
 
-PROGS       = afl-gcc afl-as afl-fuzz afl-showmap
+PROGS       = afl-gcc afl-as afl-fuzz afl-showmap afl-tmin
 
 CFLAGS     ?= -O3 -funroll-loops
 CFLAGS     += -Wall -D_FORTIFY_SOURCE=2 -g -Wno-pointer-sign \
@@ -59,6 +59,9 @@ afl-fuzz: afl-fuzz.c $(COMM_HDR) | test_x86
 afl-showmap: afl-showmap.c $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
 
+afl-tmin: afl-tmin.c $(COMM_HDR) | test_x86
+	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
+
 test_build: afl-gcc afl-as afl-showmap
 	@echo "[*] Testing the CC wrapper and instrumentation output..."
 	unset AFL_USE_ASAN AFL_USE_MSAN; AFL_QUIET=1 AFL_INST_RATIO=100 AFL_PATH=. ./$(TEST_CC) $(CFLAGS) $(LDFLAGS) test-instr.c -o test-instr
@@ -79,7 +82,7 @@ clean:
 install: all
 	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH) $${DESTDIR}$(DOC_PATH) $${DESTDIR}$(MISC_PATH)
 	rm -f $${DESTDIR}$(BIN_PATH)/afl-plot.sh
-	install -m 755 afl-gcc afl-fuzz afl-showmap afl-plot $${DESTDIR}$(BIN_PATH)
+	install -m 755 afl-gcc afl-fuzz afl-showmap afl-plot afl-tmin $${DESTDIR}$(BIN_PATH)
 	for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $${DESTDIR}$(BIN_PATH)/$$i; done
 	install -m 755 afl-as $${DESTDIR}$(HELPER_PATH)
 	ln -sf afl-as $${DESTDIR}$(HELPER_PATH)/as
@@ -90,7 +93,7 @@ publish: clean
 	test "`basename $$PWD`" = "afl" || exit 1
 	test -f ~/www/afl/releases/$(PROGNAME)-$(VERSION).tgz; if [ "$$?" = "0" ]; then echo; echo "Change program version in Makefile, mmkay?"; echo; exit 1; fi
 	cd ..; rm -rf $(PROGNAME)-$(VERSION); cp -pr $(PROGNAME) $(PROGNAME)-$(VERSION); \
-	  tar -cvz --exclude 'msie-jxr-*' --exclude 'msie-png-mem-*' --exclude 'msie-tiff-*' --exclude 'ffmpeg-*' -f ~/www/afl/releases/$(PROGNAME)-$(VERSION).tgz $(PROGNAME)-$(VERSION)
+	  tar -cvz --exclude 'msie-jxr-*' --exclude 'msie-png-mem-*' --exclude 'msie-tiff-*' -f ~/www/afl/releases/$(PROGNAME)-$(VERSION).tgz $(PROGNAME)-$(VERSION)
 	chmod 644 ~/www/afl/releases/$(PROGNAME)-$(VERSION).tgz
 	( cd ~/www/afl/releases/; ln -s -f $(PROGNAME)-$(VERSION).tgz $(PROGNAME)-latest.tgz )
 	cat docs/README >~/www/afl/README.txt

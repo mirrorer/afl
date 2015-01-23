@@ -55,7 +55,8 @@ static s32 shm_id;                    /* ID of the SHM region              */
 
 static u8  sink_output,               /* Sink program output               */
            be_quiet,                  /* Quiet mode (tuples & errors only) */
-           minimize_mode;             /* Called from minimize_corpus.sh?   */
+           minimize_mode,             /* Called from minimize_corpus.sh?   */
+           stop_soon;                 /* Ctrl-C pressed?                   */
 
 
 /* Classify tuple counts. */
@@ -201,9 +202,10 @@ static void run_target(char** argv) {
 
       s32 fd = open("/dev/null", O_RDWR);
 
-      if (fd < 0) PFATAL("Cannot open /dev/null");
-
-      if (dup2(fd, 1) < 0 || dup2(fd, 2) < 0) PFATAL("dup2() failed");
+      if (fd < 0 || dup2(fd, 1) < 0 || dup2(fd, 2) < 0) {
+        *(u32*)trace_bits = EXEC_FAIL_SIG;
+        PFATAL("Cannot open /dev/null");
+      }
 
       close(fd);
 
@@ -211,17 +213,54 @@ static void run_target(char** argv) {
 
     execvp(argv[0], argv);
 
-    PFATAL("Unable to execute '%s'", argv[0]);
+    *(u32*)trace_bits = EXEC_FAIL_SIG;
+    exit(0);
 
   }
 
   if (waitpid(child_pid, &status, WUNTRACED) <= 0) FATAL("waitpid() failed");
+  child_pid = 0;
 
   if (!minimize_mode && WIFSIGNALED(status))
     SAYF("+++ Killed by signal %u +++\n", WTERMSIG(status));
 
+  if (*(u32*)trace_bits == EXEC_FAIL_SIG)
+    FATAL("Unable to execute '%s'", argv[0]);
+
 }
 
+
+/* Handle Ctrl-C and the like. */
+
+static void handle_stop_sig(int sig) {
+
+  stop_soon = 1;
+
+  if (child_pid > 0) kill(child_pid, SIGKILL);
+
+}
+
+
+/* Setup signal handlers, duh. */
+
+static void setup_signal_handlers(void) {
+
+  struct sigaction sa;
+
+  sa.sa_handler   = NULL;
+  sa.sa_flags     = SA_RESTART;
+  sa.sa_sigaction = NULL;
+
+  sigemptyset(&sa.sa_mask);
+
+  /* Various ways of saying "stop". */
+
+  sa.sa_handler = handle_stop_sig;
+  sigaction(SIGHUP, &sa, NULL);
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGTERM, &sa, NULL);
+
+}
 
 
 /* Display usage hints. */
@@ -257,6 +296,7 @@ int main(int argc, char** argv) {
   if (argc < 2) usage(argv[0]);
 
   setup_shm();
+  setup_signal_handlers();
 
   if (minimize_mode || getenv("AFL_SINK_OUTPUT")) sink_output = 1;
 

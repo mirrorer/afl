@@ -109,7 +109,13 @@ handy in scripting environments.
     may complain of high load prematurely, especially on systems with low core
     counts. To avoid the alarming red color, you can set AFL_NO_CPU_RED.
 
-4) Third-party variables set by afl-fuzz
+4) Settings for afl-tmin
+------------------------
+
+  - Setting AFL_EDGES_ONLY makes the tool disregard edge hit count information
+    when minimizing non-crashing files.
+
+5) Third-party variables set by afl-fuzz
 ----------------------------------------
 
   - By default, LD_BIND_NOW is set to 1 to speed up fuzzing by forcing the

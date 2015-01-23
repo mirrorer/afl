@@ -1716,10 +1716,11 @@ static void init_forkserver(char** argv) {
 
     execv(target_path, argv);
 
-    /* Use a distinctive return value to tell the parent about execv()
-       falling through. This is hackish, but meh... */
+    /* Use a distinctive bitmap signature to tell the parent about execv()
+       falling through. */
 
-    exit(EXEC_FAIL);
+    *(u32*)trace_bits = EXEC_FAIL_SIG;
+    exit(0);
 
   }
 
@@ -1807,8 +1808,7 @@ static void init_forkserver(char** argv) {
 
   }
 
-
-  if (WEXITSTATUS(status) == EXEC_FAIL)
+  if (*(u32*)trace_bits == EXEC_FAIL_SIG)
     FATAL("Unable to execute target application ('%s')", argv[0]);
 
   if (mem_limit && mem_limit < 500 && uses_asan) {
@@ -1853,6 +1853,7 @@ static u8 run_target(char** argv) {
 
   static struct itimerval it;
   int status = 0;
+  u32 tb4;
 
   child_timed_out = 0;
 
@@ -1925,10 +1926,11 @@ static u8 run_target(char** argv) {
 
       execv(target_path, argv);
 
-      /* Use a distinctive return value to tell the parent about execv()
+      /* Use a distinctive bitmap value to tell the parent about execv()
          falling through. */
 
-      exit(EXEC_FAIL);
+      *(u32*)trace_bits = EXEC_FAIL_SIG;
+      exit(0);
 
     }
 
@@ -1991,13 +1993,15 @@ static u8 run_target(char** argv) {
 
   setitimer(ITIMER_REAL, &it, NULL);
 
+  total_execs++;
+
+  tb4 = *(u32*)trace_bits;
+
 #ifdef __x86_64__
   classify_counts((u64*)trace_bits);
 #else
   classify_counts((u32*)trace_bits);
 #endif /* ^__x86_64__ */
-
-  total_execs++;
 
   /* Report outcome to caller. */
 
@@ -2016,7 +2020,7 @@ static u8 run_target(char** argv) {
     return FAULT_CRASH;
   }
 
-  if ((dumb_mode || no_forkserver) && WEXITSTATUS(status) == EXEC_FAIL)
+  if ((dumb_mode || no_forkserver) && tb4 == EXEC_FAIL_SIG)
     return FAULT_ERROR;
 
   return FAULT_NONE;
@@ -2562,8 +2566,8 @@ static void write_crash_readme(void) {
 
              "Thanks :-)\n\n"
 
-             "PS. If you need a tool to minimize test cases, tmin works pretty well:\n"
-             "http://lcamtuf.coredump.cx/soft/tmin.tgz\n"); /* ignore errors */
+             "PS. If you need a tool to minimize test cases, check out afl-tmin!\n");
+             /* ignore errors */
 
   fclose(f);
 
@@ -3716,7 +3720,7 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
       fault = run_target(argv);
       trim_execs++;
 
-      if (stop_soon || fault == EXEC_FAIL) goto abort_trimming;
+      if (stop_soon || fault == FAULT_ERROR) goto abort_trimming;
 
       /* Note that we don't keep track of crashes or hangs here; maybe TODO? */
 
@@ -4351,7 +4355,16 @@ skip_bitflip:
       u8 r = orig ^ (orig + j);
 
       /* Don't bother with arithmetics that produce results equivalent
-         to previously-attempted bitflips. */
+         to previously-attempted bitflips. To evaluate this, we look at
+         XOR of the values before and after the arithmetic operation, and
+         compare them to XOR results that can be produced by bitflips.
+
+         Single bitflips can yield 1, 2, 4, 8, 16, 32, 64, 128,
+         Two-in-a-row can yield 3, 6, 12, 24, 48, 96, 192,
+         Four-in-a-row gives 15, 30, 60, 120, 240,
+         Full-byte flip takes care of 255.
+
+       */
 
       if (r > 4 && r != 8 && r != 16 && r != 32 && r != 64 && r != 128 &&
           r != 6 && r != 12 && r != 24 && r != 48 && r != 96 && r != 192 &&
@@ -4411,7 +4424,11 @@ skip_bitflip:
 
       /* Try little endian addition and subtraction first. Do it only
          if the operation would affect more than one byte (hence the 
-         & 0xff overflow checks). */
+         & 0xff overflow checks).
+
+         Since we're looking only at multi-byte operations, the
+         overlap with biflips will be relatively modest and we don't
+         test for it here. */
 
       stage_val_type = STAGE_VAL_LE; 
 
@@ -4574,7 +4591,9 @@ skip_arith:
 
     for (j = 0; j < sizeof(interesting_8); j++) {
 
-      /* Skip if the values are the same or are within +/- ARITH_MAX. */
+      /* Skip if the new and original values are the same, or are within
+         +/- ARITH_MAX (in the latter case, we already tried this number
+         during the arith steps). */
 
       if (((u8)(interesting_8[j] - orig)) <= ARITH_MAX ||
           ((u8)(orig - interesting_8[j])) <= ARITH_MAX) {
@@ -5819,7 +5838,7 @@ static void usage(u8* argv0) {
 
        "Execution control settings:\n\n"
 
-       "  -f file       - program input file to write fuzzed data to\n"
+       "  -f file       - location read by the fuzzed program (stdin)\n"
        "  -t msec       - timeout for each run (auto-scaled, 50-%u ms)\n"
        "  -m megs       - memory limit for child process (%u MB)\n\n"
       
