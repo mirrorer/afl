@@ -338,6 +338,8 @@ echo "[*] Processing candidates and writing output files..."
 
 CUR=0
 
+touch "$TRACE_DIR/.already_have"
+
 while read -r cnt tuple; do
 
   CUR=$((CUR+1))
@@ -345,16 +347,18 @@ while read -r cnt tuple; do
 
   # If we already have this tuple, skip it.
 
-  test "${ALREADY_HAVE[tuple]}" = "" || continue
+  grep -q "^$tuple\$" "$TRACE_DIR/.already_have" && continue
 
   FN=${BEST_FILE[tuple]}
 
   ln "$IN_DIR/$FN" "$OUT_DIR/$FN"
 
-  sed 's/^/ALREADY_HAVE[/;s/$/]=1/' "$TRACE_DIR/$FN" \
-    >"$TRACE_DIR/.have_script"
-
-  . "$TRACE_DIR/.have_script"
+  if [ "$((CUR % 5))" = "0" ]; then
+    cat "$TRACE_DIR/$FN" "$TRACE_DIR/.already_have" | sort -u >"$TRACE_DIR/.tmp"
+    mv -f "$TRACE_DIR/.tmp" "$TRACE_DIR/.already_have"
+  else
+    cat "$TRACE_DIR/$FN" >>"$TRACE_DIR/.already_have"
+  fi
 
 done <"$TRACE_DIR/.all_uniq"
 
