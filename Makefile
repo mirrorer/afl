@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.20b
+VERSION     = 1.21b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -82,7 +82,7 @@ clean:
 install: all
 	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH) $${DESTDIR}$(DOC_PATH) $${DESTDIR}$(MISC_PATH)
 	rm -f $${DESTDIR}$(BIN_PATH)/afl-plot.sh
-	install -m 755 afl-gcc afl-fuzz afl-showmap afl-plot afl-tmin $${DESTDIR}$(BIN_PATH)
+	install -m 755 afl-gcc afl-fuzz afl-showmap afl-plot afl-tmin afl-cmin $${DESTDIR}$(BIN_PATH)
 	for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $${DESTDIR}$(BIN_PATH)/$$i; done
 	install -m 755 afl-as $${DESTDIR}$(HELPER_PATH)
 	ln -sf afl-as $${DESTDIR}$(HELPER_PATH)/as

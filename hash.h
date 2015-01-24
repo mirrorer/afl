@@ -7,7 +7,8 @@
 
    For simplicity, this variant does *NOT* accept buffer lengths
    that are not divisible by 8 bytes. The 32-bit version is otherwise
-   similar to the original; the 64-bit one is a custom hack.
+   similar to the original; the 64-bit one is a custom hack with
+   mostly-unproven properties.
 
    Austin's original code is public domain; so is this variant.
 

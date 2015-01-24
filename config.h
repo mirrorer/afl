@@ -110,7 +110,7 @@
 
 #define SPLICE_HAVOC        500
 
-/* Maximum value for integer addition / subtraction stages: */
+/* Maximum offset for integer addition / subtraction stages: */
 
 #define ARITH_MAX           35
 

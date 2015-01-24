@@ -24,9 +24,8 @@ Here's a quick overview of the stuff you can find in this directory:
 
   - libpng_no_checksum  - a sample patch for removing CRC checks in libpng.
 
-  - minimization_script - a script for removing redundant files from a corpus
-                          to simplify it. May be useful for pre- or
-                          postprocessing the data for some fuzzing runs.
+Note that the minimize_corpus.sh tool has graduated from the experimental/
+directory and is now available as ../afl-cmin.
 
 Most of these are meant chiefly as examples that need to be tweaked for your
 specific needs. They come with some basic documentation, but are not really

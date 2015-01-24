@@ -2280,7 +2280,7 @@ static void perform_dry_run(char** argv) {
              out. */
 
           if (timeout_given == 2) {
-            WARNF("Test case '%s' results in a hang (skipping)", fn);
+            WARNF("Test case results in a hang (skipping)");
             q->cal_failed = CAL_CHANCES;
             cal_failures++;
             break;
@@ -6351,6 +6351,7 @@ int main(int argc, char** argv) {
   u64 prev_queued = 0;
   u32 sync_interval_cnt = 0, seek_to;
   u8* extras_dir = 0;
+  u8  mem_limit_given = 0;
 
   SAYF(cCYA "afl-fuzz " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
        ") by <lcamtuf@google.com>\n");
@@ -6379,6 +6380,7 @@ int main(int argc, char** argv) {
       case 'M':
 
         force_deterministic = 1;
+        /* Fall through */
 
       case 'S': /* sync ID */
 
@@ -6402,6 +6404,8 @@ int main(int argc, char** argv) {
 
           u8 suffix = 0;
 
+          if (timeout_given) FATAL("Multiple -t options not supported");
+
           if (sscanf(optarg, "%u%c", &exec_tmout, &suffix) < 1)
             FATAL("Bad syntax used for -t");
 
@@ -6416,6 +6420,9 @@ int main(int argc, char** argv) {
       case 'm': {
 
           u8 suffix = 'M';
+
+          if (mem_limit_given) FATAL("Multiple -m options not supported");
+          mem_limit_given = 1;
 
           if (!strcmp(optarg, "none")) {
 
@@ -6467,6 +6474,8 @@ int main(int argc, char** argv) {
            I only used this once or twice to get variants of a particular
            file, so I'm not making this an official setting. */
 
+        if (in_bitmap) FATAL("Multiple -B options not supported");
+
         in_bitmap = optarg;
         read_bitmap(in_bitmap);
         break;
@@ -6479,6 +6488,7 @@ int main(int argc, char** argv) {
 
       case 'n':
 
+        if (dumb_mode) FATAL("Multiple -n options not supported");
         if (getenv("AFL_DUMB_FORKSRV")) dumb_mode = 2 ; else dumb_mode = 1;
 
         break;

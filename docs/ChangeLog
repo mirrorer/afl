@@ -3,7 +3,21 @@ sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
 is 1.10b. If you're stuck on an earlier release, it's strongly advisable
-to download a newer one.
+to get on with the times.
+
+--------------
+Version 1.21b:
+--------------
+
+  - Graduated minimize_corpus.sh to afl-cmin. It is now a first-class
+    utility bundled with the fuzzer. 
+
+  - Made significant improvements to afl-cmin to make it faster, more
+    robust, and more versatile.
+
+  - Refactored some of afl-tmin code to make it a bit more readable.
+
+  - Made assorted changes to the doc to document afl-cmin and other stuff.
 
 --------------
 Version 1.20b:

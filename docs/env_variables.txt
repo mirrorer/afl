@@ -66,15 +66,11 @@ handy in scripting environments.
     /dev/null, so that all you see is a list of tuples recorded by the
     instrumentation. Very useful for test case de-duplication scripts.
 
-  - Setting AFL_EDGES_ONLY makes the tool hide the edge hit count information.
-    This can be handy in conjunction with tools such as minimize_corpus.sh.
+  - Setting AFL_EDGES_ONLY makes the tool hide the edge hit count information,
+    approximating more traditional edge coverage measurements.
 
 3) Settings for afl-fuzz
 ------------------------
-
-  - Setting AFL_SKIP_BIN_CHECK skips the checks to detect instrumented binaries
-    and shell scripts. This is useful mostly if you develop your own
-    instrumentation (e.g., for interpreted languages or binary-only code).
 
   - Setting AFL_SKIP_CPUFREQ skips the check for CPU scaling policy. This is
     useful if you can't change the defaults (e.g., no root access to the
@@ -89,15 +85,16 @@ handy in scripting environments.
     normally done when starting up the forkserver and causes a pretty
     significant performance drop.
 
-  - Setting AFL_DUMB_FORKSRV makes afl-fuzz expect a fork server on the other
-    side when running in -n mode. This may be useful for custom projects. The
-    variable has no effect unless -n is specified.
-
   - Setting AFL_NO_VAR_CHECK skips the detection of variable test cases,
     greatly speeding up session resumption and path discovery for complex
     multi-threaded apps (but depriving you of a potentially useful signal
     in more orderly programs and making timeout calculations a bit less
     accurate).
+
+  - When developing custom instrumentation on top of afl-fuzz, you can use
+    AFL_SKIP_BIN_CHECK to inhibit the checks for non-instrumented binaries
+    and shell scripts; and AFL_DUMB_FORKSRV in conjunction with the -n
+    setting to instruct afl-fuzz to still follow the fork server protocol.
 
   - When running in the -M or -S mode, setting AFL_IMPORT_FIRST causes the
     fuzzer to import test cases from other instances before doing anything
@@ -119,7 +116,16 @@ handy in scripting environments.
   - Setting AFL_EDGES_ONLY makes the tool disregard edge hit count information
     when minimizing non-crashing files.
 
-5) Third-party variables set by afl-fuzz
+5) Settings for afl-cmin
+------------------------
+
+  - Setting AFL_PATH offers a way to specify the location of afl-showmap.
+
+  - AFL_KEEP_TRACES makes the tool keep traces and other metadata used for
+    minimization and normally deleted at exit. The files can be found in the
+    <out_dir>/.traces/*.
+
+6) Third-party variables set by afl-fuzz
 ----------------------------------------
 
   - By default, LD_BIND_NOW is set to 1 to speed up fuzzing by forcing the

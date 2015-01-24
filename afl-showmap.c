@@ -55,7 +55,7 @@ static s32 shm_id;                    /* ID of the SHM region              */
 
 static u8  sink_output,               /* Sink program output               */
            be_quiet,                  /* Quiet mode (tuples & errors only) */
-           minimize_mode,             /* Called from minimize_corpus.sh?   */
+           minimize_mode,             /* Called from afl-cmin?             */
            stop_soon;                 /* Ctrl-C pressed?                   */
 
 

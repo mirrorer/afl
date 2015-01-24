@@ -4,7 +4,7 @@ american fuzzy lop
 
 Written and maintained by Michal Zalewski <lcamtuf@google.com>
 
-Copyright 2013, 2014 Google Inc. All rights reserved.
+Copyright 2013, 2014, 2015 Google Inc. All rights reserved.
 Released under terms and conditions of Apache License, Version 2.0.
 
 For new versions and additional information, check out:
@@ -145,9 +145,8 @@ You can find quite a few good examples of starting files in the testcases/
 subdirectory that comes with this tool.
 
 If a large corpus of data is available for screening, you may want to use the
-afl-showmap utility to compare instrumentation output and reject redundant
-files. See experimental/minimization_script/ for an example of how to implement
-this.
+afl-cmin utility to reject redundant files; afl-showmap can be used to manually
+examine and compare execution traces, too.
 
 5) Fuzzing instrumented binaries
 --------------------------------
@@ -195,6 +194,11 @@ in real time:
   - queue/   - test cases for every distinctive execution path, plus all the
                starting files given by the user. This is, in effect, the
                synthesized corpus mentioned in section 2.
+
+               If desired, you can use afl-cmin to shrink the corpus to a much
+               smaller size. This works by throwing away earlier inputs that
+               used to trigger unique behaviors in the past, but have been made
+               obsolete by better finds made by afl-fuzz later on.
 
   - hangs/   - unique test cases that cause the tested program to time out. Note
                that the default timeouts are fairly aggressive (set at 5x the
@@ -277,6 +281,8 @@ parsers and grammars, but isn't nearly as good as the -x mode.
 
 The coverage-based grouping of crashes usually produces a small data set that
 can be quickly triaged manually or with a very simple GDB or Valgrind script.
+Every crash is also traceable to its parent, non-crashing test case in the
+queue, making it easier to diagnose faults.
 
 Having said that, it's important to acknowledge that some fuzzing crashes can be
 difficult quickly evaluate for exploitability without a lot of debugging and

@@ -59,6 +59,9 @@ static u8* in_data;                   /* Input data for trimming           */
 static u32 in_len,                    /* Input data length                 */
            orig_cksum,                /* Original checksum                 */
            total_execs,               /* Total number of execs             */
+           missed_hangs,              /* Misses due to hangs               */
+           missed_crashes,            /* Misses due to crashes             */
+           missed_paths,              /* Misses due to exec path diffs     */
            exec_tmout = EXEC_TIMEOUT; /* Exec timeout (ms)                 */
 
 static u64 mem_limit = MEM_LIMIT;     /* Memory limit (MB)                 */
@@ -230,13 +233,16 @@ static void handle_timeout(int sig) {
 }
 
 
-/* Execute target application. Returns 0 on clean run, 1 on crash. */
+/* Execute target application. Returns 0 if the changes are a dud, or
+   1 if they should be kept. */
 
-static u8 run_target(char** argv, u8* mem, u32 len) {
+static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
 
   static struct itimerval it;
-  s32 prog_in_fd;
   int status = 0;
+
+  s32 prog_in_fd;
+  u32 cksum;
 
   memset(trace_bits, 0, MAP_SIZE);
 
@@ -319,16 +325,52 @@ static u8 run_target(char** argv, u8* mem, u32 len) {
     exit(1);
   }
 
-  /* If child timed out, return something that will make the caller
-     always ditch this test case. */
+  /* Always discard inputs that time out. */
 
-  if (child_timed_out) return !crash_mode;
+  if (child_timed_out) {
 
-  if (WIFSIGNALED(status) || (WIFEXITED(status) &&
-      WEXITSTATUS(status) == MSAN_ERROR)) return 1;
+    missed_hangs++;
+    return 0;
 
-  if (exit_crash && WIFEXITED(status) && WEXITSTATUS(status)) return 1;
+  }
 
+  /* Handle crashing inputs depending on current mode. */
+
+  if (WIFSIGNALED(status) ||
+      (WIFEXITED(status) && WEXITSTATUS(status) == MSAN_ERROR) ||
+      (WIFEXITED(status) && WEXITSTATUS(status) && exit_crash)) {
+
+    if (first_run) crash_mode = 1;
+
+    if (crash_mode) {
+
+      return 1;
+
+    } else {
+
+      missed_crashes++;
+      return 0;
+
+    }
+
+  }
+
+  /* Handle non-crashing inputs appropriately. */
+
+  if (crash_mode) {
+
+    missed_paths++;
+    return 0;
+
+  }
+
+  cksum = hash32(trace_bits, MAP_SIZE, HASH_CONST);
+
+  if (first_run) orig_cksum = cksum;
+
+  if (orig_cksum == cksum) return 1;
+  
+  missed_paths++;
   return 0;
 
 }
@@ -387,35 +429,14 @@ next_del_blksize:
     /* Tail */
     memcpy(tmp_buf + del_pos, in_data + del_pos + del_len, tail_len);
 
-    res = run_target(argv, tmp_buf, del_pos + tail_len);
+    res = run_target(argv, tmp_buf, del_pos + tail_len, 0);
 
-    if (crash_mode) {
+    if (res) {
 
-      /* In crash mode, we trim if the case simply still crashes; we
-         advance the deletion pointer otherwise. */
+      memcpy(in_data, tmp_buf, del_pos + tail_len);
+      in_len = del_pos + tail_len;
 
-      if (res) {
-
-        memcpy(in_data, tmp_buf, del_pos + tail_len);
-        in_len = del_pos + tail_len;
-
-      } else del_pos += del_len;
-
-    } else {
-
-      u32 cksum = hash32(trace_bits, MAP_SIZE, HASH_CONST);
-
-      /* In instrumented mode, we trim if the case does *not* crash
-         and if the checksums match. */
-
-      if (!res && cksum == orig_cksum) {
-
-        memcpy(in_data, tmp_buf, del_pos + tail_len);
-        in_len = del_pos + tail_len;
-
-      } else del_pos += del_len;
-
-    }
+    } else del_pos += del_len;
 
   }
 
@@ -452,25 +473,13 @@ next_del_blksize:
     for (r = 0; r < in_len; r++)
       if (tmp_buf[r] == i) tmp_buf[r] = '0'; 
 
-    res = run_target(argv, tmp_buf, in_len);
+    res = run_target(argv, tmp_buf, in_len, 0);
 
-    if (crash_mode) {
+    if (res) {
 
-      if (res) {
-        memcpy(in_data, tmp_buf, in_len);
-        syms_removed++;
-        alpha_del1 += alpha_map[i];
-      }
-
-    } else {
-
-      u32 cksum = hash32(trace_bits, MAP_SIZE, HASH_CONST);
-
-      if (!res && cksum == orig_cksum) {
-        memcpy(in_data, tmp_buf, in_len);
-        syms_removed++;
-        alpha_del1 += alpha_map[i];
-      }
+      memcpy(in_data, tmp_buf, in_len);
+      syms_removed++;
+      alpha_del1 += alpha_map[i];
 
     }
 
@@ -496,23 +505,12 @@ next_del_blksize:
 
     tmp_buf[i] = '0';
 
-    res = run_target(argv, tmp_buf, in_len);
+    res = run_target(argv, tmp_buf, in_len, 0);
 
-    if (crash_mode) {
+    if (res) {
 
-      if (res) {
-        memcpy(in_data, tmp_buf, in_len);
-        alpha_del2++;
-      }
-
-    } else {
-
-      u32 cksum = hash32(trace_bits, MAP_SIZE, HASH_CONST);
-
-      if (!res && cksum == orig_cksum) {
-        memcpy(in_data, tmp_buf, in_len);
-        alpha_del2++;
-      }
+      memcpy(in_data, tmp_buf, in_len);
+      alpha_del2++;
 
     }
 
@@ -524,10 +522,11 @@ next_del_blksize:
   SAYF("\n"
        cGRA "    File size reducted by : " cNOR "%0.02f%% (to %u byte%s)\n"
        cGRA "    Characters simplified : " cNOR "%0.02f%%\n"
-       cGRA "     Number of execs done : " cNOR "%u\n\n",
+       cGRA "     Number of execs done : " cNOR "%u\n"
+       cGRA "          Fruitless execs : " cNOR "path=%u crash=%u hang=%u\n\n",
        100 - ((double)in_len) * 100 / orig_len, in_len, in_len == 1 ? "" : "s",
        ((double)(alpha_del1 + alpha_del2)) * 100 / (in_len ? in_len : 1),
-       total_execs);
+       total_execs, missed_paths, missed_crashes, missed_hangs);
 
 }
 
@@ -652,7 +651,7 @@ static void detect_file_args(char** argv) {
 
 static void usage(u8* argv0) {
 
-  SAYF("\n%s [ options ] -- /path/to/app [ ... ]\n\n"
+  SAYF("\n%s [ options ] -- /path/to/target_app [ ... ]\n\n"
 
        "Required parameters:\n\n"
 
@@ -680,6 +679,7 @@ static void usage(u8* argv0) {
 int main(int argc, char** argv) {
 
   s32 opt;
+  u8  mem_limit_given = 0, timeout_given = 0;
 
   doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 
@@ -719,6 +719,9 @@ int main(int argc, char** argv) {
 
           u8 suffix = 'M';
 
+          if (mem_limit_given) FATAL("Multiple -m options not supported");
+          mem_limit_given = 1;
+
           if (!strcmp(optarg, "none")) {
 
             mem_limit = 0;
@@ -751,6 +754,9 @@ int main(int argc, char** argv) {
 
       case 't':
 
+        if (timeout_given) FATAL("Multiple -t options not supported");
+        timeout_given = 1;
+
         exec_tmout = atoi(optarg);
         if (exec_tmout < 20) FATAL("Dangerously low value of -t");
         break;
@@ -777,7 +783,7 @@ int main(int argc, char** argv) {
   ACTF("Performing dry run (mem limit = %llu MB, timeout = %u ms)...",
        mem_limit, exec_tmout);
 
-  crash_mode = run_target(argv + optind, in_data, in_len);
+  run_target(argv + optind, in_data, in_len, 1);
 
   if (child_timed_out)
     FATAL("Target binary times out (adjusting -t may help).");
@@ -786,8 +792,6 @@ int main(int argc, char** argv) {
 
      OKF("Program terminates normally, minimizing in " cCYA "instrumented" cNOR " mode.");
      if (!anything_set()) FATAL("No instrumentation detected.");
-
-     orig_cksum = hash32(trace_bits, MAP_SIZE, HASH_CONST);
 
   } else {
 
