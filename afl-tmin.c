@@ -71,6 +71,7 @@ static s32 shm_id,                    /* ID of the SHM region              */
 
 static u8  crash_mode,                /* Crash-centric mode?               */
            exit_crash,                /* Treat non-zero exit as crash?     */
+           edges_only,                /* Ignore hit counts?                */
            use_stdin = 1;             /* Use stdin for program input?      */
 
 static volatile u8
@@ -78,23 +79,23 @@ static volatile u8
            child_timed_out;           /* Child timed out?                  */
 
 
-/* Classify tuple counts. */
+/* Classify tuple counts. This is a slow & naive version, but good enough here. */
 
-#define AREP4(_sym) (_sym), (_sym), (_sym), (_sym)
-#define AREP8(_sym) AREP4(_sym), AREP4(_sym)
-#define AREP16(_sym) AREP8(_sym), AREP8(_sym)
-#define AREP32(_sym) AREP16(_sym), AREP16(_sym)
-#define AREP64(_sym) AREP32(_sym), AREP32(_sym)
+#define AREP4(_sym)   (_sym), (_sym), (_sym), (_sym)
+#define AREP8(_sym)   AREP4(_sym),  AREP4(_sym)
+#define AREP16(_sym)  AREP8(_sym),  AREP8(_sym)
+#define AREP32(_sym)  AREP16(_sym), AREP16(_sym)
+#define AREP64(_sym)  AREP32(_sym), AREP32(_sym)
 #define AREP128(_sym) AREP64(_sym), AREP64(_sym)
 
 static u8 count_class_lookup[256] = {
 
-  /* 0 - 3:       4 */ 0, 1, 2, 3,
-  /* 4 - 7:      +4 */ AREP4(4),
-  /* 8 - 15:     +8 */ AREP8(5),
-  /* 16 - 31:   +16 */ AREP16(6),
-  /* 32 - 127:  +96 */ AREP64(7), AREP32(7),
-  /* 128+:     +128 */ AREP128(8)
+  /* 0 - 3:       4 */ 0, 1, 2, 4,
+  /* 4 - 7:      +4 */ AREP4(8),
+  /* 8 - 15:     +8 */ AREP8(16),
+  /* 16 - 31:   +16 */ AREP16(32),
+  /* 32 - 127:  +96 */ AREP64(64), AREP32(64),
+  /* 128+:     +128 */ AREP128(128)
 
 };
 
@@ -102,22 +103,18 @@ static void classify_counts(u8* mem) {
 
   u32 i = MAP_SIZE;
 
-  if (getenv("AFL_EDGES_ONLY")) {
+  if (edges_only) {
 
     while (i--) {
-
       if (*mem) *mem = 1;
       mem++;
-
     }
 
   } else {
 
     while (i--) {
-
       *mem = count_class_lookup[*mem];
       mem++;
-
     }
 
   }
@@ -520,7 +517,7 @@ next_del_blksize:
       alpha_del2, alpha_del2 == 1 ? "" : "s");
 
   SAYF("\n"
-       cGRA "    File size reducted by : " cNOR "%0.02f%% (to %u byte%s)\n"
+       cGRA "     File size reduced by : " cNOR "%0.02f%% (to %u byte%s)\n"
        cGRA "    Characters simplified : " cNOR "%0.02f%%\n"
        cGRA "     Number of execs done : " cNOR "%u\n"
        cGRA "          Fruitless execs : " cNOR "path=%u crash=%u hang=%u\n\n",
@@ -662,7 +659,11 @@ static void usage(u8* argv0) {
 
        "  -f file       - input file read by the tested program (stdin)\n"
        "  -t msec       - timeout for each run (%u ms)\n"
-       "  -m megs       - memory limit for child process (%u MB)\n"
+       "  -m megs       - memory limit for child process (%u MB)\n\n"
+
+       "Minimization settings:\n\n"
+
+       "  -e            - solve for edge coverage only, ignore hit counts\n"
        "  -x            - treat non-zero exit codes as crashes\n\n"
 
        "For additional tips, please consult %s/README.\n\n",
@@ -686,7 +687,7 @@ int main(int argc, char** argv) {
   SAYF(cCYA "afl-tmin " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
        ") by <lcamtuf@google.com>\n");
 
-  while ((opt = getopt(argc,argv,"+i:o:f:m:t:x")) > 0)
+  while ((opt = getopt(argc,argv,"+i:o:f:m:t:xe")) > 0)
 
     switch (opt) {
 
@@ -707,6 +708,12 @@ int main(int argc, char** argv) {
         if (prog_in) FATAL("Multiple -f options not supported");
         use_stdin = 0;
         prog_in   = optarg;
+        break;
+
+      case 'e':
+
+        if (edges_only) FATAL("Multiple -e options not supported");
+        edges_only = 1;
         break;
 
       case 'x':
@@ -780,8 +787,8 @@ int main(int argc, char** argv) {
 
   read_initial_file();
 
-  ACTF("Performing dry run (mem limit = %llu MB, timeout = %u ms)...",
-       mem_limit, exec_tmout);
+  ACTF("Performing dry run (mem limit = %llu MB, timeout = %u ms%s)...",
+       mem_limit, exec_tmout, edges_only ? ", edges only" : "");
 
   run_target(argv + optind, in_data, in_len, 1);
 

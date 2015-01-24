@@ -6,6 +6,20 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.22b:
+--------------
+
+  - Reworked afl-showmap.c to support normal options, including -o, -q,
+    -e. Also added support for timeouts and memory limits.
+
+  - Made changes to afl-cmin and other scripts to accommodate the new
+    semantics.
+
+  - Officially retired AFL_EDGES_ONLY.
+
+  - Fixed another typo in afl-tmin, courtesy of Jakub Wilk.
+
+--------------
 Version 1.21b:
 --------------
 

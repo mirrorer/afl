@@ -56,20 +56,7 @@ handy in scripting environments.
     mkdir assembly_here
     TMPDIR=$PWD/assembly_here AFL_KEEP_ASSEMBLY=1 make clean all
 
-2) Settings for afl-showmap
----------------------------
-
-  - Setting AFL_QUIET inhibits the banner and other non-essential messages
-    from the tool.
-
-  - Setting AFL_SINK_OUTPUT redirects all output from the tested program to
-    /dev/null, so that all you see is a list of tuples recorded by the
-    instrumentation. Very useful for test case de-duplication scripts.
-
-  - Setting AFL_EDGES_ONLY makes the tool hide the edge hit count information,
-    approximating more traditional edge coverage measurements.
-
-3) Settings for afl-fuzz
+2) Settings for afl-fuzz
 ------------------------
 
   - Setting AFL_SKIP_CPUFREQ skips the check for CPU scaling policy. This is
@@ -110,13 +97,7 @@ handy in scripting environments.
     may complain of high load prematurely, especially on systems with low core
     counts. To avoid the alarming red color, you can set AFL_NO_CPU_RED.
 
-4) Settings for afl-tmin
-------------------------
-
-  - Setting AFL_EDGES_ONLY makes the tool disregard edge hit count information
-    when minimizing non-crashing files.
-
-5) Settings for afl-cmin
+3) Settings for afl-cmin
 ------------------------
 
   - Setting AFL_PATH offers a way to specify the location of afl-showmap.
@@ -125,7 +106,7 @@ handy in scripting environments.
     minimization and normally deleted at exit. The files can be found in the
     <out_dir>/.traces/*.
 
-6) Third-party variables set by afl-fuzz
+4) Third-party variables set by afl-fuzz
 ----------------------------------------
 
   - By default, LD_BIND_NOW is set to 1 to speed up fuzzing by forcing the

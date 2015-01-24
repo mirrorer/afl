@@ -40,10 +40,11 @@ echo
 # Process command-line options...
 
 MEM_LIMIT=100
+TIMEOUT=none
 
-unset AFL_EDGES_ONLY IN_DIR OUT_DIR STDIN_FILE
+unset IN_DIR OUT_DIR STDIN_FILE E_PAR
 
-while getopts "+i:o:f:e" opt; do
+while getopts "+i:o:f:m:t:e" opt; do
 
   case "$opt" in 
 
@@ -59,14 +60,22 @@ while getopts "+i:o:f:e" opt; do
          ;;
     "m")
          if [ "$OPTARG" = "none" ]; then
-           MEM_LIMIT=""
+           MEM_LIMIT="none"
          else
            MEM_LIMIT=$[OPTARG]
            test "$MEM_LIMIT" = "" && exit 1
          fi
          ;;
+    "t")
+         if [ "$OPTARG" = "none" ]; then
+           TIMEOUT="none"
+         else
+           TIMEOUT=$[OPTARG]
+           test "$TIMEOUT" = "" && exit 1
+         fi
+         ;;
     "e")
-         export AFL_EDGES_ONLY=1
+         E_PAR="-e"
          ;;
     "?")
          exit 1
@@ -94,6 +103,7 @@ Execution control settings:
 
   -f file       - location read by the fuzzed program (stdin)
   -m megs       - memory limit for child process ($MEM_LIMIT MB)
+  -t msec       - run time limit for child process (none)
   -e            - solve for edge coverage only, ignore hit counts
 
 For additional tips, please consult docs/README.
@@ -125,12 +135,20 @@ if [ "$T1" = "0" -o "$T2" = "0" -o "$T3" = "0" -o "$T4" = "0" -o "$T5" = "0" ]; 
   exit 1
 fi
 
-# Check for obvious errors.
+# If @@ is specified, but there's no -f, let's come up with a temporary input
+# file name.
 
-if echo "$*" | grep -qF '@@'; then
-  echo "[-] Error: @@ substitution is not supported with this script; use -f." 1>&2
-  exit 1
+TRACE_DIR="$OUT_DIR/.traces"
+
+if [ "$STDIN_FILE" = "" ]; then
+
+  if echo "$*" | grep -qF '@@'; then
+    STDIN_FILE="$TRACE_DIR/.cur_input"
+  fi
+
 fi
+
+# Check for obvious errors.
 
 if [ "$MEM_LIMIT" -lt "5" ]; then
   echo "[-] Error: dangerously low memory limit." 1>&2
@@ -138,8 +156,25 @@ if [ "$MEM_LIMIT" -lt "5" ]; then
 fi
 
 if [ ! -f "$TARGET_BIN" -o ! -x "$TARGET_BIN" ]; then
-  echo "[-] Error: binary '$TARGET_BIN' not found or is not executable." 1>&2
-  exit 1
+
+  TNEW="`which "$TARGET_BIN" 2>/dev/null`"
+
+  if [ ! -f "$TNEW" -o ! -x "$TNEW" ]; then
+    echo "[-] Error: binary '$TARGET_BIN' not found or not executable." 1>&2
+    exit 1
+  fi
+
+  TARGET_BIN="$TNEW"
+
+fi
+
+if [ "$AFL_SKIP_BIN_CHECK" = "" ]; then
+
+  if ! grep -qF "__AFL_SHM_ID" "$TARGET_BIN"; then
+    echo "[-] Error: binary '$TARGET_BIN' doesn't appear to be instrumented." 1>&2
+    exit 1
+  fi
+
 fi
 
 if [ ! -d "$IN_DIR" ]; then
@@ -158,6 +193,8 @@ if [ -d "$OUT_DIR" ]; then
   echo "[-] Error: directory '$OUT_DIR' exists and is not empty - delete it first." 1>&2
   exit 1
 fi
+
+mkdir -m 755 -p "$TRACE_DIR" || exit 1
 
 if [ ! "$STDIN_FILE" = "" ]; then
   rm -f "$STDIN_FILE" || exit 1
@@ -189,21 +226,11 @@ fi
 # STEP 1: COLLECTING TRACES #
 #############################
 
-TRACE_DIR="$OUT_DIR/.traces"
-mkdir -p "$TRACE_DIR" || exit 1
-
 echo "[*] Obtaining traces for input files in '$IN_DIR'..."
 
 (
 
   CUR=0
-
-  if [ ! "$MEM_LIMIT" = "" ]; then
-    ulimit -v $[MEM_LIMIT << 10] 2>/dev/null
-    ulimit -d $[MEM_LIMIT << 10] 2>/dev/null
-  fi
-
-  export AFL_MINIMIZE_MODE=1
 
   if [ "$STDIN_FILE" = "" ]; then
 
@@ -212,7 +239,7 @@ echo "[*] Obtaining traces for input files in '$IN_DIR'..."
       CUR=$((CUR+1))
       printf "\\r    Processing file $CUR/$IN_COUNT... "
 
-      "$SHOWMAP" "$@" <"$IN_DIR/$fn" >"$TRACE_DIR/$fn" 2>&1
+      "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/$fn" -C $E_PAR -- "$@" <"$IN_DIR/$fn"
 
     done
 
@@ -224,7 +251,8 @@ echo "[*] Obtaining traces for input files in '$IN_DIR'..."
       printf "\\r    Processing file $CUR/$IN_COUNT... "
 
       cp "$IN_DIR/$fn" "$STDIN_FILE"
-      "$SHOWMAP" "$@" </dev/null >"$TRACE_DIR/$fn" 2>&1
+
+      "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/$fn" -C $E_PAR -A "$STDIN_FILE" -- "$@" </dev/null
 
     done
 

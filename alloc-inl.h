@@ -95,7 +95,7 @@
   })
 
 
-/* Allocate a buffer, explictly not zeroing it. Returns NULL for zero-sized
+/* Allocate a buffer, explicitly not zeroing it. Returns NULL for zero-sized
    requests. */
 
 static inline void* DFL_ck_alloc_nozero(u32 size) {
