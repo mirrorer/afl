@@ -9,10 +9,6 @@ Here's the list of stuff I'm currently thinking about:
   - More test cases and dictionaries! Contributions welcome - see
     testcases/wishlist.txt.
 
-  - Better CPU widget? Get a sense of the proportion of "our" CPU slices,
-    versus the ones allocated to others. Some sort of a times()-based hack
-    may do the trick.
-
   - Investigation of x86 hardware branch tracing (Via the Linux perf API?)
     as an alternative to injected instrumentation.
 

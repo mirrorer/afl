@@ -80,6 +80,9 @@ The fuzzer is designed to need ~1 core per job. This means that on a, say,
 4-core system, you can easily run four parallel fuzzing jobs with relatively
 little performance hit. For tips on how to do that, see parallel_fuzzing.txt.
 
+The afl-gotcpu utility can help you understand if you still have idle CPU
+capacity on your system.
+
 6) Keep memory use and timeouts in check
 ----------------------------------------
 

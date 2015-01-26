@@ -9,7 +9,7 @@ Tips for parallel fuzzing
 
 Every copy of afl-fuzz will take up one CPU core. This means that on an
 n-core system, you can almost always run around n concurrent fuzzing jobs with
-virtually no performance hit.
+virtually no performance hit (you can use afl-getcpu to make sure).
 
 In fact, if you rely on just a single job on a multi-core system, you will
 be underutilizing the hardware. So, parallelization is usually the right

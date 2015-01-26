@@ -29,6 +29,9 @@
 #     this by removing all entries that used to trigger unique behaviors in the
 #     past, but have been made obsolete by later finds.
 #
+# Note that the tool doesn't modify the files themselves. For that, you want
+# afl-tmin.
+#
 
 echo "corpus minimization tool for afl-fuzz by <lcamtuf@google.com>"
 echo
@@ -354,7 +357,7 @@ while read -r cnt tuple; do
   ln "$IN_DIR/$FN" "$OUT_DIR/$FN"
 
   if [ "$((CUR % 5))" = "0" ]; then
-    cat "$TRACE_DIR/$FN" "$TRACE_DIR/.already_have" | sort -u >"$TRACE_DIR/.tmp"
+    sort -u "$TRACE_DIR/$FN" "$TRACE_DIR/.already_have" >"$TRACE_DIR/.tmp"
     mv -f "$TRACE_DIR/.tmp" "$TRACE_DIR/.already_have"
   else
     cat "$TRACE_DIR/$FN" >>"$TRACE_DIR/.already_have"

@@ -272,6 +272,11 @@
 
 #define HASH_CONST          0xa5b35705
 
+/* Constants for afl-gotcpu to control busy loop timing: */
+
+#define  CTEST_TARGET_MS    5000
+#define  CTEST_BUSY_CYCLES  (10 * 1000 * 1000)
+
 /* Uncomment this to use inferior line-coverage-based instrumentation. Note
    that you need to recompile the target binary for this to have any effect: */
 
