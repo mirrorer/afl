@@ -153,9 +153,22 @@ fi
 
 # Check for obvious errors.
 
-if [ "$MEM_LIMIT" -lt "5" ]; then
-  echo "[-] Error: dangerously low memory limit." 1>&2
-  exit 1
+if [ ! "$MEM_LIMIT" = "none" ]; then
+
+  if [ "$MEM_LIMIT" -lt "5" ]; then
+    echo "[-] Error: dangerously low memory limit." 1>&2
+    exit 1
+  fi
+
+fi
+
+if [ ! "$TIMEOUT" = "none" ]; then
+
+  if [ "$TIMEOUT" -lt "20" ]; then
+    echo "[-] Error: dangerously low timeout." 1>&2
+    exit 1
+  fi
+
 fi
 
 if [ ! -f "$TARGET_BIN" -o ! -x "$TARGET_BIN" ]; then

@@ -156,10 +156,16 @@ static void edit_params(int argc, char** argv) {
 
 #ifdef __APPLE__
 
-  /* When calling clang as the upstream assembler, append -c and hope
-     for the best. */
+  /* When calling clang as the upstream assembler, append -c -x assembler
+     and hope for the best. */
 
-  if (use_clang_as) as_params[as_par_cnt++] = "-c";
+  if (use_clang_as) {
+
+    as_params[as_par_cnt++] = "-c";
+    as_params[as_par_cnt++] = "-x";
+    as_params[as_par_cnt++] = "assembler";
+
+  }
 
 #endif /* __APPLE__ */
 

@@ -6,6 +6,21 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.25b:
+--------------
+
+  - Introduced afl-whatsup, a simple tool for querying the status of
+    local synced instances of afl-fuzz.
+
+  - Added -x compiler to clang options on Darwin. Suggested by Filipe
+    Cabecinhas.
+
+  - Improved exit codes for afl-gotcpu.
+
+  - Improved the checks for -m and -t values in afl-cmin. Bug report
+    from Evan Huus.
+
+--------------
 Version 1.24b:
 --------------
 

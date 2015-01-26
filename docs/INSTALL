@@ -62,8 +62,8 @@ The crash reporting daemon that comes by default with MacOS X will cause
 problems with fuzzing. You need to turn it off by following the instructions
 provided here: http://goo.gl/CCcd5u
 
-The fork() semantics on OS X are a bit unusual compared to other unix systems.
-This means two things:
+The fork() semantics on OS X are a bit unusual compared to other unix systems
+and definitely don't look POSIX-compliant. This means two things:
 
   - Fuzzing will be probably slower than on Linux. In fact, some folks report
     considerable performance gains by running the jobs inside a Linux VM on

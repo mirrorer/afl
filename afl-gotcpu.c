@@ -16,7 +16,10 @@
    It is meant to complement the quick-and-dirty load average widget shown
    in the afl-fuzz UI.
 
-   Keep in mind that unknowable are the whims of the scheduler.
+   For some work loads, the tool may actually suggest running more instances
+   than you have CPU cores. This can happen if the tested program is spending
+   a portion of its run time waiting for I/O, rather than being 100%
+   CPU-bound.
 
    The idea for the times()-based approach comes from Jakub Wilk.
 
@@ -130,6 +133,6 @@ repeat_loop:
 
   SAYF(cGRA " <<<" cRST "\n\n");
 
-  return (util_perc <= 100);
+  return (util_perc > 105) + (util_perc > 130);
 
 }

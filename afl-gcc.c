@@ -49,6 +49,7 @@ static u32  cc_par_cnt = 1;         /* Param count, including argv0      */
 static u8   be_quiet,               /* Quiet mode                        */
             clang_mode;             /* Invoked as afl-clang*?            */
 
+
 /* Try to find our "fake" GNU assembler in AFL_PATH or at the location derived
    from argv[0]. If that fails, abort. */
 
