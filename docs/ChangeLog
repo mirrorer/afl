@@ -17,6 +17,14 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.28b:
+--------------
+
+  - Made a minor tweak to the instrumentation to preserve the directionality
+    of tuples (i.e., A -> B != B -> A) and to maintain the identity of tight
+    loops (A -> A). You need to recompile targeted binaries to leverage this.
+
+--------------
 Version 1.27b:
 --------------
 

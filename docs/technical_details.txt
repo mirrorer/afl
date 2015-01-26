@@ -15,7 +15,7 @@ branch points is essentially equivalent to:
 
   cur_location = <COMPILE_TIME_RANDOM>;
   shared_mem[cur_location ^ prev_location]++; 
-  prev_location = cur_location;
+  prev_location = cur_location >> 1;
 
 The cur_location value is generated randomly to simplify the process of
 linking complex projects.
