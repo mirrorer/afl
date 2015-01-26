@@ -1,0 +1,241 @@
+===================================
+Technical "whitepaper" for afl-fuzz
+===================================
+
+  This document provides a quick overview of the design of American Fuzzy Lop.
+  See README for the general instruction manual. For a general discussion of
+  motivations and design goals behind AFL, see related_work.txt.
+
+1) Coverage measurements
+------------------------
+
+The instrumentation injected into compiled programs captures branch (edge)
+coverage, along with coarse branch-taken hit counts. The code injected at
+branch points is essentially equivalent to:
+
+  cur_location = <COMPILE_TIME_RANDOM>;
+  shared_mem[cur_location ^ prev_location]++; 
+  prev_location = cur_location;
+
+The cur_location value is generated randomly to simplify the process of
+linking complex projects.
+
+The shared_mem[] array is a 64 kB SHM region passed to the instrumented binary
+by the caller. Its size is chosen so that collisions are sporadic with most of
+the intended targets, yet so that the blob of data is small enough to allow it
+to be analyzed in a matter of microseconds on the receiving end.
+
+Every byte set in the output map can be thought of as a hit for a particular
+(branch_src, branch_dst) tuple in the instrumented code.
+
+This form of coverage provides considerably more insight into the execution
+path of the program than simple block coverage. In particular, it trivially
+distinguishes between the following execution traces:
+
+  A -> B -> C -> D -> E (tuples: AB, BC, CD, DE)
+  A -> B -> C -> E -> D (tuples: AB, BC, CE, ED)
+
+The absence of saturating arithmetic INCB opcode on Intel CPUs means that the
+hit counters can sometimes wrap around to zero. Since this is a fairly
+unlikely and localized event, it's an acceptable performance trade-off.
+
+2) Detecting new behaviors
+--------------------------
+
+The fuzzer maintains a global map of tuples seen in previous executions. When
+a mutated input triggers a new tuple, the input that triggered this behavior
+is preserved and routed for additional processing (see section #3). Inputs that
+do not trigger new state transitions in the execution path are discarded, even
+if their execution traces are otherwise unique.
+
+This approach allows for a very fine-grained and long-term exploration of
+program state while inherently avoiding the problem of path explosion,
+especially due to complex loops. As an example, trace #2 below will be
+considered "substantially new" because of the precence of a new tuple (CA):
+
+  #1: A -> B -> C -> D -> E
+  #2: A -> B -> C -> A -> B -> C -> D -> E
+
+...but with #2 processed, tuple #3 will not be seen as unique, despite having
+a markedly different execution path:
+
+  #3: A -> B -> C -> A -> B -> C -> A -> B -> C -> D -> E
+
+In addition to detecting new tuples, the fuzzer also considers coarse tuple
+hit counts. These are divided into seveal coarse buckets:
+
+  1, 2, 3, 4-7, 8-15, 16-31, 32-127, 128+
+
+Changes within a bucket are ignored; transition from one bucket to another is
+flagged as an interesting change in program control flow, and are routed to
+the process outlined in the section below.
+
+3) Evolving the input queue
+---------------------------
+
+Mutated test cases that produced new state transitions within the program are
+added to the input queue and used as a starting point for future rounds of
+fuzzing. This allows the tool to progressively explore various disjoint and
+possibly mutually incompatible features of the underlying data format, as
+illustrated in these blog posts:
+
+  http://lcamtuf.blogspot.com/2014/11/pulling-jpegs-out-of-thin-air.html
+  http://lcamtuf.blogspot.com/2014/11/afl-fuzz-nobody-expects-cdata-sections.html
+
+A simple visualization of the queue progression pattern can be found here:
+
+  http://lcamtuf.coredump.cx/afl/afl_gzip.png
+
+The synthetic corpus produces by this process is essentially a compact
+collection of "hmm, this does something new!" files, and can be used to seed
+any other testing processes down the line.
+
+4) Culling the corpus
+---------------------
+
+The progressive state exploration approach outlined above means that some of
+the test cases synthesized later on in the game may have edge coverage that
+is a strict superset of the coverage provided by their ancestors.
+
+To minimize fuzzing effort, AFL periodically re-evaluates the queue using a
+fast algorithm that selects a smaller subset of test cases that still cover
+every tuple seen by the fuzzer so far, and that have characteristics that make
+them favorable for fuzzing purposes.
+
+The algorithm works by assigning every queue entry a score proportional to its
+execution latency and file size; and then selecting lowest-scoring candidates
+for each tuple.
+
+The tuples are then processed sequentially using this algorithm:
+
+  1) Find next tuple not yet in the temporary working set,
+
+  2) Locate the winning queue entry for this tuple,
+
+  3) Register *all* tuples present in that entry's trace to the working set,
+
+  4) Go to #1.
+
+The generated corpus of "favored" entries is usually 5-10x smaller than the
+starting one. Non-favored entries are not discarded, but they skipped with
+varying probabilities:
+
+  - If there are new, yet-to-be-fuzzed favorites in the queue: 99%
+
+  - If there are no new favorites:
+
+    - If the current entry was fuzzed before: 95%
+
+    - If it hasn't gone through any fuzzing rounds yet: 75%
+
+Slightly more sophisticated but much slower culling can be performed on input
+or output corpora with afl-cmin. This tool permanently discards the redundant
+entries and produces a smaller corpus suitable for use with afl-fuzz or
+external tools.
+
+5) Trimming input files
+-----------------------
+
+File size has a dramatic impact on fuzzing performance (see perf_tips.txt). The
+possibility of a bad starting corpus aside, some types of mutations can have
+the effect of iteratively increasing the size of the generated files, so it
+is important to counter this trend.
+
+Luckily, the instrumentation feedback provides a simple way to automatically
+trim down input files while ensuring that the changes made to the files have no
+impact on the execution path.
+
+The built-in trimmer in afl-fuzz attempts to sequentially remove blocks of data
+with variable length and stepover; any deletion that doesn't affect the checksum
+of the execution path is committed to disk. The trimmer is not designed to be
+particularly thorough; instead, it tries to strike a balance between precision
+and the number of execve() calls spent on the process.
+
+The standalone afl-tmin tool uses a more exhaustive, iterative algorithm, and
+also attempts to perform alphabet normalization on the trimmed files.
+
+6) Fuzzing strategies
+---------------------
+
+The feedback provided by the instrumentation makes it easy to understand the
+value of various fuzzing strategies and optimize their parameters so that they
+work equally well across a wide range of file types. The strategies used by
+afl-fuzz are generally format-agnostic and are discussed in more detail here:
+
+  http://lcamtuf.blogspot.com/2014/08/binary-fuzzing-strategies-what-works.html
+
+For the reasons discussed in related_work.txt, AFL does not try to reason about
+the relationship between specific mutations and program states; the fuzzing
+steps are nominally blind, and are guided only by the evolutionary design of
+the input queue.
+
+7) Dictionaries
+---------------
+
+The feedback provided by the instrumentation makes it easy to automatically
+identify syntax tokens in some types of input files, or to detect that certain
+combinations of predefined dictionary terms constitute a valid grammar for the
+tested parser.
+
+A discussion of how these features are implemented within afl-fuzz can be found
+here:
+
+  http://lcamtuf.blogspot.com/2015/01/afl-fuzz-making-up-grammar-with.html
+
+8) De-duping crashes
+--------------------
+
+De-duplication of crashes is one of the more important problems for any
+competent fuzzing tool. Many of the naive approaches run into problems; in
+particular, looking just at the faulting address may lead to completely
+unrelated issues being clustered together if the fault happens in a common
+library function (say, strcmp, strcpy); while checksumming backtraces can lead
+to extreme crash count inflation if the fault can be reached through a number
+of different code paths.
+
+The solution implemented in afl-fuzz considers a crash unique if any of two
+conditions are met:
+
+  - The crash trace includes a tuple not seen in any of the previous crashes,
+
+  - The crash trace is missing a tuple that was always present in earlier
+    faults.
+
+The approach is vulnerable to some path count inflation early on, but exhibits
+a very strong self-limiting effect, similar to the execution path detection
+logic that is the cornerstone of afl-fuzz.
+
+9) Investigating crashes
+------------------------
+
+The exploitability of many types of crashes can be ambiguous; afl-fuzz tries
+to address this by providing a crash exploration mode where a known-faulting
+test case is fuzzed in a manner very similar to the normal operation of the
+fuzzer, but with a constraint that causes any non-crashing mutations to be
+thrown away.
+
+A detailed discussion of the value of this approach can be found here:
+
+  http://lcamtuf.blogspot.com/2014/11/afl-fuzz-crash-exploration-mode.html
+
+10) The fork server
+-------------------
+
+To improve performance, afl-fuzz uses a "fork server", where the fuzzed process
+goes through execve(), linking, and libc initialization only once, and is then
+cloned from a stopped process image by leveraging copy-on-write. The
+implementation is described in more detail here:
+
+  http://lcamtuf.blogspot.com/2014/10/fuzzing-binaries-without-execve.html
+
+With fast targets, the fork server can offer considerable performance gains.
+
+11) Parallelization
+-------------------
+
+The parallelization mechanism relies on periodically examining the queues
+produced by independently-running instances on other CPU cores or on remote
+machines, and then selectively pulling in the test cases that produce behaviors
+not yet seen by the fuzzer at hand.
+
+For more information about this design, see parallel_fuzzing.txt.

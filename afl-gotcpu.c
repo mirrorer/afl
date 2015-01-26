@@ -14,7 +14,7 @@
 
    This tool provides a fairly accurate measurement of CPU preemption rate.
    It is meant to complement the quick-and-dirty load average widget shown
-   in the afl-fuzz UI.
+   in the afl-fuzz UI. See docs/parallel_fuzzing.txt for more info.
 
    For some work loads, the tool may actually suggest running more instances
    than you have CPU cores. This can happen if the tested program is spending

@@ -218,8 +218,7 @@ if [ ! "$STDIN_FILE" = "" ]; then
 fi
 
 if [ "$AFL_PATH" = "" ]; then
-  SHOWMAP=`PATH="/usr/local/bin:$PATH" which afl-showmap 2>/dev/null`
-  test "$SHOWMAP" = "" && SHOWMAP="./afl-showmap"
+  SHOWMAP="${0%/afl-cmin}/afl-showmap"
 else
   SHOWMAP="$AFL_PATH/afl-showmap"
 fi

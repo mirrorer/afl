@@ -1,9 +1,33 @@
+=========
+ChangeLog
+=========
+
+  This is the list of all noteworthy changes made in every public release of
+  the tool. See README for the general instruction manual.
+
+----------------
+Staying informed
+----------------
+
 Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
 is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 1.27b:
+--------------
+
+  - Made afl-tmin recursive. Thanks to Hanno Boeck for the tip.
+
+  - Added docs/technical_details.txt.
+
+  - Changed afl-showmap search strategy in afl-cmap to just look into the
+    same place that afl-cmin is executed from. Thanks to Jakub Wilk.
+
+  - Removed current_todo.txt and cleaned up the remaining docs.
 
 --------------
 Version 1.26b:

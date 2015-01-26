@@ -2,17 +2,15 @@
 Environmental variables
 =======================
 
-  (See README for the general instruction manual)
-
-Several components of American Fuzzy Lop make use of environmental variables
-to implement features that may be (rarely) useful for power users or may come
-handy in scripting environments.
+  This document discusses the environment variables used by American Fuzzy Lop
+  to expose various exotic functions that may be (rarely) useful for power
+  users. See README for the general instruction manual.
 
 1) Settings for afl-gcc, afl-clang, and afl-as
 ----------------------------------------------
 
-  - Setting AFL_QUIET will prevent afl-cc and afl-as banners from being
-    displayed during compilation, in case you find them distracting.
+Because they can't directly accept command-line options, the compile-time
+tools make fairly broad use of environmental variables:
 
   - Setting AFL_HARDEN automatically adds code hardening options when invoking
     the downstream compiler. This currently includes -D_FORTIFY_SOURCE=2 and
@@ -56,8 +54,14 @@ handy in scripting environments.
     mkdir assembly_here
     TMPDIR=$PWD/assembly_here AFL_KEEP_ASSEMBLY=1 make clean all
 
+  - Setting AFL_QUIET will prevent afl-cc and afl-as banners from being
+    displayed during compilation, in case you find them distracting.
+
 2) Settings for afl-fuzz
 ------------------------
+
+The main fuzzer binary accepts several options that disable a couple of sanity
+checks or alter some of the more exotic semantics of the tool:
 
   - Setting AFL_SKIP_CPUFREQ skips the check for CPU scaling policy. This is
     useful if you can't change the defaults (e.g., no root access to the
@@ -100,14 +104,19 @@ handy in scripting environments.
 3) Settings for afl-cmin
 ------------------------
 
+The corpus minimization script offers very little customization:
+
   - Setting AFL_PATH offers a way to specify the location of afl-showmap.
 
   - AFL_KEEP_TRACES makes the tool keep traces and other metadata used for
     minimization and normally deleted at exit. The files can be found in the
     <out_dir>/.traces/*.
 
-4) Third-party variables set by afl-fuzz
-----------------------------------------
+4) Third-party variables set by afl-fuzz & other tools
+------------------------------------------------------
+
+Several variables are not directly interpreted by afl-fuzz, but are set to
+optimal values if not already present in the environment:
 
   - By default, LD_BIND_NOW is set to 1 to speed up fuzzing by forcing the
     linker to do all the work before the fork server kicks in. You can
@@ -128,4 +137,5 @@ handy in scripting environments.
     exit_code=86
     msan_track_origins=0
 
-    Be sure to include the first one when customizing anything.
+    Be sure to include the first one when customizing anything, since MSAN
+    doesn't call abort() on error, and we need a way to detect faults.

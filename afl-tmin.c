@@ -391,16 +391,23 @@ static void minimize(char** argv) {
   static u32 alpha_map[256];
 
   u8* tmp_buf = ck_alloc_nozero(in_len);
-  u32 orig_len = in_len;
+  u32 orig_len = in_len, stage_o_len;
 
-  u32 del_len, del_pos, i, alpha_size = 0;
-  u32 syms_removed = 0, alpha_del1 = 0, alpha_del2 = 0;
+  u32 del_len, del_pos, i, alpha_size, cur_pass = 0;
+  u32 syms_removed, alpha_del1, alpha_del2, alpha_d_total = 0;
+  u8  changed_any;
+
+next_pass:
+
+  ACTF(cYEL "--- " cBRI "Pass #%u " cYEL "---", ++cur_pass);
+  changed_any = 0;
 
   /******************
    * BLOCK DELETION *
    ******************/
 
   del_len = next_p2(in_len / TRIM_START_STEPS);
+  stage_o_len = in_len;
 
   ACTF(cBRI "Stage #1: " cNOR " Removing blocks of data...");
 
@@ -432,6 +439,7 @@ next_del_blksize:
 
       memcpy(in_data, tmp_buf, del_pos + tail_len);
       in_len = del_pos + tail_len;
+      changed_any = 1;
 
     } else del_pos += del_len;
 
@@ -444,11 +452,19 @@ next_del_blksize:
 
   }
 
-  OKF("Block removal complete, %u bytes deleted.", orig_len - in_len);
+  OKF("Block removal complete, %u bytes deleted.", stage_o_len - in_len);
+
+  if (cur_pass > 1 && !changed_any) goto finalize_all;
 
   /*************************
    * ALPHABET MINIMIZATION *
    *************************/
+
+  alpha_size   = 0;
+  alpha_del1   = 0;
+  syms_removed = 0;
+
+  memset(alpha_map, 0, 256);
 
   for (i = 0; i < in_len; i++) {
     alpha_map[in_data[i]]++;
@@ -477,10 +493,13 @@ next_del_blksize:
       memcpy(in_data, tmp_buf, in_len);
       syms_removed++;
       alpha_del1 += alpha_map[i];
+      changed_any = 1;
 
     }
 
   }
+
+  alpha_d_total += alpha_del1;
 
   OKF("Symbol minimization finished, %u symbol%s (%u byte%s) replaced.",
       syms_removed, syms_removed == 1 ? "" : "s",
@@ -489,6 +508,8 @@ next_del_blksize:
   /**************************
    * CHARACTER MINIMIZATION *
    **************************/
+
+  alpha_del2 = 0;
 
   ACTF(cBRI "Stage #3: " cNOR "Character minimization...");
 
@@ -508,13 +529,20 @@ next_del_blksize:
 
       memcpy(in_data, tmp_buf, in_len);
       alpha_del2++;
+      changed_any = 1;
 
     }
 
   }
 
+  alpha_d_total += alpha_del2;
+
   OKF("Character minimization done, %u byte%s replaced.",
       alpha_del2, alpha_del2 == 1 ? "" : "s");
+
+  if (changed_any) goto next_pass;
+
+finalize_all:
 
   SAYF("\n"
        cGRA "     File size reduced by : " cNOR "%0.02f%% (to %u byte%s)\n"
@@ -522,7 +550,7 @@ next_del_blksize:
        cGRA "     Number of execs done : " cNOR "%u\n"
        cGRA "          Fruitless execs : " cNOR "path=%u crash=%u hang=%u\n\n",
        100 - ((double)in_len) * 100 / orig_len, in_len, in_len == 1 ? "" : "s",
-       ((double)(alpha_del1 + alpha_del2)) * 100 / (in_len ? in_len : 1),
+       ((double)(alpha_d_total)) * 100 / (in_len ? in_len : 1),
        total_execs, missed_paths, missed_crashes, missed_hangs);
 
 }

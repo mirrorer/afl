@@ -23,6 +23,8 @@ echo
 if [ ! "$#" = "1" ]; then
 
   echo "Usage: $0 afl_sync_dir" 1>&2
+  echo 1>&2
+  echo "See docs/parallel_fuzzing.txt for additional tips." 1>&2
   exit 1
 
 fi

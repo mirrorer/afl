@@ -2,15 +2,20 @@
 Understanding the status screen
 ===============================
 
-  (See README for the general instruction manual)
+  This document provides an overview of the status screen - plus tips for
+  troubleshooting any warnings and red text shown in the UI. See README for
+  the general instruction manual.
 
 0) A note about colors
 ----------------------
 
 The status screen and error messages use colors to keep things readable and
-attract your attention to the most important details. Unfortunately, the UI
-will render correctly only if your terminal is using traditional un*x palette
-(white text on black background) or something close to that.
+attract your attention to the most important details. For example, red almost
+always means "consult this doc" :-)
+
+Unfortunately, the UI will render correctly only if your terminal is using
+traditional un*x palette (white text on black background) or something close
+to that.
 
 If you are using inverse video, you may want to change your settings, say:
 
@@ -100,15 +105,15 @@ by browsing the output directory, as discussed in the README.
   | paths timed out : 0 (0.00%)         |
   +-------------------------------------+
 
-This box tells you how far along the fuzzer is with the current queue cycle: the
-ID of the test case it is currently working on, plus the number of inputs it
-decided to ditch because they were persistently timing out.
+This box tells you how far along the fuzzer is with the current queue cycle: it
+shows the ID of the test case it is currently working on, plus the number of
+inputs it decided to ditch because they were persistently timing out.
 
 The "*" suffix sometimes shown in the first line means that the currently
-processed path is not favored (as discussed section 6).
+processed path is not favored (as discussed later on, in section 6).
 
-If you feel that the fuzzer is progressing too slowly, see the note about the -d
-option in section 2 of this doc.
+If you feel that the fuzzer is progressing too slowly, see the note about the
+-d option in section 2 of this doc.
 
 4) Map coverage
 ---------------
@@ -187,9 +192,9 @@ now. It tells you about the current stage, which can be any of:
 
   - extras - deterministic injection of dictionary terms. This can be shown as
     "user" or "auto", depending on whether the fuzzer is using an user-supplied
-    dictionary (-x) or an auto-detected one; and "over" or "insert", depending
-    on whether the dictionary words overwrite existing data or are inserted by
-    offsetting the remaining data to accommodate their length.
+    dictionary (-x) or an auto-created one. You will also see "over" or "insert",
+    depending on whether the dictionary words overwrite existing data or are
+    inserted by offsetting the remaining data to accommodate their length.
 
   - havoc - a sort-of-fixed-length cycle with stacked random tweaks. The
     operations attempted during this stage include bit flips, overwrites with
@@ -200,10 +205,10 @@ now. It tells you about the current stage, which can be any of:
     splices together two random inputs from the queue at some arbitrarily
     selected midpoint.
 
-  - sync - a stage used only when -S is set (see parallel_fuzzing.txt). No real
-    fuzzing is involved, but the tool scans the output from other fuzzers and
-    imports test cases as necessary. The first time this is done, it may take
-    several minutes or so.
+  - sync - a stage used only when -M or -S is set (see parallel_fuzzing.txt).
+    No real fuzzing is involved, but the tool scans the output from other
+    fuzzers and imports test cases as necessary. The first time this is done,
+    it may take several minutes or so.
 
 The remaining fields should be fairly self-evident: there's the exec count
 progress indicator for the current stage, a global exec counter, and a
