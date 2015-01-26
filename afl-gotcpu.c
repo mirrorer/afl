@@ -21,7 +21,7 @@
    a portion of its run time waiting for I/O, rather than being 100%
    CPU-bound.
 
-   The idea for the times()-based approach comes from Jakub Wilk.
+   The idea for the getrusage()-based approach comes from Jakub Wilk.
 
  */
 
@@ -34,6 +34,7 @@
 
 #include <sys/time.h>
 #include <sys/times.h>
+#include <sys/resource.h>
 
 #include "types.h"
 #include "debug.h"
@@ -53,37 +54,39 @@ static u64 get_cur_time_us(void) {
 }
 
 
+/* Get CPU usage in microseconds. */
+
+static u64 get_cpu_usage_us(void) {
+
+  struct rusage u;
+
+  getrusage(RUSAGE_SELF, &u);
+
+  return (u.ru_utime.tv_sec * 1000000ULL) + u.ru_utime.tv_usec +
+         (u.ru_stime.tv_sec * 1000000ULL) + u.ru_stime.tv_usec;
+
+}
+
+
 /* Do the benchmark thing. */
 
 int main(int argc, char** argv) {
 
   static volatile u32 v1, v2;
 
-  s32 loop_repeats = 0, util_perc, clk_hz;
-  u64 st_t, en_t, real_delta, slice_delta;
-  struct tms t;
+  s32 loop_repeats = 0, util_perc;
+  u64 st_t, en_t, st_c, en_c, real_delta, slice_delta;
 
   SAYF(cCYA "afl-gotcpu " cBRI VERSION cRST " (" __DATE__ " " __TIME__
        ") by <lcamtuf@google.com>\n");
 
-  /* Get the clock resolution for times(), complain if it isn't
-     enough to get at least 20 ticks within CTEST_TARGET_MS. */
-
-  clk_hz = sysconf(_SC_CLK_TCK);
-
-  if (clk_hz <= 0) PFATAL("sysconf(_SC_CLK_TCK) failed");
-
-  if (clk_hz < 20 * 1000 / CTEST_TARGET_MS)
-    FATAL("_SC_CLK_TCK is too slow (%u Hz).", clk_hz);
-
-  OKF("Scheduler ticks: %u Hz", clk_hz);
-
-  /* Now, run a busy loop for CTEST_TARGET_MS. */
+  /* Run a busy loop for CTEST_TARGET_MS. */
 
   ACTF("Measuring preemption rate (this will take %0.02f sec)...",
        ((double)CTEST_TARGET_MS) / 1000);
 
   st_t = get_cur_time_us();
+  st_c = get_cpu_usage_us();
 
 repeat_loop:
 
@@ -102,10 +105,10 @@ repeat_loop:
   /* Let's see what percentage of this time we actually had a chance to
      run, and how much time was spent in the penalty box. */
 
-  if (times(&t) == (clock_t)-1) PFATAL("times() failed");
+  en_c = get_cpu_usage_us();
 
   real_delta  = (en_t - st_t) / 1000;
-  slice_delta = ((u64)t.tms_utime + (u64)t.tms_stime) * 1000 / clk_hz;
+  slice_delta = (en_c - st_c) / 1000;
 
   OKF("Busy loop hit %u times, real = %llu ms, slice = %llu ms.",
       loop_repeats, real_delta, slice_delta);

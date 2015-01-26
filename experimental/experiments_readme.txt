@@ -16,7 +16,7 @@ Here's a quick overview of the stuff you can find in this directory:
                           with additional gdb metadata.
 
   - distributed_fuzzing - a sample script for synchronizing fuzzer instances
-                          across multiple machinnes (see parallel_fuzzing.txt).
+                          across multiple machines (see parallel_fuzzing.txt).
 
   - instrumented_cmp    - an experiment showing how a custom memcmp() or
                           strcmp() can be used to work around one of the

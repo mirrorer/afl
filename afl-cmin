@@ -236,6 +236,14 @@ if [ "$IN_COUNT" = "0" ]; then
   exit 1
 fi
 
+FIRST_FILE=`ls "$IN_DIR" | head -1`
+
+if ln "$IN_DIR/$FIRST_FILE" "$TRACE_DIR/.link_test" 2>/dev/null; then
+  CP_TOOL=ln
+else
+  CP_TOOL=cp
+fi
+
 # Let's roll!
 
 #############################
@@ -367,7 +375,7 @@ while read -r cnt tuple; do
 
   FN=${BEST_FILE[tuple]}
 
-  ln "$IN_DIR/$FN" "$OUT_DIR/$FN"
+  $CP_TOOL "$IN_DIR/$FN" "$OUT_DIR/$FN"
 
   if [ "$((CUR % 5))" = "0" ]; then
     sort -u "$TRACE_DIR/$FN" "$TRACE_DIR/.already_have" >"$TRACE_DIR/.tmp"

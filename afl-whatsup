@@ -114,7 +114,7 @@ if [ ! "$DEAD_CNT" = "0" ]; then
 fi
 
 echo "      Total run time : $TOTAL_DAYS days, $TOTAL_HRS hours"
-echo "         Total execs : $((TOTAL_EXECS / 1000 / 1000)) million"
+echo "         Total execs : $((TOTAL_EXECS / 1000 / 1000)) million ($((TOTAL_EXECS / TOTAL_TIME)) per second)"
 echo "       Pending paths : $TOTAL_PFAV faves, $TOTAL_PENDING total"
 
 if [ "$ALIVE_CNT" -gt "1" ]; then

@@ -6,6 +6,23 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.26b:
+--------------
+
+  - Added total execs/sec stat for afl-whatsup.
+
+  - afl-cmin now auto-selects between cp or ln. Based on feedback from
+    Even Huus.
+
+  - Fixed a typo. Thanks to Jakub Wilk.
+
+  - Made afl-gotcpu a bit more accurate by using getrusage instead of
+    times. Thanks to Jakub Wilk.
+
+  - Fixed a memory limit issue during the build process on NetBSD-current.
+    Reported by Thomas Klausner.
+
+--------------
 Version 1.25b:
 --------------
 
