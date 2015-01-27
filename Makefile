@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.28b
+VERSION     = 1.29b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -102,5 +102,6 @@ publish: clean
 	cat docs/README >~/www/afl/README.txt
 	cat docs/status_screen.txt >~/www/afl/status_screen.txt
 	cat docs/related_work.txt >~/www/afl/related_work.txt
+	cat docs/technical_details.txt >~/www/afl/technical_details.txt
 	cat docs/ChangeLog >~/www/afl/ChangeLog.txt
 	echo -n "$(VERSION)" >~/www/afl/version.txt

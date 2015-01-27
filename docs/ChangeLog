@@ -17,12 +17,25 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.29b:
+--------------
+
+  - Improved the naming of test cases when orig: is alredy present in the file
+    name.
+
+  - Made substantial improvements to technical_details.txt.
+
+--------------
 Version 1.28b:
 --------------
 
   - Made a minor tweak to the instrumentation to preserve the directionality
     of tuples (i.e., A -> B != B -> A) and to maintain the identity of tight
     loops (A -> A). You need to recompile targeted binaries to leverage this.
+
+  - Cleaned up some of the afl-whatsup stats.
+
+  - Added several sanity checks to afl-cmin.
 
 --------------
 Version 1.27b:

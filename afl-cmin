@@ -201,7 +201,7 @@ fi
 test -d "$IN_DIR/queue" && IN_DIR="$IN_DIR/queue"
 
 find "$OUT_DIR" -name 'id:*' -maxdepth 1 -exec rm -- {} \; 2>/dev/null
-rm -rf "$OUT_DIR/.traces" 2>/dev/null
+rm -rf "$TRACE_DIR" 2>/dev/null
 
 rmdir "$OUT_DIR" 2>/dev/null
 
@@ -225,6 +225,7 @@ fi
 
 if [ ! -x "$SHOWMAP" ]; then
   echo "[-] Error: can't find 'afl-showmap' - please set AFL_PATH." 1>&2
+  rm -rf "$TRACE_DIR"
   exit 1
 fi
 
@@ -232,6 +233,7 @@ IN_COUNT=$((`ls -- "$IN_DIR" 2>/dev/null | wc -l`))
 
 if [ "$IN_COUNT" = "0" ]; then
   echo "No inputs in the target directory - nothing to be done."
+  rm -rf "$TRACE_DIR"
   exit 1
 fi
 
@@ -241,6 +243,36 @@ if ln "$IN_DIR/$FIRST_FILE" "$TRACE_DIR/.link_test" 2>/dev/null; then
   CP_TOOL=ln
 else
   CP_TOOL=cp
+fi
+
+# Make sure that we can actually get anything out of afl-showmap before we
+# waste too much time.
+
+echo "[*] Testing the target binary..."
+
+if [ "$STDIN_FILE" = "" ]; then
+
+  "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/.run_test" -C $E_PAR -- "$@" <"$IN_DIR/$fn"
+
+else
+
+  cp "$IN_DIR/$FIRST_FILE" "$STDIN_FILE"
+  "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/.run_test" -C $E_PAR -A "$STDIN_FILE" -- "$@" </dev/null
+
+fi
+
+FIRST_COUNT=$((`grep -c . "$TRACE_DIR/.run_test"`))
+
+if [ "$FIRST_COUNT" -gt "0" ]; then
+
+  echo "[+] OK, $FIRST_COUNT tuples recorded."
+
+else
+
+  echo "[-] Error: no instrumentation output detected (perhaps it crashed or timed out)." 1>&2
+  test "$AFL_KEEP_TRACES" = "" && rm -rf "$TRACE_DIR"
+  exit 1
+
 fi
 
 # Let's roll!

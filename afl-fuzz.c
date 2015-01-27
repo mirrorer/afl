@@ -2472,7 +2472,10 @@ static void pivot_inputs(void) {
       /* No dice - invent a new name, capturing the original one as a
          substring. */
 
-      nfn = alloc_printf("%s/queue/id:%06u,orig:%s", out_dir, id, rsl);
+      u8* use_name = strstr(rsl, ",orig:");
+
+      if (use_name) use_name += 6; else use_name = rsl;
+      nfn = alloc_printf("%s/queue/id:%06u,orig:%s", out_dir, id, use_name);
 
     }
 
@@ -2618,7 +2621,7 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
       FATAL("Unable to execute target application");
 
     fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
-    if (fd < 0) PFATAL("Unable to create '%s'\n", fn);
+    if (fd < 0) PFATAL("Unable to create '%s'", fn);
     ck_write(fd, mem, len, fn);
     close(fd);
 
@@ -2702,7 +2705,7 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
      test case, too. */
 
   fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
-  if (fd < 0) PFATAL("Unable to create '%s'\n", fn);
+  if (fd < 0) PFATAL("Unable to create '%s'", fn);
   ck_write(fd, mem, len, fn);
   close(fd);
 

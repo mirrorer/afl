@@ -4,7 +4,8 @@ Related work & historical notes
 
   This doc talks about the rationale of some of the high-level design decisions
   for American Fuzzy Lop. It's adopted from a discussion with Rob Graham.
-  See README for the general instruction manual.
+  See README for the general instruction manual, and technical_details.txt for
+  additional implementation-level insights.
 
 1) Influences
 -------------

@@ -71,6 +71,10 @@ Instrument just the libraries you actually want to stress-test right now, one
 at a time. Trying to simultaneously instrument glibc, zlib, gmp, OpenSSL,
 and libxml2 to test a single program is an overkill.
 
+Beware of programs that come with libraries bundled into their source code
+(Spidermonkey is a good example of this). Check ./configure options to use
+non-instrumented system-wide copies instead.
+
 5) Parallelize your fuzzers
 ---------------------------
 
