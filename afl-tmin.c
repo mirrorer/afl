@@ -182,7 +182,7 @@ static void read_initial_file(void) {
   if (fd < 0) PFATAL("Unable to open '%s'", in_file);
 
   if (fstat(fd, &st) || !st.st_size)
-    FATAL("Zero-sized input file");
+    FATAL("Zero-sized input file.");
 
   if (st.st_size >= TMIN_MAX_FILE)
     FATAL("Input file is too large (%u MB max)", TMIN_MAX_FILE / 1024 / 1024);
@@ -454,6 +454,9 @@ next_del_blksize:
 
   OKF("Block removal complete, %u bytes deleted.", stage_o_len - in_len);
 
+  if (!in_len && changed_any)
+    WARNF(cLRD "Down to zero bytes - check the command line and mem limit!" cRST);
+
   if (cur_pass > 1 && !changed_any) goto finalize_all;
 
   /*************************
@@ -467,8 +470,8 @@ next_del_blksize:
   memset(alpha_map, 0, 256);
 
   for (i = 0; i < in_len; i++) {
+    if (!alpha_map[in_data[i]]) alpha_size++;
     alpha_map[in_data[i]]++;
-    alpha_size++;
   }
 
   ACTF(cBRI "Stage #2: " cNOR "Minimizing symbols (%u code point%s)...",
@@ -548,10 +551,14 @@ finalize_all:
        cGRA "     File size reduced by : " cNOR "%0.02f%% (to %u byte%s)\n"
        cGRA "    Characters simplified : " cNOR "%0.02f%%\n"
        cGRA "     Number of execs done : " cNOR "%u\n"
-       cGRA "          Fruitless execs : " cNOR "path=%u crash=%u hang=%u\n\n",
+       cGRA "          Fruitless execs : " cNOR "path=%u crash=%u hang=%s%u\n\n",
        100 - ((double)in_len) * 100 / orig_len, in_len, in_len == 1 ? "" : "s",
        ((double)(alpha_d_total)) * 100 / (in_len ? in_len : 1),
-       total_execs, missed_paths, missed_crashes, missed_hangs);
+       total_execs, missed_paths, missed_crashes, missed_hangs ? cLRD : "",
+       missed_hangs);
+
+  if (total_execs > 50 && missed_hangs * 10 > total_execs)
+    WARNF(cLRD "Frequent timeouts - results may be skewed." cRST);
 
 }
 

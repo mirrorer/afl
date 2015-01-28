@@ -1770,6 +1770,26 @@ static void init_forkserver(char** argv) {
            "    restrictive memory limit configured, this is expected; please read\n"
            "    %s/notes_for_asan.txt for help.\n", doc_path);
 
+    } else if (!mem_limit) {
+
+      SAYF("\n" cLRD "[-] " cRST
+           "Whoops, the target binary crashed suddenly, before receiving any input\n"
+           "    from the fuzzer! There are several probable explanations:\n\n"
+
+           "    - The binary is just buggy and explodes entirely on its own. If so, you\n"
+           "      need to fix the underlying problem or find a better replacement.\n\n"
+
+#ifdef __APPLE__
+
+           "    - On MacOS X, the semantics of fork() syscalls are non-standard and may\n"
+           "      break afl-fuzz performance optimizations when running platform-specific\n"
+           "      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
+
+#endif /* __APPLE__ */
+
+           "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
+           "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n");
+
     } else {
 
       SAYF("\n" cLRD "[-] " cRST
@@ -1818,6 +1838,13 @@ static void init_forkserver(char** argv) {
            "    handshake with the injected code. Since it seems to be built with ASAN and\n"
            "    you have a restrictive memory limit configured, this is expected; please\n"
            "    read %s/notes_for_asan.txt for help.\n", doc_path);
+
+  } else if (!mem_limit) {
+
+    SAYF("\n" cLRD "[-] " cRST
+         "Hmm, looks like the target binary terminated before we could complete a\n"
+         "    handshake with the injected code. Perhaps there is a horrible bug in the\n"
+         "    fuzzer. Poke <lcamtuf@coredump.cx> for troubleshooting tips.\n");
 
   } else {
 
@@ -2314,38 +2341,63 @@ static void perform_dry_run(char** argv) {
 
         if (crash_mode) break;
 
-        SAYF("\n" cLRD "[-] " cRST
-             "Oops, the program crashed with one of the test cases provided. There are\n"
-             "    several possible explanations:\n\n"
+        if (mem_limit) {
 
-             "    - The test case causes known crashes under normal working conditions. If\n"
-             "      so, please remove it. The fuzzer should be seeded with interesting\n"
-             "      inputs - but not ones that cause an outright crash.\n\n"
+          SAYF("\n" cLRD "[-] " cRST
+               "Oops, the program crashed with one of the test cases provided. There are\n"
+               "    several possible explanations:\n\n"
 
-             "    - The current memory limit (%s) is too low for this program, causing\n"
-             "      it to die due to OOM when parsing valid files. To fix this, try\n"
-             "      bumping it up with the -m setting in the command line. If in doubt,\n"
-             "      try something along the lines of:\n\n"
+               "    - The test case causes known crashes under normal working conditions. If\n"
+               "      so, please remove it. The fuzzer should be seeded with interesting\n"
+               "      inputs - but not ones that cause an outright crash.\n\n"
+
+               "    - The current memory limit (%s) is too low for this program, causing\n"
+               "      it to die due to OOM when parsing valid files. To fix this, try\n"
+               "      bumping it up with the -m setting in the command line. If in doubt,\n"
+               "      try something along the lines of:\n\n"
 
 #ifdef RLIMIT_AS
-             "      ( ulimit -Sv $[%llu << 10]; /path/to/binary [...] <testcase )\n\n"
+               "      ( ulimit -Sv $[%llu << 10]; /path/to/binary [...] <testcase )\n\n"
 #else
-             "      ( ulimit -Sd $[%llu << 10]; /path/to/binary [...] <testcase )\n\n"
+               "      ( ulimit -Sd $[%llu << 10]; /path/to/binary [...] <testcase )\n\n"
 #endif /* ^RLIMIT_AS */
 
-             "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
+               "      Note: if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
 
 #ifdef __APPLE__
   
-             "    - On MacOS X, the semantics of fork() syscalls are non-standard and may\n"
-             "      break afl-fuzz performance optimizations when running platform-specific\n"
-             "      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
+               "    - On MacOS X, the semantics of fork() syscalls are non-standard and may\n"
+               "      break afl-fuzz performance optimizations when running platform-specific\n"
+               "      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
 
 #endif /* __APPLE__ */
 
-             "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
-             "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n",
-             DMS(mem_limit << 20), mem_limit - 1, doc_path);
+               "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
+               "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n",
+               DMS(mem_limit << 20), mem_limit - 1, doc_path);
+
+        } else {
+
+          SAYF("\n" cLRD "[-] " cRST
+               "Oops, the program crashed with one of the test cases provided. There are\n"
+               "    several possible explanations:\n\n"
+
+               "    - The test case causes known crashes under normal working conditions. If\n"
+               "      so, please remove it. The fuzzer should be seeded with interesting\n"
+               "      inputs - but not ones that cause an outright crash.\n\n"
+
+#ifdef __APPLE__
+  
+               "    - On MacOS X, the semantics of fork() syscalls are non-standard and may\n"
+               "      break afl-fuzz performance optimizations when running platform-specific\n"
+               "      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
+
+#endif /* __APPLE__ */
+
+               "    - Least likely, there is a horrible bug in the fuzzer. If other options\n"
+               "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n");
+
+        }
 
         FATAL("Test case '%s' results in a crash", fn);
 
@@ -2360,7 +2412,10 @@ static void perform_dry_run(char** argv) {
       case FAULT_NOBITS: 
 
         useless_at_start++;
-        WARNF("No new instrumentation output, test case may be useless.");
+
+        if (!in_bitmap)
+          WARNF("No new instrumentation output, test case may be useless.");
+
         break;
 
     }
@@ -3330,7 +3385,8 @@ static void show_stats(void) {
   /* We want to warn people about not seeing new paths after a full cycle,
      except when resuming fuzzing or running in non-instrumented mode. */
 
-  if (!dumb_mode && (last_path_time || resuming_fuzz || queue_cycle == 1)) {
+  if (!dumb_mode && (last_path_time || resuming_fuzz || queue_cycle == 1 ||
+      in_bitmap || crash_mode)) {
 
     SAYF(bV bSTOP "   last new path : " cNOR "%-34s ",
          DTD(cur_ms, last_path_time));
@@ -3616,7 +3672,7 @@ static void show_init_stats(void) {
       WARNF("Some test cases are big (%s) - see %s/perf_tips.txt.",
             DMS(max_len), doc_path);
 
-    if (useless_at_start)
+    if (useless_at_start && !in_bitmap)
       WARNF(cLRD "Some test cases look useless. Consider using a smaller set.");
 
     if (queued_paths > 100)

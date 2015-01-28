@@ -17,6 +17,21 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.30b:
+--------------
+
+  - Added -s (summary) option to afl-whatsup. Suggested by Jodie Cunningham.
+
+  - Added a sanity check in afl-tmin to detect minimization to zero len or
+    excess hangs.
+
+  - Fixed alphabet size counter in afl-tmin.
+
+  - Slightly improved the handling of -B in afl-fuzz.
+
+  - Fixed process crash messages with -m none.
+
+--------------
 Version 1.29b:
 --------------
 

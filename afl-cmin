@@ -88,7 +88,7 @@ while getopts "+i:o:f:m:t:e" opt; do
 
 done
 
-shift $[OPTIND-1]
+shift $((OPTIND-1))
 
 TARGET_BIN="$1"
 
