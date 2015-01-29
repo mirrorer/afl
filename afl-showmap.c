@@ -413,7 +413,8 @@ static void usage(u8* argv0) {
        "Execution control settings:\n\n"
 
        "  -t msec       - timeout for each run (none)\n"
-       "  -m megs       - memory limit for child process (%u MB)\n\n"
+       "  -m megs       - memory limit for child process (%u MB)\n"
+       "  -Q            - use binary-only instrumentation (QEMU mode)\n\n"
 
        "Other settings:\n\n"
 
@@ -429,17 +430,74 @@ static void usage(u8* argv0) {
 }
 
 
+/* Fix up argv for QEMU. */
+
+static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
+
+  char** new_argv = ck_alloc(sizeof(char*) * (argc + 3));
+  u8 *tmp, *cp, *rsl, *own_copy;
+
+  memcpy(new_argv + 2, argv, sizeof(char*) * (argc + 1));
+  new_argv[1] = "--";
+
+  tmp = getenv("AFL_PATH");
+
+  if (tmp) {
+
+    cp = alloc_printf("%s/afl-qemu-trace", tmp);
+
+    if (access(cp, X_OK))
+      FATAL("Unable to find '%s'", tmp);
+
+    new_argv[0] = cp;
+    return new_argv;
+
+  }
+
+  own_copy = ck_strdup(own_loc);
+  rsl = strrchr(own_copy, '/');
+
+  if (rsl) {
+
+    *rsl = 0;
+
+    cp = alloc_printf("%s/afl-qemu-trace", own_copy);
+    ck_free(own_copy);
+
+    if (!access(cp, X_OK)) {
+
+      new_argv[0] = cp;
+      return new_argv;
+
+    }
+
+  } else ck_free(own_copy);
+
+  if (!access(AFL_PATH "/afl-qemu-trace", X_OK)) {
+
+    new_argv[0] = AFL_PATH "/afl-qemu-trace";
+    return new_argv;
+
+  }
+
+  FATAL("Unable to find 'afl-qemu-trace'.");
+
+}
+
+
+
 /* Main entry point */
 
 int main(int argc, char** argv) {
 
   s32 opt;
-  u8  mem_limit_given = 0, timeout_given = 0;
+  u8  mem_limit_given = 0, timeout_given = 0, qemu_mode = 0;
   u32 tcnt;
+  char** use_argv;
 
   doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 
-  while ((opt = getopt(argc,argv,"+o:m:t:A:eqC")) > 0)
+  while ((opt = getopt(argc,argv,"+o:m:t:A:eqCQ")) > 0)
 
     switch (opt) {
 
@@ -525,6 +583,14 @@ int main(int argc, char** argv) {
         at_file = optarg;
         break;
 
+      case 'Q':
+
+        if (qemu_mode) FATAL("Multiple -Q options not supported");
+        if (!mem_limit_given) mem_limit = MEM_LIMIT_QEMU;
+
+        qemu_mode = 1;
+        break;
+
       default:
 
         usage(argv[0]);
@@ -545,7 +611,12 @@ int main(int argc, char** argv) {
 
   detect_file_args(argv + optind);
 
-  run_target(argv + optind);
+  if (qemu_mode)
+    use_argv = get_qemu_argv(argv[0], argv + optind, argc - optind);
+  else
+    use_argv = argv + optind;
+
+  run_target(use_argv);
 
   tcnt = write_results();
 

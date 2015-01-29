@@ -17,6 +17,15 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.31b:
+--------------
+
+  - Hallelujah! Thanks to Andrew Griffiths, we now support
+    high-performance instrumentation of binary-only code. See
+    qemu_mode/README.qemu. To use this feature, you need to follow the
+    instructions in that directory and then run afl-fuzz with -Q.
+
+--------------
 Version 1.30b:
 --------------
 
@@ -35,7 +44,7 @@ Version 1.30b:
 Version 1.29b:
 --------------
 
-  - Improved the naming of test cases when orig: is alredy present in the file
+  - Improved the naming of test cases when orig: is already present in the file
     name.
 
   - Made substantial improvements to technical_details.txt.

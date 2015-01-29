@@ -45,9 +45,9 @@ echo
 MEM_LIMIT=100
 TIMEOUT=none
 
-unset IN_DIR OUT_DIR STDIN_FILE E_PAR
+unset IN_DIR OUT_DIR STDIN_FILE EXTRA_PAR
 
-while getopts "+i:o:f:m:t:e" opt; do
+while getopts "+i:o:f:m:t:eQ" opt; do
 
   case "$opt" in 
 
@@ -78,7 +78,10 @@ while getopts "+i:o:f:m:t:e" opt; do
          fi
          ;;
     "e")
-         E_PAR="-e"
+         EXTRA_PAR="$EXTRA_PAR -e"
+         ;;
+    "Q")
+         EXTRA_PAR="$EXTRA_PAR -Q"
          ;;
     "?")
          exit 1
@@ -107,6 +110,10 @@ Execution control settings:
   -f file       - location read by the fuzzed program (stdin)
   -m megs       - memory limit for child process ($MEM_LIMIT MB)
   -t msec       - run time limit for child process (none)
+  -Q            - use binary-only instrumentation (QEMU mode)
+
+Minimization settings:
+
   -e            - solve for edge coverage only, ignore hit counts
 
 For additional tips, please consult docs/README.

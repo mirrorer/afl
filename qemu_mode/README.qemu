@@ -1,0 +1,63 @@
+============================================
+High-performance binary-only instrumentation
+============================================
+
+  (See ../docs/README for the general instruction manual.)
+
+1) Introduction
+---------------
+
+The code in this directory leverages QEMU "user emulation" mode to allow
+instrumentation-guided fuzzing of binary-only programs that can't be
+compiled with afl-gcc or afl-clang.
+
+The usual performance cost is 5x-10x, which is considerably better than
+seen in experiments with tools such as DynamoRIO and PIN.
+
+The idea and much of the implementation comes from Andrew Griffiths - huge
+thanks!
+
+2) How to use
+-------------
+
+The feature is implemented with a fairly simple patch to QEMU 2.2.0. You
+need to run ./build_qemu_support.sh in this directory to actually download
+QEMU and build the necessary binaries.
+
+QEMU is a big project, so this will take a while, and you may have to
+resolve a couple of dependencies (most notably, you will definitely need
+libtool and glib2-devel).
+
+Once the binaries are compiled, you can leverage this mode by calling
+afl-fuzz and all the related utilities with -Q in the command line.
+
+Note that QEMU requires a generous memory limit to run; somewhere around
+100-200 MB is a good starting point. The default limits will be adjusted
+for you, but be careful when overriding them.
+
+3) Gotchas
+----------
+
+The feature is supported only on Linux. Supporting BSD may amount to porting
+the changes made to linux-user/elfload.c and applying them to
+bsd-user/elfload.c, but I have not looked into this yet.
+
+The instrumentation follows only the .text section of the first ELF binary
+encountered in the linking process. It does not trace shared libraries. In
+practice, this means two things:
+
+  - Any libraries you want to analyze *must* be linked statically into the
+    executed ELF file (this would usually be the case).
+
+  - Standard C libraries and other stuff you do not want to instrument
+    *must* be linked dynamically, unless you want things to be slow and
+    painful.
+
+Note that this is a very early-stage mechanism, so fields reports are
+encouraged and warmly welcome. Simply drop a mail to
+<afl-users@googlegroups.com>.
+
+Oh, one more thing: if you set CPU_TARGET before calling
+./build_qemu_support.sh, you can build QEMU to run non-native binaries
+(e.g., try CPU_TARGET=arm).
+

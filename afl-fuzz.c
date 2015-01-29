@@ -93,7 +93,8 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            auto_changed,              /* Auto-generated tokens changed?   */
            no_cpu_meter_red,          /* Feng shui on the status screen   */
            no_var_check,              /* Don't detect variable behavior   */
-           bitmap_changed = 1;        /* Time to update bitmap?           */
+           bitmap_changed = 1,        /* Time to update bitmap?           */
+           qemu_mode;                 /* Running in QEMU mode?            */
 
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
@@ -5799,7 +5800,8 @@ static void check_binary(u8* fname) {
 
 #endif /* ^!__APPLE__ */
 
-  if (!dumb_mode && !memmem(f_data, f_len, SHM_ENV_VAR, strlen(SHM_ENV_VAR) + 1)) {
+  if (!qemu_mode && !dumb_mode &&
+      !memmem(f_data, f_len, SHM_ENV_VAR, strlen(SHM_ENV_VAR) + 1)) {
 
     SAYF("\n" cLRD "[-] " cRST
          "Looks like the target binary is not instrumented! The fuzzer depends on\n"
@@ -5902,8 +5904,9 @@ static void usage(u8* argv0) {
 
        "  -f file       - location read by the fuzzed program (stdin)\n"
        "  -t msec       - timeout for each run (auto-scaled, 50-%u ms)\n"
-       "  -m megs       - memory limit for child process (%u MB)\n\n"
-      
+       "  -m megs       - memory limit for child process (%u MB)\n"
+       "  -Q            - use binary-only instrumentation (QEMU mode)\n\n"     
+ 
        "Fuzzing behavior settings:\n\n"
 
        "  -d            - quick & dirty mode (skips deterministic steps)\n"
@@ -6402,6 +6405,75 @@ static void setup_signal_handlers(void) {
 }
 
 
+/* Rewrite argv for QEMU. */
+
+static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
+
+  char** new_argv = ck_alloc(sizeof(char*) * (argc + 3));
+  u8 *tmp, *cp, *rsl, *own_copy;
+
+  memcpy(new_argv + 2, argv, sizeof(char*) * (argc + 1));
+  new_argv[1] = "--";
+
+  tmp = getenv("AFL_PATH");
+
+  if (tmp) {
+
+    cp = alloc_printf("%s/afl-qemu-trace", tmp);
+
+    if (access(cp, X_OK))
+      FATAL("Unable to find '%s'", tmp);
+
+    new_argv[0] = cp;
+    target_path = cp;
+    return new_argv;
+
+  }
+
+  own_copy = ck_strdup(own_loc);
+  rsl = strrchr(own_copy, '/');
+
+  if (rsl) {
+
+    *rsl = 0;
+
+    cp = alloc_printf("%s/afl-qemu-trace", own_copy);
+    ck_free(own_copy);
+
+    if (!access(cp, X_OK)) {
+
+      new_argv[0] = cp;
+      target_path = cp;
+      return new_argv;
+
+    }
+
+  } else ck_free(own_copy);
+
+  if (!access(AFL_PATH "/afl-qemu-trace", X_OK)) {
+
+    new_argv[0] = AFL_PATH "/afl-qemu-trace";
+    target_path = AFL_PATH "/afl-qemu-trace";
+    return new_argv;
+
+  }
+
+  SAYF("\n" cLRD "[-] " cRST
+       "Oops, unable to find the 'afl-qemu-trace' binary. The binary must be built\n"
+       "    separately by following the instructions in qemu_mode/README.qemu. If you\n"
+       "    already have the binary installed, you may need to specify AFL_PATH in the\n"
+       "    environment.\n\n"
+
+       "    Of course, even without QEMU, afl-fuzz can still work with binaries that are\n"
+       "    instrumented at compile time with afl-gcc. It is also possible to use it as a\n"
+       "    traditional \"dumb\" fuzzer by specifying '-n' in the command line.\n");
+
+  FATAL("Failed to locate 'afl-qemu-trace'.");
+
+}
+
+
+
 /* Main entry point */
 
 int main(int argc, char** argv) {
@@ -6412,12 +6484,14 @@ int main(int argc, char** argv) {
   u8* extras_dir = 0;
   u8  mem_limit_given = 0;
 
+  char** use_argv;
+
   SAYF(cCYA "afl-fuzz " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
        ") by <lcamtuf@google.com>\n");
 
   doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 
-  while ((opt = getopt(argc,argv,"+i:o:f:m:t:T:dnCB:S:M:x:")) > 0)
+  while ((opt = getopt(argc, argv, "+i:o:f:m:t:T:dnCB:S:M:x:Q")) > 0)
 
     switch (opt) {
 
@@ -6558,6 +6632,15 @@ int main(int argc, char** argv) {
         use_banner = optarg;
         break;
 
+      case 'Q':
+
+        if (qemu_mode) FATAL("Multiple -Q options not supported");
+        qemu_mode = 1;
+
+        if (!mem_limit_given) mem_limit = MEM_LIMIT_QEMU;
+
+        break;
+
       default:
 
         usage(argv[0]);
@@ -6575,7 +6658,12 @@ int main(int argc, char** argv) {
   if (!strcmp(in_dir, out_dir))
     FATAL("Input and output directories can't be the same");
 
-  if (dumb_mode && crash_mode) FATAL("-C and -n are mutually exclusive");
+  if (dumb_mode) {
+
+    if (crash_mode) FATAL("-C and -n are mutually exclusive");
+    if (qemu_mode)  FATAL("-Q and -n are mutually exclusive");
+
+  }
 
   if (getenv("AFL_NO_FORKSRV"))   no_forkserver    = 1;
   if (getenv("AFL_NO_CPU_RED"))   no_cpu_meter_red = 1;
@@ -6610,7 +6698,12 @@ int main(int argc, char** argv) {
 
   start_time = get_cur_time();
 
-  perform_dry_run(argv + optind);
+  if (qemu_mode)
+    use_argv = get_qemu_argv(argv[0], argv + optind, argc - optind);
+  else
+    use_argv = argv + optind;
+
+  perform_dry_run(use_argv);
 
   cull_queue();
 
@@ -6669,16 +6762,16 @@ int main(int argc, char** argv) {
       prev_queued = queued_paths;
 
       if (sync_id && queue_cycle == 1 && getenv("AFL_IMPORT_FIRST"))
-        sync_fuzzers(argv + optind);
+        sync_fuzzers(use_argv);
 
     }
 
-    skipped_fuzz = fuzz_one(argv + optind);
+    skipped_fuzz = fuzz_one(use_argv);
 
     if (!stop_soon && sync_id && !skipped_fuzz) {
       
       if (!(sync_interval_cnt++ % SYNC_INTERVAL))
-        sync_fuzzers(argv + optind);
+        sync_fuzzers(use_argv);
 
     }
 

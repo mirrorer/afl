@@ -127,7 +127,21 @@ simple memory bugs. The cost of this is a <5% performance drop.
 
 Oh: when using ASAN, see the notes_for_asan.txt file for important caveats.
 
-4) Choosing initial test cases
+4) Binary-only instrumentation
+------------------------------
+
+In situations where binaries can't be easily recompiled, AFL offers *highly
+experimental* support for fast, on-the-fly instrumentation of binary-only
+programs. This is accomplished with a modified version of QEMU running in
+"user emulation" mode.
+
+For instructions on how to build this feature, see qemu_mode/README.qemu.
+
+Compared to natively instrumented programs, the performance penalty is around
+5-10x. It is also possible to use this mechanism to fuzz cross-architecture
+binaries - say, ARM code on x86.
+
+5) Choosing initial test cases
 ------------------------------
 
 To operate correctly, the fuzzer requires one or more starting file containing
@@ -148,8 +162,8 @@ If a large corpus of data is available for screening, you may want to use the
 afl-cmin utility to reject redundant files; afl-showmap can be used to manually
 examine and compare execution traces, too.
 
-5) Fuzzing instrumented binaries
---------------------------------
+6) Fuzzing binaries
+-------------------
 
 The fuzzing process itself is carried out by the afl-fuzz utility. The program
 requires a read-only directory with initial test cases, a separate place to
@@ -179,7 +193,7 @@ of deterministic fuzzing steps, which can take several days. If you want more
 traditional behavior akin to zzuf or honggfuzz, use the -d option to get quick
 but less systematic and less in-depth results right away.
 
-6) Interpreting output
+7) Interpreting output
 ----------------------
 
 The fuzzing process will continue until you press Ctrl-C. See the
@@ -235,13 +249,13 @@ see:
 
   http://lcamtuf.coredump.cx/afl/plot/
 
-7) Parallelized fuzzing
+8) Parallelized fuzzing
 -----------------------
 
 For tips on how to fuzz a common target on multiple cores or multiple networked
 machines, please refer to parallel_fuzzing.txt.
 
-8) Fuzzer dictionaries
+9) Fuzzer dictionaries
 ----------------------
 
 By default, afl-fuzz mutation engine is optimized for compact data formats -
@@ -276,8 +290,8 @@ existing syntax tokens in the input corpus by watching the instrumentation
 very closely during deterministic byte flips. This works for some types of
 parsers and grammars, but isn't nearly as good as the -x mode.
 
-9) Crash exploration
---------------------
+10) Crash exploration
+---------------------
 
 The coverage-based grouping of crashes usually produces a small data set that
 can be quickly triaged manually or with a very simple GDB or Valgrind script.
@@ -315,7 +329,7 @@ the file simpler without altering the execution path.
 The minimizer accepts the -m, -t, -f and @@ syntax in a manner compatible with
 afl-fuzz.
 
-10) Common-sense risks
+11) Common-sense risks
 ----------------------
 
 Please keep in mind that, similarly to many other computationally-intensive
@@ -343,7 +357,7 @@ tasks, fuzzing may put strain on your hardware and on the OS. In particular:
 
     $ iostat -d 3 -x -k [...optional disk ID...]
 
-11) Known limitations & areas for improvement
+12) Known limitations & areas for improvement
 ---------------------------------------------
 
 Here are some of the most important caveats for AFL:
@@ -362,19 +376,16 @@ Here are some of the most important caveats for AFL:
 
       https://github.com/mrash/fwknop/tree/master/test/afl
 
-  - The included instrumentation (afl-as.h) currently supports x86. If you are
+  - The native instrumentation (afl-as.h) currently supports x86. If you are
     feeling adventurous, an experimental ARM port can be found in
     experimental/arm_support/, too - but it's pretty brittle at this point.
-
-  - Instrumentation of binary-only code is theoretically possible, but not
-    supported today. Leveraging pin or DynamoRIO seems like a pretty simple
-    project, at least in theory.
+    The cross-architecture QEMU mode may be a better bet.
 
   - There are some unfortunate trade-offs with ASAN and 64-bit binaries. This
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for
     more.
 
-12) Special thanks
+13) Special thanks
 ------------------
 
 Many of the improvements to afl-fuzz wouldn't be possible without feedback,
@@ -405,11 +416,13 @@ bug reports, or patches from:
   - Jonathan Gray,
   - Filipe Cabecinhas,
   - Nico Weber,
-  - Jodie Cunningham.
+  - Jodie Cunningham,
+  - Andrew Griffiths,
+  - Parker Thompson.
 
 Thank you!
 
-13) Contact
+14) Contact
 -----------
 
 Questions? Concerns? Bug reports? The author can be usually reached at

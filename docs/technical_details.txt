@@ -304,7 +304,7 @@ A detailed discussion of the value of this approach can be found here:
 
   http://lcamtuf.blogspot.com/2014/11/afl-fuzz-crash-exploration-mode.html
 
-The method uses intrumentation feedback to explore the state of the crashing
+The method uses instrumentation feedback to explore the state of the crashing
 program to get past the ambiguous faulting condition and then isolate the
 newly-found inputs for human review.
 
@@ -343,3 +343,21 @@ instances against different parsers of a common data format, often with
 synergistic effects.
 
 For more information about this design, see parallel_fuzzing.txt.
+
+12) Binary-only instrumentation
+-------------------------------
+
+There are two experimental implementations of afl-fuzz instrumentation that
+work without seeing the source code. At least one of them will be likely
+soon included in AFL.
+
+The first one relies on QEMU and has been coded up by Andrew Griffiths:
+
+  https://code.google.com/p/qemu-afl-support/
+
+The other one, from Parker Thompson, leverages PIN (and is currently much
+slower than QEMU):
+
+  https://github.com/mothran/aflpin
+
+DynamoRIO can be likely used as an instrumentation harness, too.
