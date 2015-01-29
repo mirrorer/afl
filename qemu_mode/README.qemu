@@ -8,14 +8,13 @@ High-performance binary-only instrumentation
 ---------------
 
 The code in this directory leverages QEMU "user emulation" mode to allow
-instrumentation-guided fuzzing of binary-only programs that can't be
-compiled with afl-gcc or afl-clang.
+instrumentation-guided fuzzing of black-box binaries that can't be recompiled
+with afl-gcc or afl-clang.
 
-The usual performance cost is 5x-10x, which is considerably better than
-seen in experiments with tools such as DynamoRIO and PIN.
+The usual performance cost is 2-4x, which is considerably better than
+seen so far in experiments with tools such as DynamoRIO and PIN.
 
-The idea and much of the implementation comes from Andrew Griffiths - huge
-thanks!
+The idea and much of the implementation comes from Andrew Griffiths.
 
 2) How to use
 -------------
@@ -32,11 +31,16 @@ Once the binaries are compiled, you can leverage this mode by calling
 afl-fuzz and all the related utilities with -Q in the command line.
 
 Note that QEMU requires a generous memory limit to run; somewhere around
-100-200 MB is a good starting point. The default limits will be adjusted
-for you, but be careful when overriding them.
+200 MB is a good starting point, but considerably more may be needed for
+more complex programs. The default -m limit will be automatically bumped up
+to 200 MB; be careful when overriding this.
 
-3) Gotchas
-----------
+In principle, if you set CPU_TARGET before calling ./build_qemu_support.sh,
+you should get a build capable of running non-native binaries (say, try
+CPU_TARGET=arm). I haven't played with this much.
+
+3) Notes on linking
+-------------------
 
 The feature is supported only on Linux. Supporting BSD may amount to porting
 the changes made to linux-user/elfload.c and applying them to
@@ -47,33 +51,36 @@ encountered in the linking process. It does not trace shared libraries. In
 practice, this means two things:
 
   - Any libraries you want to analyze *must* be linked statically into the
-    executed ELF file (this would usually be the case).
+    executed ELF file (this will usually be the case for closed-source
+    apps).
 
   - Standard C libraries and other stuff you do not want to instrument
-    *must* be linked dynamically, unless you want things to be slow and
-    painful.
+    *should* be linked dynamically - otherwise, AFL will have no way to
+    avoid looking into them.
 
-Setting AFL_INST_LIBS=1 can be used to bypass this, but it will mean also
-instrumenting libc, which is probably not what you want.
-
-Note that this is a very early-stage mechanism, so fields reports are
-encouraged and warmly welcome. Simply drop a mail to
-<afl-users@googlegroups.com>.
-
-Oh, one more thing: if you set CPU_TARGET before calling
-./build_qemu_support.sh, you can build QEMU to run non-native binaries
-(e.g., try CPU_TARGET=arm).
+Setting AFL_INST_LIBS=1 can be used to circumvent the .text detection logic
+and instrument every basic block encountered.
 
 4) Benchmarking
 ---------------
 
-Note that if you want to compare the performance of the QEMU instrumentation
-with that of afl-gcc compiled code against the same target, you need to build
-the non-instrumented binary with the same optimization flags that are normally
-injected by afl-gcc. A common way to do this would be:
+If you want to compare the performance of the QEMU instrumentation with that of
+afl-gcc compiled code against the same target, you need to build the
+non-instrumented binary with the same optimization flags that are normally
+injected by afl-gcc, and make sure that the bits to be tested are statically
+linked into the binary. A common way to do this would be:
 
 $ CFLAGS="-O3 -funroll-loops" ./configure --disable-shared
 $ make clean all
 
 Comparative measurements of execution speed or instrumentation coverage will be
-fairly meaningless if the optimization levels don't match.
+fairly meaningless if the optimization levels or instrumentation scopes don't
+match.
+
+5) Gotchas, feedback, bugs
+--------------------------
+
+This is a very early-stage mechanism, so fields reports - even just "yeah, it
+worked for me" - are very much welcome. You can simply drop a mail to
+<afl-users@googlegroups.com>.
+

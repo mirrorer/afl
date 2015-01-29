@@ -6,10 +6,10 @@ Installation instructions
   issues for a variety of platforms. See README for the general instruction
   manual.
 
-1) Linux (x86)
---------------
+1) Linux on x86
+---------------
 
-Compile the program with:
+This platform is expected to work well. Compile the program with:
 
 $ make
 
@@ -26,10 +26,11 @@ You may have to change several settings to get optimal results (most notably,
 disable crash reporting utilities and switch to a different CPU governor), but
 afl-fuzz will guide you through that if necessary.
 
-2) OpenBSD, FreeBSD, NetBSD (x86)
----------------------------------
+2) OpenBSD, FreeBSD, NetBSD on x86
+----------------------------------
 
-Compile with GNU make:
+Similarly to Linux, these platforms are expected to work well and are
+regularly tested. Compile with GNU make:
 
 $ gmake
 
@@ -43,11 +44,12 @@ Keep in mind that if you are using csh as your shell, the syntax of some of the
 shell commands given in the README and other docs will be different. Beyond
 that, everything should work as advertised.
 
-3) MacOS X (x86)
-----------------
+3) MacOS X on x86
+-----------------
 
 MacOS X should work, but there are some gotchas due to the idiosyncrasies of
-the platform.
+the platform. On top of this, I have limited release testing capabilities
+and depend mostly on user feedback.
 
 To build AFL, install Xcode and follow the general instructions for Linux.
 
@@ -75,20 +77,33 @@ and definitely don't look POSIX-compliant. This means two things:
     AFL forkserver. If you run into any problems, set AFL_NO_FORKSRV=1 in the
     environment before starting afl-fuzz.
 
-4) Linux (ARMv7)
-----------------
+4) Linux or *BSD on ARMv7
+-------------------------
 
-ARMv7 is not officially supported. You can try an unofficial patch, but
-expect to run into some issues. Please refer to experimental/arm_support/README
-for compilation and usage tips.
+ARMv7 is not officially supported. Your best option may be using the QEMU
+instrumentation mode and ignoring the compile-time instrumentation capabilities
+(since they will definitely, positively not work as-is).
 
-5) Solaris (x86)
-----------------
+To try out QEMU, remove the "xorb %al, %al" and "cmp -s .test-instr0" lines from
+Makefile, build the fuzzer, and then then follow the instructions in the
+qemu_mode/README.qemu file to compile the support for QEMU. If this succeeds,
+you will have to compile targets *without* using afl-gcc, and then always
+remember to invoke the fuzzer with -Q.
 
-The fuzzer reportedly works on Solaris; you will need to use GNU make and GCC or
-clang. I'm being told that the stock version of GCC that comes with the platform
-does not work properly due to its reliance on a hardcoded location for 'as'
-(completely ignoring the -B parameter or $PATH).
+Alternatively, you can try an unofficial ARM patch that enables the compile-time
+features, but it is buggy and no longer maintained. Please refer to
+experimental/arm_support/README for hints.
+
+5) Solaris on x86
+-----------------
+
+The fuzzer reportedly works on Solaris, but I have not tested this first-hand,
+and the user base is fairly small.
+
+To get the ball rolling, you will need to use GNU make and GCC or clang. I'm
+being told that the stock version of GCC that comes with the platform does not
+work properly due to its reliance on a hardcoded location for 'as' (completely
+ignoring the -B parameter or $PATH).
 
 To fix this, you may want to build stock GCC from the source, like so:
 
@@ -97,9 +112,8 @@ $ ./configure --prefix=$HOME/gcc --with-gnu-as --with-gnu-ld \
 $ make
 $ sudo make install
 
-Do *not* specify --with-as=/usr/gnu/bin/as or something equivalent - this will
-result in a GCC binary that ignores the -B flag and you will end up in square
-one.
+Do *not* specify --with-as=/usr/gnu/bin/as - this will produce a GCC binary that
+ignores the -B flag and you will be back to square one.
 
 If you have system-wide crash reporting enabled, you may run into problems
 similar to the gotchas for Linux and MacOS X, but I have not verified this.
@@ -110,16 +124,15 @@ More information about AppCrash can be found here:
 6) Everything else
 ------------------
 
-CPU architectures other than x86 and ARMv7 will not work and support for them is
-not planned. There are no intrinsic benefits of fuzzing on exotic hardware and
-practically no user interest in doing so, so I'm prioritizing other work.
+More exotic CPU architectures are not supported and probably will not be. They
+offer no intrinsic benefits for fuzzing and there is negligible user interest,
+so I am prioritizing other work. You may be able to get QEMU mode to work by
+following the instructions in section #4.
 
-More exotic unix-like systems on x86 may turn out to be working, but they are
-not officially supported and have not been tested.
+The fuzzer will not run on Windows. It will also not work under Cygwin. It
+could be ported to the latter platform fairly easily, but it's a pretty bad
+idea, because Cygwin is extremely slow. It makes much more sense to use
+VirtualBox or so to run a hardware-accelerated Linux VM.
 
-The fuzzer will not work under Cygwin; it could be ported fairly easily, but
-doing so is probably a bad idea: you will get much better results with a Linux
-machine or a hardware-accelerated VM.
-
-Stock Android kernel will probably not work even on x86 due to removed support
-for SHM.
+Although Android on x86 should theoretically work, the stock kernel has SHM
+supported compiled out, so you will need to address this issue first.

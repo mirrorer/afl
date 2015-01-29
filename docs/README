@@ -96,8 +96,9 @@ adjust any knobs.
 3) Instrumenting programs for use with AFL
 ------------------------------------------
 
-Instrumentation is injected by a companion tool that works as a drop-in
-replacement for gcc or clang in any standard build process for third-party code.
+When source code is available, instrumentation can be injected by a companion
+tool that works as a drop-in replacement for gcc or clang in any standard build
+process for third-party code.
 
 The instrumentation has a fairly modest performance impact; in conjunction with
 other optimizations implemented by afl-fuzz, most programs can be fuzzed as fast
@@ -127,19 +128,23 @@ simple memory bugs. The cost of this is a <5% performance drop.
 
 Oh: when using ASAN, see the notes_for_asan.txt file for important caveats.
 
-4) Binary-only instrumentation
-------------------------------
+4) Instrumenting binary-only apps
+---------------------------------
 
-In situations where binaries can't be easily recompiled, AFL offers *highly
-experimental* support for fast, on-the-fly instrumentation of binary-only
-programs. This is accomplished with a modified version of QEMU running in
-"user emulation" mode.
+When fuzzing closed-source programs that can't be easily recompiled with
+afl-gcc, the fuzzer offers experimental support for fast, on-the-fly
+instrumentation of black-box binaries. This is accomplished with a modifed
+version of QEMU running in the lesser-known "user space emulation" mode.
 
-For instructions on how to build this feature, see qemu_mode/README.qemu.
+The feature needs to be built separately by doing:
 
-Compared to natively instrumented programs, the performance penalty is around
-5-10x. It is also possible to use this mechanism to fuzz cross-architecture
-binaries - say, ARM code on x86.
+$ cd qemu_mode
+$ ./build_qemu_support.sh
+
+For additional instructions and caveats, see qemu_mode/README.qemu.
+
+The mode isn't free; compared to compile-time instrumentation, the fuzzing
+process will be approximately 2-4x slower.
 
 5) Choosing initial test cases
 ------------------------------
@@ -181,8 +186,10 @@ $ ./afl-fuzz -i testcase_dir -o findings_dir /path/to/program -r @@
 You can also use the -f option to have the mutated data written to a specific
 file. This is useful if the program expects a particular file extension or so.
 
-It is possible to fuzz non-instrumented code using the -n flag. This gives you
-a fairly traditional fuzzer with a couple of nice testing strategies.
+Non-instrumented binaries can be fuzzed in the QEMU mode by adding -Q in the
+command line. It is also possible to use the -n flag to run afl-fuzz in plain
+old non-guided mode. This gives you a fairly traditional fuzzer with a couple
+of nice testing strategies.
 
 You can use -t and -m to override the default timeout and memory limit for the
 executed process; this is seldom necessary, perhaps except for video decoders.
@@ -252,6 +259,8 @@ see:
 8) Parallelized fuzzing
 -----------------------
 
+Every instance of afl-fuzz takes up roughly one core. This means that on
+multi-core systems, parallelization is necessary to fully utilize the hardware.
 For tips on how to fuzz a common target on multiple cores or multiple networked
 machines, please refer to parallel_fuzzing.txt.
 
@@ -376,10 +385,12 @@ Here are some of the most important caveats for AFL:
 
       https://github.com/mrash/fwknop/tree/master/test/afl
 
-  - The native instrumentation (afl-as.h) currently supports x86. If you are
-    feeling adventurous, an experimental ARM port can be found in
+  - The compile-time instrumentation (afl-as.h) currently supports x86. If you
+    are feeling adventurous, an experimental ARM port can be found in
     experimental/arm_support/, too - but it's pretty brittle at this point.
-    The cross-architecture QEMU mode may be a better bet.
+
+    If you really, honestly have to fuzz on non-x86 systems, the use of QEMU
+    instrumentation mode may be a more viable approach.
 
   - There are some unfortunate trade-offs with ASAN and 64-bit binaries. This
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for

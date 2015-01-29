@@ -104,17 +104,18 @@ checks or alter some of the more exotic semantics of the tool:
 3) Settings for afl-qemu-trace
 ------------------------------
 
-The wrapper used to instrument binary-only code supports the following:
+The wrapper used to instrument binary-only code supports several settings:
 
-  - It is possible to set AFL_INST_RATIO with an effect similar to that
-    described for afl-gcc.
+  - It is possible to set AFL_INST_RATIO to skip the instrumentatio on some
+    of the basic blocks, which can be useful when dealing with very 
+    complex binaries.
 
-  - Setting AFL_INST_LIBS causes the instrumentation to also instrument
-    the behavior of dynamically linked libraries. This is usually not
-    desirable, because it will include peeking into the guts of libc.
+  - Setting AFL_INST_LIBS causes the translator to also instrument the code
+    inside any dynamically linked libraries (notably including glibc).
 
-  - Standard QEMU "user emulation" mode variables are honored (e.g.,
-    QEMU_STACK_SIZE), but should be used with extreme care.
+  - The underlying QEMU binary will recognize any standard "user space
+    emulation" variables (e.g., QEMU_STACK_SIZE), but there should be no
+    reason to touch them.
 
 4) Settings for afl-cmin
 ------------------------

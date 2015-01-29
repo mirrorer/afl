@@ -13,8 +13,15 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 1.10b. If you're stuck on an earlier release, it's strongly advisable
+is 1.33b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 1.34b:
+--------------
+
+  - Performed a substantial documentation and program output cleanup to
+    better explain the QEMU feature.
 
 --------------
 Version 1.33b:
@@ -23,14 +30,15 @@ Version 1.33b:
   - Added support for AFL_INST_RATIO and AFL_INST_LIBS in the QEMU mode.
 
   - Fixed a stack allocation crash in QEMU mode (bug in QEMU, fixed with
-    an extra patch).
+    an extra patch applied to the downloaded release).
 
-  - Added code to test the QEMU instrumentation once the binary is built.
+  - Added code to test the QEMU instrumentation once the afl-qemu-trace
+    binary is built.
 
-  - Modified afl-tmin and afl-showmap to search $PATH for binary (important
-    in QEMU mode, since QEMU doesn't do that for us).
+  - Modified afl-tmin and afl-showmap to search $PATH for binaries and to
+    better handle QEMU support.
 
-  - Added a check for instrumented binaries in -Q mode.
+  - Added a check for instrumented binaries when passing -Q to afl-fuzz.
 
 --------------
 Version 1.32b:
@@ -44,10 +52,11 @@ Version 1.32b:
 Version 1.31b:
 --------------
 
-  - Hallelujah! Thanks to Andrew Griffiths, we now support
-    high-performance instrumentation of binary-only code. See
-    qemu_mode/README.qemu. To use this feature, you need to follow the
-    instructions in that directory and then run afl-fuzz with -Q.
+  - Hallelujah! Thanks to Andrew Griffiths, we now support very fast, black-box
+    instrumentation of binary-only code. See qemu_mode/README.qemu.
+
+    To use this feature, you need to follow the instructions in that
+    directory and then run afl-fuzz with -Q.
 
 --------------
 Version 1.30b:

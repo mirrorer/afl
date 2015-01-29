@@ -352,7 +352,7 @@ help of a modified version of QEMU in "user emulation" mode. This also allows
 the execution of cross-architecture code - say, ARM binaries on x86.
 
 QEMU uses basic blocks as translation units; the instrumentation is implemented
-on top of this and uses a model analogous to the compile-time code:
+on top of this and uses a model roughly analogous to the compile-time hooks:
 
   if (block_address > elf_start_ptr && block_address < elf_end_ptr) {
 
@@ -369,9 +369,12 @@ The start-up of binary translators such as QEMU, DynamoRIO, and PIN is fairly
 slow; to counter this, the QEMU mode leverages a fork server similar to that
 used for compiler-instrumented code and pausing at _start.
 
-First-time translation of a new basic block incurs substantial latency. To
-eliminate this problem, the fork server is additionally extended by providing
-a channel between the emulator and the parent process. The channel is used
-to notify the parent about the addresses of newly-encountered blocks and to
+First-time translation of a new basic block also incurs substantial latency. To
+eliminate this problem, the AFL fork server is extended by providing a channel
+between the running emulator and the parent process. The channel is used
+to notify the parent about the addresses of any newly-encountered blocks and to
 add them to the translation cache that will be replicated for future child
 processes.
+
+As a result of these two optimizations, the overhead of the QEMU mode is
+roughly 2-4x, compared to 100x+ for PIN.
