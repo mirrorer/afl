@@ -44,7 +44,7 @@
 
 #define AFL_QEMU_CPU_SNIPPET2 do { \
     if(tb->pc == afl_entry_point) { \
-      afl_setup_shm(); \
+      afl_setup(); \
       afl_forkserver(env); \
     } \
     afl_maybe_log(tb->pc); \
@@ -57,7 +57,7 @@
 
 /* This is equivalent to afl-as.h: */
 
-static u_int8_t *afl_area_ptr;
+static unsigned char *afl_area_ptr;
 
 /* Exported variables populated by the code patched into elfload.c: */
 
@@ -65,13 +65,17 @@ abi_ulong afl_entry_point, /* ELF entry point (_start) */
           afl_start_code,  /* .text start pointer      */
           afl_end_code;    /* .text end pointer        */
 
-/* Set on the child in forkserver mode. */
+/* Set on the child in forkserver mode: */
 
-static u_int8_t afl_fork_child;
+static unsigned char afl_fork_child;
+
+/* Instrumentation ratio: */
+
+static unsigned int afl_inst_rms = MAP_SIZE;
 
 /* Function declarations. */
 
-static void afl_setup_shm(void);
+static void afl_setup(void);
 static void afl_forkserver(CPUArchState*);
 static inline void afl_maybe_log(abi_ulong);
 
@@ -96,19 +100,43 @@ struct afl_tsl {
  *************************/
 
 
-/* Set up SHM region */
+/* Set up SHM region and initialize other stuff. */
 
-static void afl_setup_shm(void) {
+static void afl_setup(void) {
 
-  char* id_str = getenv(SHM_ENV_VAR);
+  char *id_str = getenv(SHM_ENV_VAR),
+       *inst_r = getenv("AFL_INST_RATIO");
+
   int shm_id;
 
-  if (!id_str) return;
+  if (inst_r) {
 
-  shm_id = atoi(id_str);
-  afl_area_ptr = shmat(shm_id, NULL, 0);
+    unsigned int r;
 
-  if (afl_area_ptr == (void*)-1) exit(1);
+    r = atoi(inst_r);
+
+    if (r > 100) r = 100;
+    if (!r) r = 1;
+
+    afl_inst_rms = MAP_SIZE * r / 100;
+
+  }
+
+  if (id_str) {
+
+    shm_id = atoi(id_str);
+    afl_area_ptr = shmat(shm_id, NULL, 0);
+
+    if (afl_area_ptr == (void*)-1) exit(1);
+
+  }
+
+  if (getenv("AFL_INST_LIBS")) {
+
+    afl_start_code = 0;
+    afl_end_code   = (abi_ulong)-1;
+
+  }
 
 }
 
@@ -117,7 +145,7 @@ static void afl_setup_shm(void) {
 
 static void afl_forkserver(CPUArchState *env) {
 
-  static char tmp[4];
+  static unsigned char tmp[4];
 
   if (!afl_area_ptr) return;
 
@@ -184,18 +212,27 @@ static inline void afl_maybe_log(abi_ulong cur_loc) {
 
   static abi_ulong prev_loc;
 
-  if (!afl_area_ptr || cur_loc < afl_start_code || cur_loc > afl_end_code)
+  /* Optimize for cur_loc > afl_end_code, which is the most likely case on
+     Linux systems. */
+
+  if (cur_loc > afl_end_code || cur_loc < afl_start_code || !afl_area_ptr)
     return;
 
-  /* Instruction addresses may be aligned. Let's mangle the value to get
+  /* Looks like QEMU always maps to fixed locations, so we can skip this:
+     cur_loc -= afl_start_code; */
+
+  /* Instruction addresses may be aligned and may. Let's mangle the value to get
      something quasi-uniform. */
 
-  cur_loc -= afl_start_code;
   cur_loc  = (cur_loc >> 4) ^ (cur_loc << 8);
   cur_loc &= MAP_SIZE - 1;
 
-  afl_area_ptr[cur_loc ^ prev_loc]++;
+  /* Implement probabilistic instrumentation by looking at scrambled block
+     address. This keeps the instrumented locations stable across runs. */
 
+  if (cur_loc >= afl_inst_rms) return;
+
+  afl_area_ptr[cur_loc ^ prev_loc]++;
   prev_loc = cur_loc >> 1;
 
 }

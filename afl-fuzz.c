@@ -652,7 +652,7 @@ static void destroy_queue(void) {
    -B option, to focus a separate fuzzing session on a particular
    interesting input without rediscovering all the others. */
 
-static inline void write_bitmap(void) {
+static void write_bitmap(void) {
 
   u8* fname;
   s32 fd;
@@ -675,7 +675,7 @@ static inline void write_bitmap(void) {
 
 /* Read bitmap from file. This is for the -B option again. */
 
-static inline void read_bitmap(u8* fname) {
+static void read_bitmap(u8* fname) {
 
   s32 fd = open(fname, O_RDONLY);
 
@@ -786,7 +786,7 @@ static inline u8 has_new_bits(u8* virgin_map) {
 /* Count the number of bits set in the provided bitmap. Used for the status
    screen several times every second, does not have to be fast. */
 
-static inline u32 count_bits(u8* mem) {
+static u32 count_bits(u8* mem) {
 
   u32* ptr = (u32*)mem;
   u32  i   = (MAP_SIZE >> 2);
@@ -819,7 +819,7 @@ static inline u32 count_bits(u8* mem) {
    mostly to update the status screen or calibrate and examine confirmed
    new paths. */
 
-static inline u32 count_bytes(u8* mem) {
+static u32 count_bytes(u8* mem) {
 
   u32* ptr = (u32*)mem;
   u32  i   = (MAP_SIZE >> 2);
@@ -845,7 +845,7 @@ static inline u32 count_bytes(u8* mem) {
 /* Count the number of non-255 bytes set in the bitmap. Used strictly for the
    status screen, several calls per second or so. */
 
-static inline u32 count_non_255_bytes(u8* mem) {
+static u32 count_non_255_bytes(u8* mem) {
 
   u32* ptr = (u32*)mem;
   u32  i   = (MAP_SIZE >> 2);
@@ -970,7 +970,7 @@ static u8 count_class_lookup[256] = {
 
 #ifdef __x86_64__
 
-static void classify_counts(u64* mem) {
+static inline void classify_counts(u64* mem) {
 
   u32 i = MAP_SIZE >> 3;
 
@@ -1001,7 +1001,7 @@ static void classify_counts(u64* mem) {
 
 #else
 
-static void classify_counts(u32* mem) {
+static inline void classify_counts(u32* mem) {
 
   u32 i = MAP_SIZE >> 2;
 
@@ -1969,8 +1969,6 @@ static u8 run_target(char** argv) {
     /* In non-dumb mode, we have the fork server up and running, so simply
        tell it to have at it, and then read back PID. */
 
-    if (!forksrv_pid) init_forkserver(argv);
-
     if ((res = write(fsrv_ctl_fd, &status, 4)) != 4) {
 
       if (stop_soon) return 0;
@@ -2144,6 +2142,12 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
 
   stage_name = "calibration";
   stage_max  = no_var_check ? CAL_CYCLES_NO_VAR : CAL_CYCLES;
+
+  /* Make sure the forkserver is up before we do anything, and let's not
+     count its spin-up time toward binary calibration. */
+
+  if (!dumb_mode && !no_forkserver && !forksrv_pid)
+    init_forkserver(argv);
 
   start_us = get_cur_time_us();
 
@@ -3654,7 +3658,7 @@ static void show_init_stats(void) {
 
   SAYF("\n");
 
-  if (avg_us > 10000) 
+  if (avg_us > (qemu_mode ? 50000 : 10000)) 
     WARNF(cLRD "The target binary is pretty slow! See %s/perf_tips.txt.",
           doc_path);
 
@@ -5817,6 +5821,18 @@ static void check_binary(u8* fname) {
 
   }
 
+  if (qemu_mode &&
+      memmem(f_data, f_len, SHM_ENV_VAR, strlen(SHM_ENV_VAR) + 1)) {
+
+    SAYF("\n" cLRD "[-] " cRST
+         "This program appears to be instrumented with afl-gcc, but is being run in\n"
+         "    QEMU mode (-Q). This is probably not what you want - this setup will be\n"
+         "    slow and offer no practical benefits.\n");
+
+    FATAL("Instrumentation found in -Q mode");
+
+  }
+
   if (memmem(f_data, f_len, "libasan.so", 10) ||
       memmem(f_data, f_len, "__msan_init", 11)) uses_asan = 1;
 
@@ -6412,8 +6428,13 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
   char** new_argv = ck_alloc(sizeof(char*) * (argc + 3));
   u8 *tmp, *cp, *rsl, *own_copy;
 
-  memcpy(new_argv + 2, argv, sizeof(char*) * (argc + 1));
+  memcpy(new_argv + 2, argv + 1, sizeof(char*) * argc);
+
+  new_argv[2] = target_path;
   new_argv[1] = "--";
+
+  /* Now we need to actually find qemu for argv[0]. */
+
 
   tmp = getenv("AFL_PATH");
 
@@ -6424,8 +6445,7 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
     if (access(cp, X_OK))
       FATAL("Unable to find '%s'", tmp);
 
-    new_argv[0] = cp;
-    target_path = cp;
+    target_path = new_argv[0] = cp;
     return new_argv;
 
   }
@@ -6442,8 +6462,7 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
     if (!access(cp, X_OK)) {
 
-      new_argv[0] = cp;
-      target_path = cp;
+      target_path = new_argv[0] = cp;
       return new_argv;
 
     }
@@ -6452,8 +6471,7 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
   if (!access(AFL_PATH "/afl-qemu-trace", X_OK)) {
 
-    new_argv[0] = AFL_PATH "/afl-qemu-trace";
-    target_path = AFL_PATH "/afl-qemu-trace";
+    target_path = new_argv[0] = ck_strdup(AFL_PATH "/afl-qemu-trace");
     return new_argv;
 
   }

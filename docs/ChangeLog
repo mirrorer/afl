@@ -17,6 +17,22 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.33b:
+--------------
+
+  - Added support for AFL_INST_RATIO and AFL_INST_LIBS in the QEMU mode.
+
+  - Fixed a stack allocation crash in QEMU mode (bug in QEMU, fixed with
+    an extra patch).
+
+  - Added code to test the QEMU instrumentation once the binary is built.
+
+  - Modified afl-tmin and afl-showmap to search $PATH for binary (important
+    in QEMU mode, since QEMU doesn't do that for us).
+
+  - Added a check for instrumented binaries in -Q mode.
+
+--------------
 Version 1.32b:
 --------------
 

@@ -97,11 +97,15 @@ $ ./configure --prefix=$HOME/gcc --with-gnu-as --with-gnu-ld \
 $ make
 $ sudo make install
 
+Do *not* specify --with-as=/usr/gnu/bin/as or something equivalent - this will
+result in a GCC binary that ignores the -B flag and you will end up in square
+one.
+
 If you have system-wide crash reporting enabled, you may run into problems
 similar to the gotchas for Linux and MacOS X, but I have not verified this.
 More information about AppCrash can be found here:
 
-http://www.oracle.com/technetwork/server-storage/solaris10/app-crash-142906.html
+  http://www.oracle.com/technetwork/server-storage/solaris10/app-crash-142906.html
 
 6) Everything else
 ------------------

@@ -53,6 +53,9 @@ practice, this means two things:
     *must* be linked dynamically, unless you want things to be slow and
     painful.
 
+Setting AFL_INST_LIBS=1 can be used to bypass this, but it will mean also
+instrumenting libc, which is probably not what you want.
+
 Note that this is a very early-stage mechanism, so fields reports are
 encouraged and warmly welcome. Simply drop a mail to
 <afl-users@googlegroups.com>.
@@ -61,3 +64,16 @@ Oh, one more thing: if you set CPU_TARGET before calling
 ./build_qemu_support.sh, you can build QEMU to run non-native binaries
 (e.g., try CPU_TARGET=arm).
 
+4) Benchmarking
+---------------
+
+Note that if you want to compare the performance of the QEMU instrumentation
+with that of afl-gcc compiled code against the same target, you need to build
+the non-instrumented binary with the same optimization flags that are normally
+injected by afl-gcc. A common way to do this would be:
+
+$ CFLAGS="-O3 -funroll-loops" ./configure --disable-shared
+$ make clean all
+
+Comparative measurements of execution speed or instrumentation coverage will be
+fairly meaningless if the optimization levels don't match.

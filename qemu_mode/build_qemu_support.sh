@@ -113,10 +113,10 @@ else
 
 fi
 
-echo "[*] Uncompressing archive..."
+echo "[*] Uncompressing archive (this will take a while)..."
 
 rm -rf "qemu-2.2.0" || exit 1
-tar xfv "$ARCHIVE" || exit 1
+tar xf "$ARCHIVE" || exit 1
 
 echo "[+] Unpacking successful."
 
@@ -124,6 +124,7 @@ echo "[*] Applying patches..."
 
 patch -p0 <patches/elfload.diff || exit 1
 patch -p0 <patches/cpu-exec.diff || exit 1
+patch -p0 <patches/translate-all.diff || exit 1
 
 echo "[+] Patching done."
 
@@ -147,10 +148,41 @@ echo "[+] Build process successful!"
 
 echo "[*] Copying binary..."
 
-cp -f "${CPU_TARGET}-linux-user/qemu-${CPU_TARGET}" "../../afl-qemu-trace"
+cp -f "${CPU_TARGET}-linux-user/qemu-${CPU_TARGET}" "../../afl-qemu-trace" || exit 1
 
 cd ..
 ls -l ../afl-qemu-trace || exit 1
+
+echo "[+] Successfully created '../afl-qemu-trace'."
+
+echo "[*] Testing the build..."
+
+cd ..
+
+make >/dev/null || exit 1
+
+gcc test-instr.c -o test-instr || exit 1
+
+unset AFL_INST_RATIO
+
+echo 0 | ./afl-showmap -m none -Q -q -o .test-instr0 ./test-instr || exit 1
+echo 1 | ./afl-showmap -m none -Q -q -o .test-instr1 ./test-instr || exit 1
+
+rm -f test-instr
+
+cmp -s .test-instr0 .test-instr1
+DR="$?"
+
+rm -f .test-instr0 .test-instr1
+
+if [ "$DR" = "0" ]; then
+
+  echo "[-] Error: afl-qemu-trace instrumentation doesn't seem to work!"
+  exit 1
+
+fi
+
+echo "[+] Instrumentation tests passed. "
 
 echo "[+] All set, you can now use the -Q mode in afl-fuzz!"
 

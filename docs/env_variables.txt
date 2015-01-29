@@ -101,7 +101,22 @@ checks or alter some of the more exotic semantics of the tool:
     may complain of high load prematurely, especially on systems with low core
     counts. To avoid the alarming red color, you can set AFL_NO_CPU_RED.
 
-3) Settings for afl-cmin
+3) Settings for afl-qemu-trace
+------------------------------
+
+The wrapper used to instrument binary-only code supports the following:
+
+  - It is possible to set AFL_INST_RATIO with an effect similar to that
+    described for afl-gcc.
+
+  - Setting AFL_INST_LIBS causes the instrumentation to also instrument
+    the behavior of dynamically linked libraries. This is usually not
+    desirable, because it will include peeking into the guts of libc.
+
+  - Standard QEMU "user emulation" mode variables are honored (e.g.,
+    QEMU_STACK_SIZE), but should be used with extreme care.
+
+4) Settings for afl-cmin
 ------------------------
 
 The corpus minimization script offers very little customization:
@@ -112,7 +127,7 @@ The corpus minimization script offers very little customization:
     minimization and normally deleted at exit. The files can be found in the
     <out_dir>/.traces/*.
 
-4) Third-party variables set by afl-fuzz & other tools
+5) Third-party variables set by afl-fuzz & other tools
 ------------------------------------------------------
 
 Several variables are not directly interpreted by afl-fuzz, but are set to

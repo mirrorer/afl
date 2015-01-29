@@ -52,6 +52,7 @@ static u8* trace_bits;                /* SHM with instrumentation bitmap   */
 static u8 *in_file,                   /* Minimizer input test case         */
           *out_file,                  /* Minimizer output file             */
           *prog_in,                   /* Targeted program input file       */
+          *target_path,               /* Path to target binary             */
           *doc_path;                  /* Path to docs                      */
 
 static u8* in_data;                   /* Input data for trimming           */
@@ -284,7 +285,7 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
     r.rlim_max = r.rlim_cur = 0;
     setrlimit(RLIMIT_CORE, &r); /* Ignore errors */
 
-    execvp(argv[0], argv);
+    execv(target_path, argv);
 
     *(u32*)trace_bits = EXEC_FAIL_SIG;
     exit(0);
@@ -711,6 +712,59 @@ static void usage(u8* argv0) {
 }
 
 
+/* Find binary. */
+
+static void find_binary(u8* fname) {
+
+  u8* env_path = 0;
+  struct stat st;
+
+  if (strchr(fname, '/') || !(env_path = getenv("PATH"))) {
+
+    target_path = ck_strdup(fname);
+
+    if (stat(target_path, &st) || !S_ISREG(st.st_mode) ||
+        !(st.st_mode & 0111) || st.st_size < 4)
+      FATAL("Program '%s' not found or not executable", fname);
+
+  } else {
+
+    while (env_path) {
+
+      u8 *cur_elem, *delim = strchr(env_path, ':');
+
+      if (delim) {
+
+        cur_elem = ck_alloc(delim - env_path + 1);
+        memcpy(cur_elem, env_path, delim - env_path);
+        delim++;
+
+      } else cur_elem = ck_strdup(env_path);
+
+      env_path = delim;
+
+      if (cur_elem[0])
+        target_path = alloc_printf("%s/%s", cur_elem, fname);
+      else
+        target_path = ck_strdup(fname);
+
+      ck_free(cur_elem);
+
+      if (!stat(target_path, &st) && S_ISREG(st.st_mode) &&
+          (st.st_mode & 0111) && st.st_size >= 4) break;
+
+      ck_free(target_path);
+      target_path = 0;
+
+    }
+
+    if (!target_path) FATAL("Program '%s' not found or not executable", fname);
+
+  }
+
+}
+
+
 /* Fix up argv for QEMU. */
 
 static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
@@ -718,7 +772,11 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
   char** new_argv = ck_alloc(sizeof(char*) * (argc + 3));
   u8 *tmp, *cp, *rsl, *own_copy;
 
-  memcpy(new_argv + 2, argv, sizeof(char*) * (argc + 1));
+  memcpy(new_argv + 3, argv + 1, sizeof(char*) * argc);
+
+  /* Now we need to actually find qemu for argv[0]. */
+
+  new_argv[2] = target_path;
   new_argv[1] = "--";
 
   tmp = getenv("AFL_PATH");
@@ -730,7 +788,7 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
     if (access(cp, X_OK))
       FATAL("Unable to find '%s'", tmp);
 
-    new_argv[0] = cp;
+    target_path = new_argv[0] = cp;
     return new_argv;
 
   }
@@ -747,7 +805,7 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
     if (!access(cp, X_OK)) {
 
-      new_argv[0] = cp;
+      target_path = new_argv[0] = cp;
       return new_argv;
 
     }
@@ -756,7 +814,7 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
   if (!access(AFL_PATH "/afl-qemu-trace", X_OK)) {
 
-    new_argv[0] = AFL_PATH "/afl-qemu-trace";
+    target_path = new_argv[0] = AFL_PATH "/afl-qemu-trace";
     return new_argv;
 
   }
@@ -881,6 +939,7 @@ int main(int argc, char** argv) {
 
   set_up_environment();
 
+  find_binary(argv[optind]);
   detect_file_args(argv + optind);
 
   if (qemu_mode)
