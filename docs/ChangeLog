@@ -17,6 +17,14 @@ is 1.10b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.32b:
+--------------
+
+  - Fixed 'make install' following the QEMU changes. Spotted by Hanno Boeck.
+
+  - Fixed EXTRA_PAR handling in afl-cmin.
+
+--------------
 Version 1.31b:
 --------------
 
