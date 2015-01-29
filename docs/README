@@ -144,7 +144,8 @@ $ ./build_qemu_support.sh
 For additional instructions and caveats, see qemu_mode/README.qemu.
 
 The mode isn't free; compared to compile-time instrumentation, the fuzzing
-process will be approximately 2-4x slower.
+process will be approximately 2-5x slower; it is also less conductive to
+parallelization on multiple cores.
 
 5) Choosing initial test cases
 ------------------------------

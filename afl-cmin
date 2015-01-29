@@ -125,19 +125,19 @@ fi
 # Do a sanity check to discourage the use of /tmp, since we can't really
 # handle this safely from a shell script.
 
-echo "$IN_DIR" | grep -qE '^(|/var)/tmp/'
+echo "$IN_DIR" | grep -qE '^(/var)?/tmp/'
 T1="$?"
 
-echo "$TARGET_BIN" | grep -qE '^(|/var)/tmp/'
+echo "$TARGET_BIN" | grep -qE '^(/var)?/tmp/'
 T2="$?"
 
-echo "$OUT_DIR" | grep -qE '^(|/var)/tmp/'
+echo "$OUT_DIR" | grep -qE '^(/var)?/tmp/'
 T3="$?"
 
-echo "$STDIN_FILE" | grep -qE '^(|/var)/tmp/'
+echo "$STDIN_FILE" | grep -qE '^(/var)?/tmp/'
 T4="$?"
 
-echo "$PWD" | grep -qE '^(|/var)/tmp/'
+echo "$PWD" | grep -qE '^(/var)?/tmp/'
 T5="$?"
 
 if [ "$T1" = "0" -o "$T2" = "0" -o "$T3" = "0" -o "$T4" = "0" -o "$T5" = "0" ]; then

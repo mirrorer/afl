@@ -377,4 +377,4 @@ add them to the translation cache that will be replicated for future child
 processes.
 
 As a result of these two optimizations, the overhead of the QEMU mode is
-roughly 2-4x, compared to 100x+ for PIN.
+roughly 2-5x, compared to 100x+ for PIN.

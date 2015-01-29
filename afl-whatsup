@@ -135,6 +135,8 @@ rm -f "$TMP"
 TOTAL_DAYS=$((TOTAL_TIME / 60 / 60 / 24))
 TOTAL_HRS=$(((TOTAL_TIME / 60 / 60) % 24))
 
+test "$TOTAL_TIME" = "0" && TOTAL_TIME=1
+
 echo "Summary stats"
 echo "============="
 echo

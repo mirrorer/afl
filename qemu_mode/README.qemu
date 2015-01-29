@@ -11,7 +11,7 @@ The code in this directory leverages QEMU "user emulation" mode to allow
 instrumentation-guided fuzzing of black-box binaries that can't be recompiled
 with afl-gcc or afl-clang.
 
-The usual performance cost is 2-4x, which is considerably better than
+The usual performance cost is 2-5x, which is considerably better than
 seen so far in experiments with tools such as DynamoRIO and PIN.
 
 The idea and much of the implementation comes from Andrew Griffiths.

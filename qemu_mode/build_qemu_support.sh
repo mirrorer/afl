@@ -17,9 +17,6 @@
 # This script downloads, patches, and builds a version of QEMU modified
 # to allow non-instrumented binaries to be run under afl-fuzz.
 #
-# The same principle can be used to run cross-CPU binaries by changing
-# --target-list when calling ./configure.
-#
 
 QEMU_URL="http://wiki.qemu-project.org/download/qemu-2.2.0.tar.bz2"
 QEMU_SHA384="69f4ac3094b0577b7181840c9c7b7a048df2bd03c0d851eef8174fd052a1ba786cff15a7dbd94410cbfcb53cb823a30c"
@@ -94,7 +91,7 @@ CKSUM=`sha384sum -- "$ARCHIVE" 2>/dev/null | cut -d' ' -f1`
 
 if [ ! "$CKSUM" = "$QEMU_SHA384" ]; then
 
-  echo "[*] Downloading qemu 2.2.0 from the web..."
+  echo "[*] Downloading QEMU 2.2.0 from the web..."
   rm -f "$ARCHIVE"
   wget -O "$ARCHIVE" -- "$QEMU_URL" || exit 1
 

@@ -44,6 +44,9 @@ Keep in mind that if you are using csh as your shell, the syntax of some of the
 shell commands given in the README and other docs will be different. Beyond
 that, everything should work as advertised.
 
+The QEMU mode is currently supported only on Linux. I'll try to get BSD
+working at some point in the not-too-distant future.
+
 3) MacOS X on x86
 -----------------
 
@@ -76,6 +79,9 @@ and definitely don't look POSIX-compliant. This means two things:
   - Some non-portable, platform-specific code may be incompatible with the
     AFL forkserver. If you run into any problems, set AFL_NO_FORKSRV=1 in the
     environment before starting afl-fuzz.
+
+User emulation mode of QEMU does not appear to be supported on MacOS X, so
+black-box instrumentation mode (-Q) will not work.
 
 4) Linux or *BSD on ARMv7
 -------------------------
@@ -120,6 +126,9 @@ similar to the gotchas for Linux and MacOS X, but I have not verified this.
 More information about AppCrash can be found here:
 
   http://www.oracle.com/technetwork/server-storage/solaris10/app-crash-142906.html
+
+User emulation mode of QEMU is not available on Solaris, so black-box
+instrumentation mode (-Q) will not work.
 
 6) Everything else
 ------------------

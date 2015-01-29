@@ -40,10 +40,10 @@ fi
 DIR="$1"
 BIN="$2"
 
-echo "$DIR" | grep -qE '^(|/var)/tmp/'
+echo "$DIR" | grep -qE '^(/var)?/tmp/'
 T1="$?"
 
-echo "$BIN" | grep -qE '^(|/var)/tmp/'
+echo "$BIN" | grep -qE '^(/var)?/tmp/'
 T2="$?"
 
 if [ "$T1" = "0" -o "$T2" = "0" ]; then
