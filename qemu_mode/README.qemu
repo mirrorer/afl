@@ -21,7 +21,7 @@ The idea and much of the implementation comes from Andrew Griffiths.
 
 The feature is implemented with a fairly simple patch to QEMU 2.2.0. You
 need to run ./build_qemu_support.sh in this directory to actually download
-QEMU and build the necessary binaries.
+QEMU and build the necessary helper utility.
 
 QEMU is a big project, so this will take a while, and you may have to
 resolve a couple of dependencies (most notably, you will definitely need
@@ -54,9 +54,9 @@ practice, this means two things:
     executed ELF file (this will usually be the case for closed-source
     apps).
 
-  - Standard C libraries and other stuff you do not want to instrument
-    *should* be linked dynamically - otherwise, AFL will have no way to
-    avoid looking into them.
+  - Standard C libraries and other stuff that is wasteful to instrument
+    should be linked dynamically - otherwise, AFL will have no way to avoid
+    peeking into them.
 
 Setting AFL_INST_LIBS=1 can be used to circumvent the .text detection logic
 and instrument every basic block encountered.

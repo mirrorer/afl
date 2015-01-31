@@ -17,6 +17,24 @@ is 1.33b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.36b:
+--------------
+
+  - Switched afl-cmin over to /bin/sh. Thanks to Jonathan Gray.
+
+  - Fixed an off-by-one bug in queue limit check when resuming sessions
+    (could cause NULL ptr deref if you are *really* unlucky).
+
+  - Fixed the QEMU script to tolerate i686 if returned by uname -i. Based on
+    a problem report from Sebastien Duquette.
+
+  - Added multiple references to Jakub's ppvm tool.
+
+  - Made several minor improvements to the Makefile.
+
+  - Believe it or not, fixed some typos. Thanks to Jakub Wilk.
+
+--------------
 Version 1.35b:
 --------------
 

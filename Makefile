@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.35b
+VERSION     = 1.36b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -47,11 +47,11 @@ test_x86:
 
 afl-gcc: afl-gcc.c $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
-	for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $$i; done
+	set -e; for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $$i; done
 
 afl-as: afl-as.c afl-as.h $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
-	ln -s afl-as as  2>/dev/null || true
+	ln -sf afl-as as
 
 afl-fuzz: afl-fuzz.c $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $(LDFLAGS) $@.c -o $@
@@ -86,8 +86,8 @@ install: all
 	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH) $${DESTDIR}$(DOC_PATH) $${DESTDIR}$(MISC_PATH)
 	rm -f $${DESTDIR}$(BIN_PATH)/afl-plot.sh
 	install -m 755 afl-gcc afl-fuzz afl-showmap afl-plot afl-tmin afl-cmin afl-gotcpu afl-whatsup $${DESTDIR}$(BIN_PATH)
-	test -f afl-qemu-trace && install -m 755 afl-qemu-trace $${DESTDIR}$(BIN_PATH) || true
-	for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $${DESTDIR}$(BIN_PATH)/$$i; done
+	if [ -f afl-qemu-trace ]; then install -m 755 afl-qemu-trace $${DESTDIR}$(BIN_PATH); fi
+	set -e; for i in afl-g++ afl-clang afl-clang++; do ln -sf afl-gcc $${DESTDIR}$(BIN_PATH)/$$i; done
 	install -m 755 afl-as $${DESTDIR}$(HELPER_PATH)
 	ln -sf afl-as $${DESTDIR}$(HELPER_PATH)/as
 	install -m 644 docs/README docs/ChangeLog docs/*.txt $${DESTDIR}$(DOC_PATH)

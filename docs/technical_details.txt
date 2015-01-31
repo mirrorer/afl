@@ -354,7 +354,7 @@ the execution of cross-architecture code - say, ARM binaries on x86.
 QEMU uses basic blocks as translation units; the instrumentation is implemented
 on top of this and uses a model roughly analogous to the compile-time hooks:
 
-  if (block_address > elf_start_ptr && block_address < elf_end_ptr) {
+  if (block_address > elf_text_start && block_address < elf_text_end) {
 
     cur_location = (block_address >> 4) ^ (block_address << 8);
     shared_mem[cur_location ^ prev_location]++; 
@@ -362,12 +362,13 @@ on top of this and uses a model roughly analogous to the compile-time hooks:
 
   }
 
-The shift-and-XOR-based scrambling in the first line is used to mask the
+The shift-and-XOR-based scrambling in the second line is used to mask the
 effects of instruction alignment.
 
 The start-up of binary translators such as QEMU, DynamoRIO, and PIN is fairly
 slow; to counter this, the QEMU mode leverages a fork server similar to that
-used for compiler-instrumented code and pausing at _start.
+used for compiler-instrumented code, effectively spawning copies of an
+already-initialized process paused at _start.
 
 First-time translation of a new basic block also incurs substantial latency. To
 eliminate this problem, the AFL fork server is extended by providing a channel

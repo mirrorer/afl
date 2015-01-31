@@ -126,6 +126,7 @@ patch -p0 <patches/translate-all.diff || exit 1
 echo "[+] Patching done."
 
 test "$CPU_TARGET" = "" && CPU_TARGET="`uname -i`"
+test "$CPU_TARGET" = "i686" && CPU_TARGET="i386"
 
 echo "[*] Configuring QEMU for $CPU_TARGET..."
 

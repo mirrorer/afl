@@ -26,7 +26,8 @@ afl-gcc / afl-clang wrappers will pick that up and add the appropriate flags.
 (You can also use AFL_USE_MSAN=1 to enable MSAN instead.)
 
 For 32-bit targets, you will need to run afl-fuzz with '-m 800' or so to give
-ASAN some breathing room. For 64-bit targets, you need to use '-m none'.
+ASAN some breathing room. For 64-bit targets, you either need to make precise
+measurements using ppvm (http://jwilk.net/software/ppvm), or specify '-m none'.
 
 There is also the option of generating a corpus using a non-ASAN binary, and
 then feeding it to an ASAN-instrumented one to check for bugs. This is faster,
@@ -86,12 +87,14 @@ version of gcc is around 17,825,850 MB; for newest clang, it's 20,971,600.
 But there is no guarantee that these numbers are stable, and if you get them
 wrong by "just" a couple gigs or so, you will be at risk.
 
-In other words, use of ASAN is generally *not* recommended when fuzzing
-64-bit binaries, unless you are confident that they are robust and enforce
-reasonable memory limits (in which case, you can specify '-m none' when
-calling afl-fuzz), or unless you get the -m value adjusted very precisely.
+To get the precise number, you can use the ppvm tool developed by Jakub
+Wilk (http://jwilk.net/software/ppvm). In absence of this, ASAN is *not*
+recommended when fuzzing 64-bit binaries, unless you are confident that they
+are robust and enforce reasonable memory limits (in which case, you can
+specify '-m none' when calling afl-fuzz).
 
-There are two decent alternatives: build a corpus of test cases using a
-non-ASAN binary, and then examine them with ASAN, Valgrind, or other
-heavy-duty tools in a more controlled setting; or compile the target program
-with -m32 (32-bit mode) if your system supports that.
+Using PPVM or running with no limits aside, there are two other decent
+alternatives: build a corpus of test cases using a non-ASAN binary, and then
+examine them with ASAN, Valgrind, or other heavy-duty tools in a more
+controlled setting; or compile the target program with -m32 (32-bit mode)
+if your system supports that.

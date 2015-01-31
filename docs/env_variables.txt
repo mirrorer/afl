@@ -106,9 +106,9 @@ checks or alter some of the more exotic semantics of the tool:
 
 The wrapper used to instrument binary-only code supports several settings:
 
-  - It is possible to set AFL_INST_RATIO to skip the instrumentatio on some
-    of the basic blocks, which can be useful when dealing with very 
-    complex binaries.
+  - It is possible to set AFL_INST_RATIO to skip the instrumentation on some
+    of the basic blocks, which can be useful when dealing with very complex
+    binaries.
 
   - Setting AFL_INST_LIBS causes the translator to also instrument the code
     inside any dynamically linked libraries (notably including glibc).
