@@ -17,6 +17,8 @@
 #ifndef _HAVE_DEBUG_H
 #define _HAVE_DEBUG_H
 
+#include <errno.h>
+
 #include "types.h"
 #include "config.h"
 
@@ -183,8 +185,7 @@
     SAYF(bSTOP RESET_G1 CURSOR_SHOW cLRD "\n[-]  SYSTEM ERROR : " cBRI x); \
     SAYF(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n", \
          __FUNCTION__, __FILE__, __LINE__); \
-    perror(cLRD "       OS message " cRST); \
-    SAYF("\n"); \
+    SAYF(cLRD "       OS message : " cRST "%s\n", strerror(errno)); \
     exit(1); \
   } while (0)
 

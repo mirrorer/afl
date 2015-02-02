@@ -155,9 +155,24 @@
 #define USE_AUTO_EXTRAS     50
 #define MAX_AUTO_EXTRAS     (USE_AUTO_EXTRAS * 10)
 
+/* Scaling factor for the effector map used to skip some of the more
+   expensive deterministic steps. The actual divisor is set to
+   2^EFF_MAP_SCALE2 bytes: */
+
+#define EFF_MAP_SCALE2      3
+
+/* Minimum input file length at which the effector logic kicks in: */
+
+#define EFF_MIN_LEN         128
+
+/* Maximum effector density past which everything is just fuzzed
+   unconditionally (%): */
+
+#define EFF_MAX_PERC        90
+
 /* UI refresh frequency (Hz): */
 
-#define UI_TARGET_HZ        4
+#define UI_TARGET_HZ        5
 
 /* Fuzzer stats file and plot update intervals (sec): */
 
@@ -166,7 +181,7 @@
 
 /* Smoothing divisor for CPU load and exec speed stats (1 - no smoothing). */
 
-#define AVG_SMOOTHING       25
+#define AVG_SMOOTHING       16
 
 /* Sync interval (every n havoc cycles): */
 
@@ -281,10 +296,16 @@
 #define  CTEST_TARGET_MS    5000
 #define  CTEST_BUSY_CYCLES  (10 * 1000 * 1000)
 
-/* Uncomment this to use inferior line-coverage-based instrumentation. Note
+/* Uncomment this to use inferior block-coverage-based instrumentation. Note
    that you need to recompile the target binary for this to have any effect: */
 
 // #define COVERAGE_ONLY
+
+/* Uncomment this to ignore hit counts and output just one bit per tuple.
+   As with the previous setting, you will need to recompile the target
+   binary: */
+
+// #define SKIP_COUNTS
 
 /* Uncomment this to use instrumentation data to record newly discovered paths,
    but do not use them as seeds for fuzzing. This is useful for conveniently

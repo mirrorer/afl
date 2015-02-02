@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # american fuzzy lop - corpus minimization tool
 # ---------------------------------------------
@@ -45,7 +45,7 @@ echo
 MEM_LIMIT=100
 TIMEOUT=none
 
-unset IN_DIR OUT_DIR STDIN_FILE EXTRA_PAR
+unset IN_DIR OUT_DIR STDIN_FILE EXTRA_PAR MEM_LIMIT_GIVEN
 
 while getopts "+i:o:f:m:t:eQ" opt; do
 
@@ -62,26 +62,18 @@ while getopts "+i:o:f:m:t:eQ" opt; do
          STDIN_FILE="$OPTARG"
          ;;
     "m")
-         if [ "$OPTARG" = "none" ]; then
-           MEM_LIMIT="none"
-         else
-           MEM_LIMIT=$[OPTARG]
-           test "$MEM_LIMIT" = "" && exit 1
-         fi
+         MEM_LIMIT="$OPTARG"
+         MEM_LIMIT_GIVEN=1
          ;;
     "t")
-         if [ "$OPTARG" = "none" ]; then
-           TIMEOUT="none"
-         else
-           TIMEOUT=$[OPTARG]
-           test "$TIMEOUT" = "" && exit 1
-         fi
+         TIMEOUT="$OPTARG"
          ;;
     "e")
          EXTRA_PAR="$EXTRA_PAR -e"
          ;;
     "Q")
          EXTRA_PAR="$EXTRA_PAR -Q"
+         test "$MEM_LIMIT_GIVEN" = "" && MEM_LIMIT=250
          ;;
     "?")
          exit 1

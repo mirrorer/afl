@@ -248,7 +248,7 @@ additional, more detailed counters for crashes and hangs.
   |  known ints : 8/322k, 12/1.32M, 10/1.70M            |
   |  dictionary : 9/52k, 1/53k, 1/24k                   |
   |       havoc : 1903/20.0M, 0/0                       |
-  |        trim : 139.4 kB/9201 (20.31% gain)           |
+  |        trim : 20.31%/9201, 17.05%                   |
   +-----------------------------------------------------+
 
 This is just another nerd-targeted section keeping track of how many paths we
@@ -257,9 +257,11 @@ fuzzing strategies discussed earlier on. This serves to convincingly validate
 assumptions about the usefulness of the various approaches taken by afl-fuzz.
 
 The trim strategy stats in this section are a bit different than the rest.
-That line shows the absolute count of removed bytes, the number of execs that
-had to be performed to achieve that result, and a ratio of bytes removed to
-the overall size of test cases that went through the trimmer so far.
+The first number in this line shows the ratio of bytes removed from the input
+files; the second one corresponds to the number of execs needed to achieve this
+goal. Finally, the third number shows the proportion of bytes that, although
+not possible to remove, were deemed to have no effect and were excluded from
+some of the more expensive deterministic fuzzing steps.
 
 8) Path geometry
 ----------------

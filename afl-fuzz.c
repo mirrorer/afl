@@ -53,6 +53,7 @@
 #include <sys/resource.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+#include <sys/file.h>
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined (__OpenBSD__)
 #  include <sys/sysctl.h>
@@ -146,7 +147,9 @@ static u64 total_crashes,             /* Total number of crashes          */
            cycles_wo_finds,           /* Cycles without any new paths     */
            trim_execs,                /* Execs done to trim input files   */
            bytes_trim_in,             /* Bytes coming into the trimmer    */
-           bytes_trim_out;            /* Bytes coming outa the trimmer    */
+           bytes_trim_out,            /* Bytes coming outa the trimmer    */
+           blocks_eff_total,          /* Blocks subject to effector maps  */
+           blocks_eff_select;         /* Blocks selected as fuzzable      */
 
 static u32 subseq_hangs;              /* Number of hangs in a row         */
 
@@ -3050,35 +3053,40 @@ static void maybe_delete_out_dir(void) {
   FILE* f;
   u8 *fn = alloc_printf("%s/fuzzer_stats", out_dir);
 
+  static s32 out_dir_fd;
+
+  /* See if the output directory is locked. If yes, bail out. If not,
+     create a lock that will persist for the lifetime of the process
+     (this requires leaving the descriptor open).*/
+
+  out_dir_fd = open(out_dir, O_RDONLY);
+  if (out_dir_fd < 0) PFATAL("Unable to open '%s'", out_dir);
+
+  if (flock(out_dir_fd, LOCK_EX | LOCK_NB) && errno == EWOULDBLOCK) {
+
+    SAYF("\n" cLRD "[-] " cRST
+         "Looks like the job output directory is being actively used by another\n"
+         "    instance of afl-fuzz. You will need to choose a different %s\n"
+         "    or stop the other process first.\n",
+         sync_id ? "fuzzer ID" : "output location");
+
+    FATAL("Directory '%s' is in use", out_dir);
+
+  }
+
   f = fopen(fn, "r");
 
   if (f) {
 
     u64 start_time, last_update;
-    u32 fuzzer_pid;
 
     if (fscanf(f, "start_time     : %llu\n"
-                  "last_update    : %llu\n"
-                  "fuzzer_pid     : %u\n", &start_time, &last_update,
-                  &fuzzer_pid) != 3) FATAL("Malformed data in '%s'", fn);
+                  "last_update    : %llu\n", &start_time, &last_update) != 2)
+      FATAL("Malformed data in '%s'", fn);
 
     fclose(f);
 
-    /* First of all, let's see if the other fuzzer is still running. */
-
-    if (!kill(fuzzer_pid, 0) || errno != ESRCH) {
-
-      SAYF("\n" cLRD "[-] " cRST
-           "Looks like the job output directory is being actively used by another\n"
-           "    instance of afl-fuzz, running with PID %u. You will need to choose a\n"
-           "    different %s or stop the other process first.\n", fuzzer_pid,
-           sync_id ? "fuzzer ID" : "output location");
-
-       FATAL("Directory '%s' is in use", out_dir);
-
-    }
-
-    /* With this out of the way, let's see how much work is at stake. */
+    /* Let's see how much work is at stake. */
 
     if (!in_place_resume && last_update - start_time > 60 * 60) {
 
@@ -3258,7 +3266,7 @@ dir_cleanup_failed:
 
 static void show_stats(void) {
 
-  static u64 last_stats_ms, last_plot_ms, prev_ms, prev_execs;
+  static u64 last_stats_ms, last_plot_ms, last_ms, last_execs;
   static double avg_exec;
   double t_byte_ratio;
 
@@ -3270,37 +3278,41 @@ static void show_stats(void) {
 
   cur_ms   = get_cur_time();
 
-  /* Calculate the recent, smoothed average exec speed and adjust UI update
-     frequency - but not more often than UI_TARGET_HZ. */
+  /* If not enough time has passed since last UI update, bail out. */
 
-  if (cur_ms - prev_ms >= UI_TARGET_HZ) {
+  if (cur_ms - last_ms < 1000 / UI_TARGET_HZ) return;
 
-    if (!prev_execs) {
+  /* Calculate smoothed exec speed stats. */
+
+  if (!last_execs) {
   
-      avg_exec = ((double)total_execs) * 1000 / (cur_ms - start_time);
+    avg_exec = ((double)total_execs) * 1000 / (cur_ms - start_time);
 
-    } else {
+  } else {
 
-      double cur_avg = ((double)(total_execs - prev_execs)) * 1000 /
-                       (cur_ms - prev_ms);
+    double cur_avg = ((double)(total_execs - last_execs)) * 1000 /
+                     (cur_ms - last_ms);
 
-      /* If there is a dramatic (5x+) drop in speed, reset the indicator
-         more quickly. */
+    /* If there is a dramatic (5x+) jump in speed, reset the indicator
+       more quickly. */
 
-      if (cur_avg * 5 < avg_exec) avg_exec = cur_avg;
+    if (cur_avg * 5 < avg_exec || cur_avg / 5 > avg_exec)
+      avg_exec = cur_avg;
 
-      avg_exec = avg_exec * (1.0 - 1.0 / AVG_SMOOTHING) +
-                 cur_avg * (1.0 / AVG_SMOOTHING);
-
-    }
-
-    prev_ms = cur_ms;
-    prev_execs = total_execs;
-
-    stats_update_freq = avg_exec / UI_TARGET_HZ;
-    if (!stats_update_freq) stats_update_freq = 1;
+    avg_exec = avg_exec * (1.0 - 1.0 / AVG_SMOOTHING) +
+               cur_avg * (1.0 / AVG_SMOOTHING);
 
   }
+
+  last_ms = cur_ms;
+  last_execs = total_execs;
+
+  /* Tell the callers when to contact us (as measured in execs). */
+
+  stats_update_freq = avg_exec / (UI_TARGET_HZ * 10);
+  if (!stats_update_freq) stats_update_freq = 1;
+
+  /* Do some bitmap stats. */
 
   t_bytes = count_non_255_bytes(virgin_bits);
   t_byte_ratio = ((double)t_bytes * 100) / MAP_SIZE;
@@ -3316,6 +3328,8 @@ static void show_stats(void) {
 
   }
 
+  /* Every now and then, write plot data. */
+
   if (cur_ms - last_plot_ms > PLOT_UPDATE_SEC * 1000) {
 
     last_plot_ms = cur_ms;
@@ -3323,7 +3337,7 @@ static void show_stats(void) {
  
   }
 
-  /* If we're not on TTY, that's the end of it! */
+  /* If we're not on TTY, bail out. */
 
   if (not_on_tty) return;
 
@@ -3593,13 +3607,32 @@ static void show_stats(void) {
 
   if (!bytes_trim_out) {
 
-    sprintf(tmp, "n/a");
+    sprintf(tmp, "n/a, ");
 
   } else {
 
-    sprintf(tmp, "%s/%s (%0.02f%% gain)", DMS(bytes_trim_in - bytes_trim_out),
-            DI(trim_execs), ((double)(bytes_trim_in - bytes_trim_out)) * 100
-            / bytes_trim_in);
+    sprintf(tmp, "%0.02f%%/%s, ",
+            ((double)(bytes_trim_in - bytes_trim_out)) * 100 / bytes_trim_in,
+            DI(trim_execs));
+
+  }
+
+  if (!blocks_eff_total) {
+
+    u8 tmp2[128];
+
+    sprintf(tmp2, "n/a");
+    strcat(tmp, tmp2);
+
+  } else {
+
+    u8 tmp2[128];
+
+    sprintf(tmp2, "%0.02f%%",
+            ((double)(blocks_eff_total - blocks_eff_select)) * 100 /
+            blocks_eff_total);
+
+    strcat(tmp, tmp2);
 
   }
 
@@ -4011,22 +4044,15 @@ static u32 calculate_score(struct queue_entry* q) {
 
 static u8 fuzz_one(char** argv) {
 
-  s32 len, fd, temp_len;
-  s32 i, j;
-
-  u8  *in_buf, *out_buf, *orig_in, *ex_tmp;
-
-  u64 havoc_queued;
-  u64 orig_hit_cnt, new_hit_cnt;
-
-  u32 splice_cycle = 0;
-  u32 perf_score = 100;
+  s32 len, fd, temp_len, i, j;
+  u8  *in_buf, *out_buf, *orig_in, *ex_tmp, *eff_map = 0;
+  u64 havoc_queued,  orig_hit_cnt, new_hit_cnt;
+  u32 splice_cycle = 0, perf_score = 100, prev_cksum, eff_cnt = 1;
 
   u8  ret_val = 1;
 
   u8  a_collect[MAX_AUTO_EXTRA];
   u32 a_len = 0;
-  u32 prev_cksum;
 
 #ifdef IGNORE_FINDS
 
@@ -4322,6 +4348,30 @@ static u8 fuzz_one(char** argv) {
   stage_finds[STAGE_FLIP4]  += new_hit_cnt - orig_hit_cnt;
   stage_cycles[STAGE_FLIP4] += stage_max;
 
+  /* Effector map setup. These macros calculate:
+
+     EFF_APOS      - position of a particular file offset in the map.
+     EFF_ALEN      - length of an map with a particular number of bytes.
+     EFF_SPAN_ALEN - map span for a sequence of bytes.
+
+   */
+
+#define EFF_APOS(_p)          ((_p) >> EFF_MAP_SCALE2)
+#define EFF_REM(_x)           ((_x) & ((1 << EFF_MAP_SCALE2) - 1))
+#define EFF_ALEN(_l)          (EFF_APOS(_l) + !!EFF_REM(_l))
+#define EFF_SPAN_ALEN(_p, _l) (EFF_APOS((_p) + (_l) - 1) - EFF_APOS(_p) + 1)
+
+  /* Initialize effector map for the next step (see comments below). Always
+     flag first and last byte as doing something. */
+
+  eff_map    = ck_alloc(EFF_ALEN(len));
+  eff_map[0] = 1;
+
+  if (EFF_APOS(len - 1) != 0) {
+    eff_map[EFF_APOS(len - 1)] = 1;
+    eff_cnt++;
+  }
+
   /* Walking byte. */
 
   stage_name  = "bitflip 8/8";
@@ -4338,9 +4388,52 @@ static u8 fuzz_one(char** argv) {
 
     if (common_fuzz_stuff(argv, out_buf, len)) goto abandon_entry;
 
+    /* We also use this stage to pull off a simple trick: we identify
+       bytes that seem to have no effect on the current execution path
+       even when fully flipped - and we skip them during more expensive
+       deterministic stages, such as arithmetics or known ints. */
+
+    if (!eff_map[EFF_APOS(stage_cur)]) {
+
+      u32 cksum;
+
+      /* If in dumb mode or if the file is very short, just flag everything
+         without wasting time on checksums. */
+
+      if (!dumb_mode && len >= EFF_MIN_LEN)
+        cksum = hash32(trace_bits, MAP_SIZE, HASH_CONST);
+      else
+        cksum = ~queue_cur->exec_cksum;
+
+      if (cksum != queue_cur->exec_cksum) {
+        eff_map[EFF_APOS(stage_cur)] = 1;
+        eff_cnt++;
+      }
+
+    }
+
     out_buf[stage_cur] ^= 0xFF;
 
   }
+
+  /* If the effector map is more than EFF_MAX_PERC dense, just flag the
+     whole thing as worth fuzzing, since we wouldn't be saving much time
+     anyway. */
+
+  if (eff_cnt != EFF_ALEN(len) &&
+      eff_cnt * 100 / EFF_ALEN(len) > EFF_MAX_PERC) {
+
+    memset(eff_map, 1, EFF_ALEN(len));
+
+    blocks_eff_select += EFF_ALEN(len);
+
+  } else {
+
+    blocks_eff_select += eff_cnt;
+
+  }
+
+  blocks_eff_total += EFF_ALEN(len);
 
   new_hit_cnt = queued_paths + unique_crashes;
 
@@ -4358,6 +4451,9 @@ static u8 fuzz_one(char** argv) {
   orig_hit_cnt = new_hit_cnt;
 
   for (stage_cur = 0; stage_cur < stage_max; stage_cur++) {
+
+    /* Let's consult the effector map... */
+    if (!*(u16*)(eff_map + EFF_APOS(stage_cur))) continue;
 
     stage_cur_byte = stage_cur;
 
@@ -4385,6 +4481,9 @@ static u8 fuzz_one(char** argv) {
   orig_hit_cnt = new_hit_cnt;
 
   for (stage_cur = 0; stage_cur < stage_max; stage_cur++) {
+
+    /* Let's consult the effector map... */
+    if (!*(u32*)(eff_map + EFF_APOS(stage_cur))) continue;
 
     stage_cur_byte = stage_cur;
 
@@ -4421,6 +4520,13 @@ skip_bitflip:
   for (i = 0; i < len; i++) {
 
     u8 orig = out_buf[i];
+
+    if (!eff_map[EFF_APOS(i)]) {
+
+      stage_max -= 2 * ARITH_MAX;
+      continue;
+
+    }
 
     stage_cur_byte = i;
 
@@ -4492,6 +4598,13 @@ skip_bitflip:
   for (i = 0; i < len - 1; i++) {
 
     u16 orig = *(u16*)(out_buf + i);
+
+    if (!*(u16*)(eff_map + EFF_APOS(i))) {
+    
+      stage_max -= 4 * ARITH_MAX;
+      continue;
+
+    }
 
     stage_cur_byte = i;
 
@@ -4576,6 +4689,13 @@ skip_bitflip:
   for (i = 0; i < len - 3; i++) {
 
     u32 orig = *(u32*)(out_buf + i);
+
+    if (!*(u32*)(eff_map + EFF_APOS(i))) {
+
+      stage_max -= 4 * ARITH_MAX;
+      continue;
+
+    }
 
     stage_cur_byte = i;
 
@@ -4662,6 +4782,13 @@ skip_arith:
 
     u8 orig = out_buf[i];
 
+    if (!eff_map[EFF_APOS(i)]) {
+
+      stage_max -= sizeof(interesting_8);
+      continue;
+
+    }
+
     stage_cur_byte = i;
 
     for (j = 0; j < sizeof(interesting_8); j++) {
@@ -4707,6 +4834,13 @@ skip_arith:
   for (i = 0; i < len - 1; i++) {
 
     u16 orig = *(u16*)(out_buf + i);
+
+    if (!*(u16*)(eff_map + EFF_APOS(i))) {
+
+      stage_max -= sizeof(interesting_16);
+      continue;
+
+    }
 
     stage_cur_byte = i;
 
@@ -4773,6 +4907,13 @@ skip_arith:
   for (i = 0; i < len - 3; i++) {
 
     u32 orig = *(u32*)(out_buf + i);
+
+    if (!*(u32*)(eff_map + EFF_APOS(i))) {
+
+      stage_max -= sizeof(interesting_32) >> 1;
+      continue;
+
+    }
 
     stage_cur_byte = i;
 
@@ -4853,12 +4994,14 @@ skip_interest:
     for (j = 0; j < extras_cnt; j++) {
 
       /* Skip extras probabilistically if extras_cnt > MAX_DET_EXTRAS. Also
-         skip them if there's no room to insert the payload, or if the token
-         is redundant. */
+         skip them if there's no room to insert the payload, if the token
+         is redundant, or if its entire span has no bytes set in the effector
+         map. */
 
       if ((extras_cnt > MAX_DET_EXTRAS && UR(extras_cnt) >= MAX_DET_EXTRAS) ||
           extras[j].len > len - i ||
-          !memcmp(extras[j].data, out_buf + i, extras[j].len)) {
+          !memcmp(extras[j].data, out_buf + i, extras[j].len) ||
+          !memchr(eff_map + EFF_APOS(i), 1, EFF_SPAN_ALEN(i, extras[j].len))) {
 
         stage_max--;
         continue;
@@ -4952,7 +5095,8 @@ skip_user_extras:
       /* See the comment in the earlier code; extras are sorted by size. */
 
       if (a_extras[j].len > len - i ||
-          !memcmp(a_extras[j].data, out_buf + i, a_extras[j].len)) {
+          !memcmp(a_extras[j].data, out_buf + i, a_extras[j].len) ||
+          !memchr(eff_map + EFF_APOS(i), 1, EFF_SPAN_ALEN(i, a_extras[j].len))) {
 
         stage_max--;
         continue;
@@ -5539,6 +5683,7 @@ abandon_entry:
 
   if (in_buf != orig_in) ck_free(in_buf);
   ck_free(out_buf);
+  ck_free(eff_map);
 
   return ret_val;
 
@@ -6444,8 +6589,7 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
   new_argv[2] = target_path;
   new_argv[1] = "--";
 
-  /* Now we need to actually find qemu for argv[0]. */
-
+  /* Now we need to actually find the QEMU binary to put in argv[0]. */
 
   tmp = getenv("AFL_PATH");
 

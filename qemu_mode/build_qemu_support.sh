@@ -42,30 +42,16 @@ if [ ! -f "patches/afl-qemu-cpu-inl.h" -o ! -f "../config.h" ]; then
 
 fi
 
-T=`which libtool 2>/dev/null`
+for i in libtool wget python automake autoconf sha384sum bison iconv; do
 
-if [ "$T" = "" ]; then
+  T=`which "$i" 2>/dev/null`
 
-  echo "[-] Error: 'libtool' not found, please install first."
-  exit 1
+  if [ "$T" = "" ]; then
 
-fi
+    echo "[-] Error: '$i' not found, please install first."
+    exit 1
 
-T=`which wget 2>/dev/null`
-
-if [ "$T" = "" ]; then
-
-  echo "[-] Error: 'wget' not found, please install first."
-  exit 1
-
-fi
-
-T=`which sha384sum 2>/dev/null`
-
-if [ "$T" = "" ]; then
-
-  echo "[-] Error: 'sha384sum' not found, please install first."
-  exit 1
+  fi
 
 fi
 
@@ -125,7 +111,7 @@ patch -p0 <patches/translate-all.diff || exit 1
 
 echo "[+] Patching done."
 
-test "$CPU_TARGET" = "" && CPU_TARGET="`uname -i`"
+test "$CPU_TARGET" = "" && CPU_TARGET="`uname -m`"
 test "$CPU_TARGET" = "i686" && CPU_TARGET="i386"
 
 echo "[*] Configuring QEMU for $CPU_TARGET..."

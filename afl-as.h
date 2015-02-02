@@ -162,11 +162,13 @@ static const u8* main_payload_32 =
   "  xorl __afl_prev_loc, %ecx\n"
   "  xorl %ecx, __afl_prev_loc\n"
   "  shrl $1, __afl_prev_loc\n"
+#endif /* !COVERAGE_ONLY */
   "\n"
-  "  incb (%edx, %ecx, 1)\n"
-#else
+#ifdef SKIP_COUNTS
   "  orb  $1, (%edx, %ecx, 1)\n"
-#endif /* ^!COVERAGE_ONLY */
+#else
+  "  incb (%edx, %ecx, 1)\n"
+#endif /** ^SKIP_COUNTS */
   "\n"
   "__afl_return:\n"
   "\n"
@@ -388,11 +390,13 @@ static const u8* main_payload_64 =
   "  xorq __afl_prev_loc(%rip), %rcx\n"
   "  xorq %rcx, __afl_prev_loc(%rip)\n"
   "  shrq $1, __afl_prev_loc(%rip)\n"
-  "\n"
-  "  incb (%rdx, %rcx, 1)\n"
-#else
-  "  orb  $1, (%rdx, %rcx, 1)\n"
 #endif /* ^!COVERAGE_ONLY */
+  "\n"
+#ifdef SKIP_COUNTS
+  "  orb  $1, (%rdx, %rcx, 1)\n"
+#else
+  "  incb (%rdx, %rcx, 1)\n"
+#endif /* ^SKIP_COUNTS */
   "\n"
   "__afl_return:\n"
   "\n"

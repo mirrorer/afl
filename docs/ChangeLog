@@ -13,8 +13,41 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 1.33b. If you're stuck on an earlier release, it's strongly advisable
+is 1.37b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 1.37b:
+--------------
+
+  - Added effector maps, which detect regions that do not seem to respond
+    to bitflips and subsequently exclude them from more expensive steps
+    (arithmetics, known ints, etc). This should offer significant performance
+    improvements with quite a few types of text-based formats, reducing the
+    number of deterministic execs by a factor of 2 or so.
+
+  - Cleaned up mem limit handling in afl-cmin.
+
+  - Switched from uname -m to uname -i to work around Ubuntu-specific
+    issues with coreutils when building QEMU. Reported by William Robinet.
+
+  - Switched from PID checking to flock() to detect running sessions.
+    Problem, against all odds, bumped into by Jakub Wilk.
+
+  - Added SKIP_COUNTS and changed the behavior of COVERAGE_ONLY in config.h.
+    Useful only for internal benchmarking.
+
+  - Made improvements to UI refresh rates and exec/sec stats to make them
+    more stable.
+
+  - Made assorted improvements to the documentation and to the QEMU build
+    script.
+
+  - Switched from perror() to strerror() in error macros, thanks to Jakub
+    Wilk for the nag.
+
+  - Moved afl-cmin back to bash, wasn't thinking straight. It has to stay
+    on bash because other shells may have restrictive limits on array sizes.
 
 --------------
 Version 1.36b:

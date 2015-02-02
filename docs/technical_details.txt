@@ -137,6 +137,41 @@ With this approach, the queue for most targets grows to somewhere between 1k
 and 10k entries; approximately 10-30% of this is attributable to the discovery
 of new tuples, and the remainder is associated with changes in hit counts.
 
+The following table compares the relative ability to discover file syntax and
+explore program states when using several different approaches to guided
+fuzzing. The instrumented target was GNU patch 2.7.3 seeded with a dummy text
+file; the session consisted of a single pass over the input queue with afl-fuzz:
+
+    Queue extension | Blocks  | Edges   | Edge hit | Highest-coverage
+      strategy used | reached | reached | cnt var  | finding generated
+  ------------------+---------+---------+----------+---------------------------
+     (Initial file) | 156     | 163     | 1.00     | (none)
+                    |         |         |          |
+      Blind fuzzing | 182     | 205     | 2.23     | First 2 bytes of RCS diff
+     Block coverage | 855     | 1,130   | 1.57     | Almost-valid RCS diff
+      Edge coverage | 1,452   | 2,070   | 2.18     | Valid context-mode diff
+          AFL model | ?       | ?       | ?        | ?
+
+*** Sorry, the AFL data is pending completion of the test ***
+
+Seeding the process with a valid unified diff produces roughly comparable
+results:
+
+    Queue extension | Blocks  | Edges   | Edge hit | Number of unique
+      strategy used | reached | reached | cnt var  | crashes found
+  ------------------+---------+---------+----------+------------------
+     (Initial file) | 624     | 717     | 1.00     | 0
+                    |         |         |          |
+      Blind fuzzing | 1,101   | 1,409   | 1.60     | 0
+     Block coverage | 1,255   | 1,649   | 1.48     | 0
+      Edge coverage | 1,259   | 1,734   | 1.72     | 0
+          AFL model | 1,452   | 2,040   | 3.16     | 1
+
+Some of the earlier work on evolutionary fuzzing suggested maintaining just a
+single test case and selecting for mutations that improve coverage. In the test
+described above, this method appears to offer no measurable benefits over
+blind fuzzing.
+
 4) Culling the corpus
 ---------------------
 
@@ -240,9 +275,22 @@ Their relative yields and execve() costs have been investigated and are
 discussed in the aforementioned blog post.
 
 For the reasons discussed in related_work.txt (chiefly, performance, simplicity,
-and reliability), AFL does not try to reason about the relationship between
-specific mutations and program states; the fuzzing steps are nominally blind,
-and are guided only by the evolutionary design of the input queue.
+and reliability), AFL generally does not try to reason about the relationship
+between specific mutations and program states; the fuzzing steps are nominally
+blind, and are guided only by the evolutionary design of the input queue.
+
+That said, there is one (trivial) exception to this rule: when a new queue
+entry goes through the initial set of deterministic fuzzing steps, and some
+regions in the file are observed to have no effect on the checksum of the
+execution path, they may be excluded from the remaining phases of
+deterministic fuzzing - and proceed straight to random tweaks. Especially for
+verbose, human-readable data formats, this can reduce the number of execs by
+a factor of 2 or so.
+
+Because the underlying "effector maps" are local every queue entry and remain
+in force only during deterministic stages that do not alter the size or the
+general layout of the underlying file, this mechanism appears to work very
+reliably and proved to be simple to implement.
 
 7) Dictionaries
 ---------------
@@ -266,7 +314,8 @@ this discovery.
 
 The dictionaries have been shown to enable the fuzzer to rapidly reconstruct
 the grammar of highly verbose and complex languages such as JavaScript, SQL,
-or XML.
+or XML; several examples of generated SQL statements are given in the blog
+post mentioned above.
 
 8) De-duping crashes
 --------------------
