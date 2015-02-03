@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# american fuzzy lop - high-performance binary-only instrumentation
-# -----------------------------------------------------------------
+# american fuzzy lop - QEMU build script
+# --------------------------------------
 #
 # Written by Andrew Griffiths <agriffiths@google.com> and
 #            Michal Zalewski <lcamtuf@google.com>
@@ -14,16 +14,20 @@
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
-# This script downloads, patches, and builds a version of QEMU modified
-# to allow non-instrumented binaries to be run under afl-fuzz.
+# This script downloads, patches, and builds a version of QEMU with
+# minor tweaks to allow non-instrumented binaries to be run under
+# afl-fuzz. 
+#
+# The modifications reside in patches/*. The standalone QEMU binary
+# will be written to ../afl-qemu-trace.
 #
 
 QEMU_URL="http://wiki.qemu-project.org/download/qemu-2.2.0.tar.bz2"
 QEMU_SHA384="69f4ac3094b0577b7181840c9c7b7a048df2bd03c0d851eef8174fd052a1ba786cff15a7dbd94410cbfcb53cb823a30c"
 
-echo "============================================"
-echo "AFL binary-only instrumentation build script"
-echo "============================================"
+echo "================================================="
+echo "AFL binary-only instrumentation QEMU build script"
+echo "================================================="
 echo
 
 echo "[*] Performing basic sanity checks..."
@@ -53,7 +57,7 @@ for i in libtool wget python automake autoconf sha384sum bison iconv; do
 
   fi
 
-fi
+done
 
 if [ ! -d "/usr/include/glib-2.0/" -a ! -d "/usr/local/include/glib-2.0/" ]; then
 

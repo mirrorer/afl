@@ -253,7 +253,7 @@
 
 #define MSAN_ERROR          86
 
-/* Designated file desciptors for forkserver commands (the application will
+/* Designated file descriptors for forkserver commands (the application will
    use FORKSRV_FD and FORKSRV_FD + 1): */
 
 #define FORKSRV_FD          198
@@ -309,7 +309,7 @@
 
 /* Uncomment this to use instrumentation data to record newly discovered paths,
    but do not use them as seeds for fuzzing. This is useful for conveniently
-   measuring coverage that could be attaine by a "dumb" fuzzing algorithm: */
+   measuring coverage that could be attained by a "dumb" fuzzing algorithm: */
 
 // #define IGNORE_FINDS
 

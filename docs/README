@@ -133,10 +133,11 @@ Oh: when using ASAN, see the notes_for_asan.txt file for important caveats.
 
 When fuzzing closed-source programs that can't be easily recompiled with
 afl-gcc, the fuzzer offers experimental support for fast, on-the-fly
-instrumentation of black-box binaries. This is accomplished with a modified
+instrumentation of black-box binaries. This is accomplished with a
 version of QEMU running in the lesser-known "user space emulation" mode.
 
-The feature needs to be built separately by doing:
+QEMU is a project separate from AFL, but you can conveniently build the
+feature by doing:
 
 $ cd qemu_mode
 $ ./build_qemu_support.sh

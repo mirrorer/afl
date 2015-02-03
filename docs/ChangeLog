@@ -17,6 +17,19 @@ is 1.37b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.38b:
+--------------
+
+  - Fixed a bug in the QEMU build script, spotted by William Robinet.
+
+  - Improved the reporting of skipped bitflips to keep the UI counters a bit
+    more accurate.
+
+  - Cleaned up related_work.txt and added some non-goals.
+
+  - Fixed typos, thanks to Jakub Wilk.
+
+--------------
 Version 1.37b:
 --------------
 

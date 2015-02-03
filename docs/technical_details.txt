@@ -154,8 +154,8 @@ file; the session consisted of a single pass over the input queue with afl-fuzz:
 
 *** Sorry, the AFL data is pending completion of the test ***
 
-Seeding the process with a valid unified diff produces roughly comparable
-results:
+A similar experiment limited strictly to deterministic fuzzing, and seeded with
+a valid unified diff, produces roughly comparable results:
 
     Queue extension | Blocks  | Edges   | Edge hit | Number of unique
       strategy used | reached | reached | cnt var  | crashes found
@@ -397,8 +397,8 @@ For more information about this design, see parallel_fuzzing.txt.
 -------------------------------
 
 Instrumentation of black-box, binary-only targets is accomplished with the
-help of a modified version of QEMU in "user emulation" mode. This also allows
-the execution of cross-architecture code - say, ARM binaries on x86.
+help of a separately-built version of QEMU in "user emulation" mode. This also
+allows the execution of cross-architecture code - say, ARM binaries on x86.
 
 QEMU uses basic blocks as translation units; the instrumentation is implemented
 on top of this and uses a model roughly analogous to the compile-time hooks:

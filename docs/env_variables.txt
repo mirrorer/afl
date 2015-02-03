@@ -104,7 +104,7 @@ checks or alter some of the more exotic semantics of the tool:
 3) Settings for afl-qemu-trace
 ------------------------------
 
-The wrapper used to instrument binary-only code supports several settings:
+The QEMU wrapper used to instrument binary-only code supports several settings:
 
   - It is possible to set AFL_INST_RATIO to skip the instrumentation on some
     of the basic blocks, which can be useful when dealing with very complex

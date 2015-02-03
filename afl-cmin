@@ -32,6 +32,9 @@
 # Note that the tool doesn't modify the files themselves. For that, you want
 # afl-tmin.
 #
+# This script must use bash because other shells may have hardcoded limits on
+# array sizes.
+#
 
 echo "corpus minimization tool for afl-fuzz by <lcamtuf@google.com>"
 echo

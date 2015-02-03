@@ -20,6 +20,10 @@
    to implement AFL-style instrumentation and to take care of the remaining
    parts of the AFL fork server logic.
 
+   The resulting QEMU binary is essentially a standalone instrumentation
+   tool; for an example of how to leverage it for other purposes, you can
+   have a look at afl-showmap.c.
+
  */
 
 #include <sys/shm.h>

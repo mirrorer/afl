@@ -4446,22 +4446,29 @@ static u8 fuzz_one(char** argv) {
 
   stage_name  = "bitflip 16/8";
   stage_short = "flip16";
+  stage_cur   = 0;
   stage_max   = len - 1;
 
   orig_hit_cnt = new_hit_cnt;
 
-  for (stage_cur = 0; stage_cur < stage_max; stage_cur++) {
+  for (i = 0; i < len - 1; i++) {
 
     /* Let's consult the effector map... */
-    if (!*(u16*)(eff_map + EFF_APOS(stage_cur))) continue;
 
-    stage_cur_byte = stage_cur;
+    if (!*(u16*)(eff_map + EFF_APOS(i))) {
+      stage_max--;
+      continue;
+    }
 
-    *(u16*)(out_buf + stage_cur) ^= 0xFFFF;
+    stage_cur_byte = i;
+
+    *(u16*)(out_buf + i) ^= 0xFFFF;
 
     if (common_fuzz_stuff(argv, out_buf, len)) goto abandon_entry;
+    stage_cur++;
 
-    *(u16*)(out_buf + stage_cur) ^= 0xFFFF;
+    *(u16*)(out_buf + i) ^= 0xFFFF;
+
 
   }
 
@@ -4476,22 +4483,27 @@ static u8 fuzz_one(char** argv) {
 
   stage_name  = "bitflip 32/8";
   stage_short = "flip32";
+  stage_cur   = 0;
   stage_max   = len - 3;
 
   orig_hit_cnt = new_hit_cnt;
 
-  for (stage_cur = 0; stage_cur < stage_max; stage_cur++) {
+  for (i = 0; i < len - 3; i++) {
 
     /* Let's consult the effector map... */
-    if (!*(u32*)(eff_map + EFF_APOS(stage_cur))) continue;
+    if (!*(u32*)(eff_map + EFF_APOS(i))) {
+      stage_max--;
+      continue;
+    }
 
-    stage_cur_byte = stage_cur;
+    stage_cur_byte = i;
 
-    *(u32*)(out_buf + stage_cur) ^= 0xFFFFFFFF;
+    *(u32*)(out_buf + i) ^= 0xFFFFFFFF;
 
     if (common_fuzz_stuff(argv, out_buf, len)) goto abandon_entry;
+    stage_cur++;
 
-    *(u32*)(out_buf + stage_cur) ^= 0xFFFFFFFF;
+    *(u32*)(out_buf + i) ^= 0xFFFFFFFF;
 
   }
 
@@ -4521,11 +4533,11 @@ skip_bitflip:
 
     u8 orig = out_buf[i];
 
-    if (!eff_map[EFF_APOS(i)]) {
+    /* Let's consult the effector map... */
 
+    if (!eff_map[EFF_APOS(i)]) {
       stage_max -= 2 * ARITH_MAX;
       continue;
-
     }
 
     stage_cur_byte = i;
@@ -4599,11 +4611,11 @@ skip_bitflip:
 
     u16 orig = *(u16*)(out_buf + i);
 
+    /* Let's consult the effector map... */
+
     if (!*(u16*)(eff_map + EFF_APOS(i))) {
-    
       stage_max -= 4 * ARITH_MAX;
       continue;
-
     }
 
     stage_cur_byte = i;
@@ -4690,11 +4702,11 @@ skip_bitflip:
 
     u32 orig = *(u32*)(out_buf + i);
 
-    if (!*(u32*)(eff_map + EFF_APOS(i))) {
+    /* Let's consult the effector map... */
 
+    if (!*(u32*)(eff_map + EFF_APOS(i))) {
       stage_max -= 4 * ARITH_MAX;
       continue;
-
     }
 
     stage_cur_byte = i;
@@ -4782,11 +4794,11 @@ skip_arith:
 
     u8 orig = out_buf[i];
 
-    if (!eff_map[EFF_APOS(i)]) {
+    /* Let's consult the effector map... */
 
+    if (!eff_map[EFF_APOS(i)]) {
       stage_max -= sizeof(interesting_8);
       continue;
-
     }
 
     stage_cur_byte = i;
@@ -4835,11 +4847,11 @@ skip_arith:
 
     u16 orig = *(u16*)(out_buf + i);
 
-    if (!*(u16*)(eff_map + EFF_APOS(i))) {
+    /* Let's consult the effector map... */
 
+    if (!*(u16*)(eff_map + EFF_APOS(i))) {
       stage_max -= sizeof(interesting_16);
       continue;
-
     }
 
     stage_cur_byte = i;
@@ -4908,11 +4920,11 @@ skip_arith:
 
     u32 orig = *(u32*)(out_buf + i);
 
-    if (!*(u32*)(eff_map + EFF_APOS(i))) {
+    /* Let's consult the effector map... */
 
+    if (!*(u32*)(eff_map + EFF_APOS(i))) {
       stage_max -= sizeof(interesting_32) >> 1;
       continue;
-
     }
 
     stage_cur_byte = i;

@@ -31,7 +31,7 @@ measurements using ppvm (http://jwilk.net/software/ppvm), or specify '-m none'.
 
 There is also the option of generating a corpus using a non-ASAN binary, and
 then feeding it to an ASAN-instrumented one to check for bugs. This is faster,
-safer, and likely to give you comparable results.
+safer, and likely to give you roughly comparable results.
 
 2) Long version
 ---------------
@@ -98,3 +98,11 @@ alternatives: build a corpus of test cases using a non-ASAN binary, and then
 examine them with ASAN, Valgrind, or other heavy-duty tools in a more
 controlled setting; or compile the target program with -m32 (32-bit mode)
 if your system supports that.
+
+3) Interactions with the QEMU mode
+----------------------------------
+
+ASAN, MSAN, and other sanitizers appear to be incompatible with QEMU user
+emulation, so please do not try to use them with the -Q option; QEMU doesn't
+seem to appreciate the shadow VM trick used by these tools, and will likely
+just allocate all your physical memory, then crash.
