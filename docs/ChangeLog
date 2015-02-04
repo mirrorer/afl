@@ -17,6 +17,24 @@ is 1.37b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.39b:
+--------------
+
+  - Added the ability to skip inputs by sending SIGUSR1 to the fuzzer.
+
+  - Reworked several portions of the documentation.
+
+  - Changed the code to reset splicing perf scores between runs to keep
+    them closer to intended length.
+
+  - Reduced the minimum value of -t to 5 for afl-fuzz (~200 exec/sec)
+    and to 10 for auxiliary tools (due to the absence of a fork server).
+
+  - Switched to more aggressive default timeouts (rounded up to 25 ms
+    versus 50 ms - ~40 execs/sec) and made several other cosmetic changes
+    to the timeout code.
+
+--------------
 Version 1.38b:
 --------------
 
@@ -41,7 +59,7 @@ Version 1.37b:
 
   - Cleaned up mem limit handling in afl-cmin.
 
-  - Switched from uname -m to uname -i to work around Ubuntu-specific
+  - Switched from uname -i to uname -m to work around Ubuntu-specific
     issues with coreutils when building QEMU. Reported by William Robinet.
 
   - Switched from PID checking to flock() to detect running sessions.

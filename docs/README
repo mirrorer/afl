@@ -16,10 +16,14 @@ american fuzzy lop
 1) Challenges of guided fuzzing
 -------------------------------
 
-Fuzzing is one of the most powerful strategies for identifying security issues
-in real-world software. Unfortunately, it also offers fairly shallow coverage,
-because many of the mutations needed to reach new code paths are exceedingly
-unlikely to be hit purely by chance.
+Fuzzing is one of the most powerful and proven strategies for identifying
+security issues in real-world software; among other things, it is responsible
+for the vast majority of remote code execution and privilege escalation bugs
+found to date in security-critical software.
+
+Unfortunately, fuzzing also offers fairly shallow coverage, because many of the
+mutations needed to reach new code paths are exceedingly unlikely to be hit 
+urely by chance.
 
 There have been numerous attempts to solve this problem by augmenting the
 process with additional information about the behavior of the tested code.
@@ -29,13 +33,13 @@ These techniques can be divided into three broad groups:
     initial test cases that offer diverse code coverage in the targeted
     application - and then fuzzing that corpus using conventional strategies.
 
-  - Dynamic control flow analysis. A more sophisticated technique that leverages
-    instrumented binaries and taint tracking to identify mutations that will
-    hopefully trigger new internal states within the tested program.
+  - Flow analysis / "concolic" execution. This technique leverages instrumented
+    binaries and taint tracking to identify mutations that will hopefully
+    trigger new internal states within the tested program.
 
-  - Static analysis / symbolic execution. Uses mathematical models to reason
-    about the relationship between inputs and program states before actually
-    running the code.
+  - Static analysis and pure symbolic execution. Uses mathematical models to
+    reason about the relationship between inputs and program states in lieu
+    of actually running the code.
 
 The first technique is surprisingly powerful when used to pre-select initial test
 cases from a massive corpus of valid data. Unfortunately, such corpora are not
@@ -47,7 +51,8 @@ The latter two techniques are extremely promising in experimental settings, but
 in real-world applications, they frequently suffer from reliability problems or
 irreducible complexity. Most of the high-value targets have enough internal
 states and possible execution paths to make such tools fall apart and perform
-strictly worse than their traditional counterparts.
+strictly worse than their traditional counterparts unless fine-tuned with
+utmost care.
 
 2) The afl-fuzz approach
 ------------------------
@@ -77,7 +82,8 @@ Simplifying a bit, the overall algorithm can be summed up as:
   6) Go to 2.
 
 The discovered test cases are also periodically culled to eliminate ones that
-have been obsoleted by newer, higher-coverage finds.
+have been obsoleted by newer, higher-coverage finds, and undergo several other
+instrumentation-driven effort minimization steps.
 
 The strategies mentioned in step 4 are fairly straightforward, but go well
 beyond the functionality of tools such as zzuf and honggfuzz and lead to
@@ -194,7 +200,8 @@ old non-guided mode. This gives you a fairly traditional fuzzer with a couple
 of nice testing strategies.
 
 You can use -t and -m to override the default timeout and memory limit for the
-executed process; this is seldom necessary, perhaps except for video decoders.
+executed process; this is seldom necessary, perhaps except for video decoders
+or compilers.
 
 Tips for optimizing the performance of the process are discussed in
 perf_tips.txt. Note that the fuzzer starts by meticulously performing an array
@@ -254,9 +261,7 @@ $ ./afl-fuzz -i- -o existing_output_dir [...etc...]
 
 If you have gnuplot installed, you can also generate some pretty graphs for any
 active fuzzing task using 'afl-plot'. For an example of how this looks like,
-see:
-
-  http://lcamtuf.coredump.cx/afl/plot/
+see http://lcamtuf.coredump.cx/afl/plot/.
 
 8) Parallelized fuzzing
 -----------------------
@@ -301,8 +306,8 @@ existing syntax tokens in the input corpus by watching the instrumentation
 very closely during deterministic byte flips. This works for some types of
 parsers and grammars, but isn't nearly as good as the -x mode.
 
-10) Crash exploration
----------------------
+10) Crash triage
+----------------
 
 The coverage-based grouping of crashes usually produces a small data set that
 can be quickly triaged manually or with a very simple GDB or Valgrind script.

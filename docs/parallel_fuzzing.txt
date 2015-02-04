@@ -54,19 +54,23 @@ its own fuzzing when they are deemed interesting enough.
 The only difference between the -M and -S modes is that the master instance
 will still perform deterministic checks; while the slaves will proceed straight
 to random tweaks. If you don't want to do deterministic fuzzing at all, it's OK
-to run all instances with -S. (Running multiple instances with the -M flag
-would be a waste of CPU time, however.)
+to run all instances with -S. With very slow or complex targets, or when running
+heavily parallelized jobs, it may be a good plan.
 
 You can monitor the progress of your jobs from the command line with the
-provided afl-whatsup tool.
+provided afl-whatsup tool. When the instances are no longer finding new paths,
+it's probably time to stop.
 
 WARNING: Exercise caution when explicitly specifying the -f option. Each fuzzer
-must use a separate output file; otherwise, things will go south. One safe
+must use a separate temporary file; otherwise, things will go south. One safe
 example may be:
 
 $ ./afl-fuzz [...] -S fuzzer10 -f file10.txt ./fuzzed/binary @@
 $ ./afl-fuzz [...] -S fuzzer11 -f file11.txt ./fuzzed/binary @@
 $ ./afl-fuzz [...] -S fuzzer12 -f file12.txt ./fuzzed/binary @@
+
+This is not a concern if you use @@ withot -f and let afl-fuzz come up with the
+file name.
 
 3) Multi-system parallelization
 -------------------------------
@@ -82,7 +86,7 @@ write a simple script that performs two actions:
     like:
 
     for s in {1..10}; do
-      ssh user@host${s} "tar -czf - sync/host${s}_fuzzid*/queue" >host${s}.tgz
+      ssh user@host${s} "tar -czf - sync/host${s}_fuzzid*/[qf]*" >host${s}.tgz
     done
 
   - Distributes and unpacks these files on all the remaining machines, e.g.:
@@ -103,7 +107,7 @@ to keep in mind:
     task every 30 minutes or so may be perfectly fine.
 
   - There is no need to synchronize crashes/ or hangs/; you only need to
-    copy over queue/*.
+    copy over queue/* (and ideally, also fuzzer_stats).
 
   - It is not necessary (and not advisable!) to overwrite existing files;
     the -k option in tar is a good way to avoid that.
@@ -142,11 +146,15 @@ in the output directory. Locally, that information can be interpreted with
 afl-whatsup.
 
 In principle, you can use the status screen of the master (-M) instance to
-monitor the overall fuzzing progress and decide when to stop. You can also
-rely on that instance's output directory to collect the synthesized corpus
-that covers all the noteworthy paths discovered anywhere within the fleet.
-The slave (-S) instances do not require any special monitoring, other than
-just making sure that they are up.
+monitor the overall fuzzing progress and decide when to stop. In this
+mode, the most important signal is just that no new paths are being found
+for a longer while. If you do not have a master instance, just pick any
+single slave and go by that.
+
+You can also rely on that instance's output directory to collect the
+synthesized corpus that covers all the noteworthy paths discovered anywhere
+within the fleet. The slave (-S) instances do not require any special
+monitoring, other than just making sure that they are up.
 
 Keep in mind that crashing inputs are *not* automatically propagated to the
 master instance, so you may still want to monitor for crashes fleet-wide

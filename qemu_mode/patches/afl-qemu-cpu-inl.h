@@ -225,7 +225,7 @@ static inline void afl_maybe_log(abi_ulong cur_loc) {
   /* Looks like QEMU always maps to fixed locations, so we can skip this:
      cur_loc -= afl_start_code; */
 
-  /* Instruction addresses may be aligned and may. Let's mangle the value to get
+  /* Instruction addresses may be aligned. Let's mangle the value to get
      something quasi-uniform. */
 
   cur_loc  = (cur_loc >> 4) ^ (cur_loc << 8);

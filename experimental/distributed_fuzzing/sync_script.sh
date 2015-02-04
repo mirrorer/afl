@@ -58,7 +58,7 @@ while :; do
     echo "[*] Retrieving data from ${host}.${FUZZ_DOMAIN}..."
 
     ssh -o 'passwordauthentication no' ${FUZZ_USER}@${host}.$FUZZ_DOMAIN \
-      "cd '$SYNC_DIR' && tar -czf - ${host}_*/queue" >".sync_tmp/${host}.tgz"
+      "cd '$SYNC_DIR' && tar -czf - ${host}_*/[qf]*" >".sync_tmp/${host}.tgz"
 
   done
 

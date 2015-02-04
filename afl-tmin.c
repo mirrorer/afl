@@ -915,7 +915,7 @@ int main(int argc, char** argv) {
         timeout_given = 1;
 
         exec_tmout = atoi(optarg);
-        if (exec_tmout < 20) FATAL("Dangerously low value of -t");
+        if (exec_tmout < 10) FATAL("Dangerously low value of -t");
         break;
 
       case 'Q':

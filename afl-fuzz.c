@@ -63,7 +63,7 @@
 /* Lots of globals, but mostly for the status UI and other things where it
    really makes no sense to haul them around as function parameters. */
 
-static u8 *in_dir,                    /* Directory with initial testcases */
+static u8 *in_dir,                    /* Input directory with test cases  */
           *out_file,                  /* File to fuzz, if any             */
           *out_dir,                   /* Working & output directory       */
           *sync_dir,                  /* Synchronization directory        */
@@ -95,7 +95,8 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            no_cpu_meter_red,          /* Feng shui on the status screen   */
            no_var_check,              /* Don't detect variable behavior   */
            bitmap_changed = 1,        /* Time to update bitmap?           */
-           qemu_mode;                 /* Running in QEMU mode?            */
+           qemu_mode,                 /* Running in QEMU mode?            */
+           skip_requested;            /* Skip request, via SIGUSR1        */
 
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
@@ -262,20 +263,20 @@ enum {
 /* Stage value types */
 
 enum {
-  STAGE_VAL_NONE,
-  STAGE_VAL_LE,
-  STAGE_VAL_BE
+  /* 00 */ STAGE_VAL_NONE,
+  /* 01 */ STAGE_VAL_LE,
+  /* 02 */ STAGE_VAL_BE
 };
 
 /* Execution status fault codes */
 
 enum {
-  FAULT_NONE,
-  FAULT_HANG,
-  FAULT_CRASH,
-  FAULT_ERROR,
-  FAULT_NOINST,
-  FAULT_NOBITS
+  /* 00 */ FAULT_NONE,
+  /* 01 */ FAULT_HANG,
+  /* 02 */ FAULT_CRASH,
+  /* 03 */ FAULT_ERROR,
+  /* 04 */ FAULT_NOINST,
+  /* 05 */ FAULT_NOBITS
 };
 
 
@@ -411,8 +412,6 @@ static u8* DI(u64 val) {
   /* 10.0T - 99.9T */
   CHK_FORMAT(1000LL * 1000 * 1000 * 1000, 99.95, "%0.01fT", double);
 
-#undef CHK_FORMAT
-
   /* 100T+ */
   strcpy(tmp[cur], "infty");
   return tmp[cur];
@@ -450,13 +449,6 @@ static u8* DMS(u64 val) {
   static u8 cur;
 
   cur = (cur + 1) % 12;
-
-#define CHK_FORMAT(_divisor, _limit_mult, _fmt, _cast) do { \
-    if (val < (_divisor) * (_limit_mult)) { \
-      sprintf(tmp[cur], _fmt, ((_cast)val) / (_divisor)); \
-      return tmp[cur]; \
-    } \
-  } while (0)
 
   /* 0-9999 */
   CHK_FORMAT(1, 10000, "%llu B", u64);
@@ -879,11 +871,11 @@ static u32 count_non_255_bytes(u8* mem) {
    is hit or not. Called on every new crash or hang, should be
    reasonably fast. */
 
-#define AREP4(_sym) (_sym), (_sym), (_sym), (_sym)
-#define AREP8(_sym) AREP4(_sym), AREP4(_sym)
-#define AREP16(_sym) AREP8(_sym), AREP8(_sym)
-#define AREP32(_sym) AREP16(_sym), AREP16(_sym)
-#define AREP64(_sym) AREP32(_sym), AREP32(_sym)
+#define AREP4(_sym)   (_sym), (_sym), (_sym), (_sym)
+#define AREP8(_sym)   AREP4(_sym), AREP4(_sym)
+#define AREP16(_sym)  AREP8(_sym), AREP8(_sym)
+#define AREP32(_sym)  AREP16(_sym), AREP16(_sym)
+#define AREP64(_sym)  AREP32(_sym), AREP32(_sym)
 #define AREP128(_sym) AREP64(_sym), AREP64(_sym)
 
 static u8 simplify_lookup[256] = { 
@@ -1787,7 +1779,7 @@ static void init_forkserver(char** argv) {
 
            "    - On MacOS X, the semantics of fork() syscalls are non-standard and may\n"
            "      break afl-fuzz performance optimizations when running platform-specific\n"
-           "      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
+           "      targets. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
 
 #endif /* __APPLE__ */
 
@@ -1821,7 +1813,7 @@ static void init_forkserver(char** argv) {
 
            "    - On MacOS X, the semantics of fork() syscalls are non-standard and may\n"
            "      break afl-fuzz performance optimizations when running platform-specific\n"
-           "      binaries. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
+           "      targets. To fix this, set AFL_NO_FORKSRV=1 in the environment.\n\n"
 
 #endif /* __APPLE__ */
 
@@ -3740,16 +3732,16 @@ static void show_init_stats(void) {
   if (!timeout_given) {
 
     /* Figure out the appropriate timeout. The basic idea is: 5x average or
-       1x max, plus 50 ms, rounded down to 50 ms and capped at 1 second.
+       1x max, rounded up to 25 ms and capped at 1 second.
 
-       If the program is slow (>20 ms), we use 3x average, rather than 5x. */
+       If the program is slow, we use smaller multipliers for avg_us. */
 
-    if (avg_us > 20000)
-      exec_tmout = 50 + MAX(avg_us * 3 / 1000, max_us / 1000);
-    else
-      exec_tmout = 50 + MAX(avg_us * 5 / 1000, max_us / 1000);
+    if (avg_us > 50000) exec_tmout = avg_us * 2 / 1000;
+    else if (avg_us > 10000) exec_tmout = avg_us * 3 / 1000;
+    else exec_tmout = avg_us * 5 / 1000;
 
-    exec_tmout = exec_tmout / 50 * 50;
+    exec_tmout = MAX(exec_tmout, max_us / 1000);
+    exec_tmout = (exec_tmout + 25) / 25 * 25;
 
     if (exec_tmout > EXEC_TIMEOUT) exec_tmout = EXEC_TIMEOUT;
 
@@ -3925,6 +3917,17 @@ static u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 
   } else subseq_hangs = 0;
 
+  /* Users can hit us with SIGUSR1 to request the current input
+     to be abandoned. */
+
+  if (skip_requested) {
+
+     skip_requested = 0;
+     cur_skipped_paths++;
+     return 1;
+
+  }
+
   /* This handles FAULT_ERROR for us: */
 
   queued_discovered += save_if_interesting(argv, out_buf, len, fault);
@@ -4047,7 +4050,7 @@ static u8 fuzz_one(char** argv) {
   s32 len, fd, temp_len, i, j;
   u8  *in_buf, *out_buf, *orig_in, *ex_tmp, *eff_map = 0;
   u64 havoc_queued,  orig_hit_cnt, new_hit_cnt;
-  u32 splice_cycle = 0, perf_score = 100, prev_cksum, eff_cnt = 1;
+  u32 splice_cycle = 0, perf_score = 100, orig_perf, prev_cksum, eff_cnt = 1;
 
   u8  ret_val = 1;
 
@@ -4173,7 +4176,7 @@ static u8 fuzz_one(char** argv) {
    * PERFORMANCE SCORE *
    *********************/
 
-  perf_score = calculate_score(queue_cur);
+  orig_perf = perf_score = calculate_score(queue_cur);
 
   /* Skip right away if -d is given, if we have done deterministic fuzzing on
      this entry ourselves (was_fuzzed), or if it has gone through deterministic
@@ -5162,6 +5165,9 @@ havoc_stage:
   } else {
 
     static u8 tmp[32];
+
+    perf_score = orig_perf;
+
     sprintf(tmp, "splice %u", splice_cycle);
     stage_name  = tmp;
     stage_short = "splice";
@@ -5846,6 +5852,14 @@ static void handle_stop_sig(int sig) {
 
 }
 
+
+/* Handle skip request (SIGUSR1). */
+
+static void handle_skipreq(int sig) {
+
+  skip_requested = 1;
+
+}
 
 /* Handle timeout (SIGALRM). */
 
@@ -6580,6 +6594,11 @@ static void setup_signal_handlers(void) {
   sa.sa_handler = handle_resize;
   sigaction(SIGWINCH, &sa, NULL);
 
+  /* SIGUSR1: skip entry */
+
+  sa.sa_handler = handle_skipreq;
+  sigaction(SIGUSR1, &sa, NULL);
+
   /* Things we don't care about. */
 
   sa.sa_handler = SIG_IGN;
@@ -6666,7 +6685,7 @@ int main(int argc, char** argv) {
   s32 opt;
   u64 prev_queued = 0;
   u32 sync_interval_cnt = 0, seek_to;
-  u8* extras_dir = 0;
+  u8  *extras_dir = 0;
   u8  mem_limit_given = 0;
 
   char** use_argv;
@@ -6727,7 +6746,7 @@ int main(int argc, char** argv) {
           if (sscanf(optarg, "%u%c", &exec_tmout, &suffix) < 1)
             FATAL("Bad syntax used for -t");
 
-          if (exec_tmout < 20) FATAL("Dangerously low value of -t");
+          if (exec_tmout < 5) FATAL("Dangerously low value of -t");
 
           if (suffix == '+') timeout_given = 2; else timeout_given = 1;
 

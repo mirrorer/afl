@@ -21,6 +21,7 @@ If your starting test case is 100 bytes long, you will have a 71% chance of
 triggering the bug within 1,000 execve() calls - not bad! But if the test case
 is 1 kB long, the probability that we will ever randomly pick that bit goes
 down to 11%. And if it has 10 kB of non-essential cruft, the odds plunge to 1%.
+On top of that, the binary may be now running 2-3x times slower than before.
 
 In practice, this means that you shouldn't fuzz image parsers with your
 vacation photos. Generate a tiny 16x16 picture instead, and run it through
@@ -64,8 +65,8 @@ consider turning it off for now, and manually examining the generated corpus
 with an ASAN-enabled binary later on. The same goes for any features such as
 gcov.
 
-4) Avoid instrumenting ALL THE THINGS
--------------------------------------
+4) Instrument just what you need
+--------------------------------
 
 Instrument just the libraries you actually want to stress-test right now, one
 at a time. Trying to simultaneously instrument glibc, zlib, gmp, OpenSSL,
@@ -83,7 +84,8 @@ The fuzzer is designed to need ~1 core per job. This means that on a, say,
 little performance hit. For tips on how to do that, see parallel_fuzzing.txt.
 
 The afl-gotcpu utility can help you understand if you still have idle CPU
-capacity on your system.
+capacity on your system. (It won't tell you about memory bandwidth, cache
+misses, or similar factors, but they are less likely to be a concern.)
 
 6) Keep memory use and timeouts in check
 ----------------------------------------
@@ -117,13 +119,14 @@ There are several OS-level factors that may affect fuzzing speed:
 
     On other systems, the impact and potential solutions may be different.
 
-  - Suboptimal scheduling strategies. On my Linux system, you can get few
-    percent extra by doing:
+  - Suboptimal scheduling strategies. On my Linux system, you may want to make
+    sure that the following options are set:
 
     echo 1 >/proc/sys/kernel/sched_child_runs_first
     echo 1 >/proc/sys/kernel/sched_autogroup_enabled
-    echo 50000000 >/proc/sys/kernel/sched_migration_cost_ns
-    echo 250000000 >/proc/sys/kernel/sched_latency_ns
+
+    Setting a different scheduling policy for the fuzzer process - say
+    SCHED_RR - can usually speed things up, but needs to be done with care.
 
 8) If all other options fail, use -d
 ------------------------------------

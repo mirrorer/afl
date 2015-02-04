@@ -139,23 +139,31 @@ of new tuples, and the remainder is associated with changes in hit counts.
 
 The following table compares the relative ability to discover file syntax and
 explore program states when using several different approaches to guided
-fuzzing. The instrumented target was GNU patch 2.7.3 seeded with a dummy text
-file; the session consisted of a single pass over the input queue with afl-fuzz:
+fuzzing. The instrumented target was GNU patch 2.7.3 compiled with -O3 and
+seeded with a dummy text file; the session consisted of a single pass over the
+input queue with afl-fuzz:
 
-    Queue extension | Blocks  | Edges   | Edge hit | Highest-coverage
-      strategy used | reached | reached | cnt var  | finding generated
+    Fuzzer guidance | Blocks  | Edges   | Edge hit | Highest-coverage
+      strategy used | reached | reached | cnt var  | test case generated
   ------------------+---------+---------+----------+---------------------------
      (Initial file) | 156     | 163     | 1.00     | (none)
                     |         |         |          |
-      Blind fuzzing | 182     | 205     | 2.23     | First 2 bytes of RCS diff
+    Blind fuzzing S | 182     | 205     | 2.23     | First 2 B of RCS diff
+    Blind fuzzing L | 228     | 265     | 2.23     | First 4 B of -c mode diff
      Block coverage | 855     | 1,130   | 1.57     | Almost-valid RCS diff
-      Edge coverage | 1,452   | 2,070   | 2.18     | Valid context-mode diff
-          AFL model | ?       | ?       | ?        | ?
+      Edge coverage | 1,452   | 2,070   | 2.18     | One-chunk -c mode diff
+          AFL model | 1,765   | 2,597   | 4.99     | Four-chunk -c mode diff
 
-*** Sorry, the AFL data is pending completion of the test ***
+The first entry for blind fuzzing ("S") corresponds to executing just a single
+round of testing; the second set of figures ("L") shows the fuzzer running in a
+loop for a number of execution cycles comparable with that of the instrumented
+runs, which required more time to fully process the queue.
 
-A similar experiment limited strictly to deterministic fuzzing, and seeded with
-a valid unified diff, produces roughly comparable results:
+Roughly similar results have been obtained in a separate experiment where the
+fuzzer was modified to compile out all the random fuzzing stages and leave just
+a series of rudimentary, sequential operations such as walking bit flips.
+Because this mode wouls be incapable of altering the size of the input file,
+the sessions were seeded with a valid unified diff:
 
     Queue extension | Blocks  | Edges   | Edge hit | Number of unique
       strategy used | reached | reached | cnt var  | crashes found
@@ -168,9 +176,9 @@ a valid unified diff, produces roughly comparable results:
           AFL model | 1,452   | 2,040   | 3.16     | 1
 
 Some of the earlier work on evolutionary fuzzing suggested maintaining just a
-single test case and selecting for mutations that improve coverage. In the test
-described above, this method appears to offer no measurable benefits over
-blind fuzzing.
+single test case and selecting for mutations that improve coverage. In the
+tests described above, this method appeared to offer no measurable benefits
+over blind fuzzing.
 
 4) Culling the corpus
 ---------------------

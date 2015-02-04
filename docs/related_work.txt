@@ -43,7 +43,7 @@ coverage-driven fuzzer that relied on coverage as a fitness function.
 Jared's approach was by no means identical to what afl-fuzz does, but it was in
 the same ballpark. His fuzzer tried to explicitly solve for the maximum coverage
 with a single input file; in comparison, afl simply selects for cases that do
-something new (which yields better results).
+something new (which yields better results - see technical_details.txt).
 
 Few years later, Gabriel Campana released fuzzgrind, a tool that relied purely
 on Valgrind and a constraint solver to maximize coverage without any brute-force
@@ -66,7 +66,7 @@ security-critical component of modern browsers and media players:
 
   http://googleonlinesecurity.blogspot.com/2014/01/ffmpeg-and-thousand-fixes.html
 
-Effortlessly getting the same results with state-of-the-art static analysis
+Effortlessly getting the same results with state-of-the-art symbolic execution
 seems fairly unlikely, and hasn't been demonstrated in practice so far.
 
 Either way - attribution is hard. It also seems a bit pointless: I don't think
