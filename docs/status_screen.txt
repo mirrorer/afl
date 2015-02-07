@@ -79,7 +79,7 @@ red warning in this section, too :-)
 The first field in this section gives you the count of queue passes done so far
 - that is, the number of times the fuzzer went over all the interesting test
 cases discovered so far, fuzzed them, and looped back. Every fuzzing session
-should be allowed to complete at least one cycle; iand deally, much longer
+should be allowed to complete at least one cycle; and ideally, much longer
 than that.
 
 As noted earlier, the first pass can take a day or longer, so sit back and
@@ -301,8 +301,8 @@ explanations for variable behavior of the tested program:
   - Multiple threads executing at once in semi-random order. Not a big deal,
     but to avoid hiccups, it's best to restrict instrumented programs to a
     single thread. Check compile-time options or run-time flags. For example,
-    for ImageMagick, you can try --without-threads; for ffmpeg, look for
-    --disable-pthreads instead.
+    for ImageMagick, you can try --without-threads --disable-openmp; for
+    ffmpeg, look for --disable-pthreads instead.
 
   - Attempts to create files that were already created during previous runs.
     This is harmless, but you may want to instruct the targeted program to

@@ -10,7 +10,7 @@ High-performance binary-only instrumentation for afl-fuzz
 The code in this directory allows you to build a standalone feature that
 leverages the QEMU "user emulation" mode and allows callers to obtain
 instrumentation output for black-box, closed-source binaries. This mechanism
-can be then leveraged by afl-fuzz to stress-test targets that couldn't be built
+can be then used by afl-fuzz to stress-test targets that couldn't be built
 with afl-gcc.
 
 The usual performance cost is 2-5x, which is considerably better than

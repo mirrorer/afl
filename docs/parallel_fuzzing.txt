@@ -69,7 +69,7 @@ $ ./afl-fuzz [...] -S fuzzer10 -f file10.txt ./fuzzed/binary @@
 $ ./afl-fuzz [...] -S fuzzer11 -f file11.txt ./fuzzed/binary @@
 $ ./afl-fuzz [...] -S fuzzer12 -f file12.txt ./fuzzed/binary @@
 
-This is not a concern if you use @@ withot -f and let afl-fuzz come up with the
+This is not a concern if you use @@ without -f and let afl-fuzz come up with the
 file name.
 
 3) Multi-system parallelization

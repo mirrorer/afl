@@ -23,7 +23,7 @@ found to date in security-critical software.
 
 Unfortunately, fuzzing also offers fairly shallow coverage, because many of the
 mutations needed to reach new code paths are exceedingly unlikely to be hit 
-urely by chance.
+purely by chance.
 
 There have been numerous attempts to solve this problem by augmenting the
 process with additional information about the behavior of the tested code.

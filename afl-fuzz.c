@@ -3947,7 +3947,7 @@ static u32 choose_block_len(u32 limit) {
 
   u32 min_value, max_value;
 
-  switch (UR(3)) {
+  switch (UR(MIN(queue_cycle, 3))) {
 
     case 0:  min_value = 1;
              max_value = HAVOC_BLK_SMALL;

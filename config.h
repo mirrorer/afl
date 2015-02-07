@@ -93,7 +93,8 @@
 #define HAVOC_STACK_POW2    7
 
 /* Caps on block sizes for cloning and deletion operations. Each of these
-   ranges has a 33% probability of getting picked: */
+   ranges has a 33% probability of getting picked, except for the first
+   two cycles where smaller blocks are favored: */
 
 #define HAVOC_BLK_SMALL     32
 #define HAVOC_BLK_MEDIUM    128

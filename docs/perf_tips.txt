@@ -119,8 +119,8 @@ There are several OS-level factors that may affect fuzzing speed:
 
     On other systems, the impact and potential solutions may be different.
 
-  - Suboptimal scheduling strategies. On my Linux system, you may want to make
-    sure that the following options are set:
+  - Suboptimal scheduling strategies. On Linux, you may want to make sure that
+    the following options are set:
 
     echo 1 >/proc/sys/kernel/sched_child_runs_first
     echo 1 >/proc/sys/kernel/sched_autogroup_enabled

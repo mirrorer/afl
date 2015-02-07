@@ -17,6 +17,15 @@ is 1.37b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.40b:
+--------------
+
+  - Switched to smaller block op sizes during the first passes over the
+    queue. Helps keep test cases small.
+
+  - Updated a bunch of docs.
+
+--------------
 Version 1.39b:
 --------------
 
@@ -59,7 +68,7 @@ Version 1.37b:
 
   - Cleaned up mem limit handling in afl-cmin.
 
-  - Switched from uname -i to uname -m to work around Ubuntu-specific
+  - Switched from uname -i to uname -m to work around Gentoo-specific
     issues with coreutils when building QEMU. Reported by William Robinet.
 
   - Switched from PID checking to flock() to detect running sessions.
