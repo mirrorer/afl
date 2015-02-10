@@ -72,7 +72,7 @@ in equally complex software still seems fairly unlikely, and hasn't been
 demonstrated in practice so far.
 
 But I digress; ultimately, attribution is hard, and glorying the fundamental
-conceps behind AFL is probably a waste of time. The devil is very much in the
+concepts behind AFL is probably a waste of time. The devil is very much in the
 often-overlooked details, which brings us to...
 
 2) Design goals for afl-fuzz

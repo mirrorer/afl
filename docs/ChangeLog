@@ -13,8 +13,30 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 1.37b. If you're stuck on an earlier release, it's strongly advisable
+is 1.40b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 1.41b:
+--------------
+
+  - Added AFL_ALLOW_CRASHES=1 to afl-cmin. Allows crashing inputs in the
+    output corpus. Changed the default behavior to disallow it.
+
+  - Made the afl-cmin output dir default to 0700, not 0755, to be consistent
+    with afl-fuzz; documented the rationale for 0755 in afl-plot.
+
+  - Lowered the output dir reuse time limit to 25 minutes as a dice-roll
+    compromise after a discussion on afl-users@.
+
+  - Made afl-showmap accept -o /dev/null without borking out.
+
+  - Added support for crash / hang info in exit codes of afl-showmap.
+
+  - Tweaked block operation scaling to also factor in ballpark run time
+    in cases where queue passes take very little time.
+
+  - Fixed typos and made improvements to several docs.
 
 --------------
 Version 1.40b:
@@ -22,6 +44,9 @@ Version 1.40b:
 
   - Switched to smaller block op sizes during the first passes over the
     queue. Helps keep test cases small.
+
+  - Added memory barrier for run_target(), just in case compilers get
+    smarter than they are today.
 
   - Updated a bunch of docs.
 

@@ -30,7 +30,8 @@
 #     past, but have been made obsolete by later finds.
 #
 # Note that the tool doesn't modify the files themselves. For that, you want
-# afl-tmin.
+# afl-tmin. Oh, and if you want to minimize a corpus without removing crashing
+# files, set AFL_KEEP_CRASHES=1 first. 
 #
 # This script must use bash because other shells may have hardcoded limits on
 # array sizes.
@@ -212,7 +213,7 @@ if [ -d "$OUT_DIR" ]; then
   exit 1
 fi
 
-mkdir -m 755 -p "$TRACE_DIR" || exit 1
+mkdir -m 700 -p "$TRACE_DIR" || exit 1
 
 if [ ! "$STDIN_FILE" = "" ]; then
   rm -f "$STDIN_FILE" || exit 1
@@ -271,7 +272,7 @@ if [ "$FIRST_COUNT" -gt "0" ]; then
 
 else
 
-  echo "[-] Error: no instrumentation output detected (perhaps it crashed or timed out)." 1>&2
+  echo "[-] Error: no instrumentation output detected (perhaps crash or timeout)." 1>&2
   test "$AFL_KEEP_TRACES" = "" && rm -rf "$TRACE_DIR"
   exit 1
 

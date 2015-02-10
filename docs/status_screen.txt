@@ -78,19 +78,21 @@ red warning in this section, too :-)
 
 The first field in this section gives you the count of queue passes done so far
 - that is, the number of times the fuzzer went over all the interesting test
-cases discovered so far, fuzzed them, and looped back. Every fuzzing session
-should be allowed to complete at least one cycle; and ideally, much longer
-than that.
+cases discovered so far, fuzzed them, and looped back to the very beginning.
+Every fuzzing session should be allowed to complete at least one cycle; and
+ideally, should run much longer than that.
 
 As noted earlier, the first pass can take a day or longer, so sit back and
-relax :-) If you want to get broader but more shallow coverage right away, try
+relax. If you want to get broader but more shallow coverage right away, try
 the -d option - it gives you a more familiar experience by skipping the
-deterministic fuzzing steps.
+deterministic fuzzing steps. It is, however, inferior to the standard mode in
+a couple of subtle ways.
 
-To help make the call on when to hit Ctrl-C, the value is color-coded. It is
-shown in magenta during the first pass, progresses to yellow if new finds are
-still being made in subsequent rounds, then blue when that ends - and finally,
-turns green after the fuzzer hasn't been seeing any action for a longer while.
+To help make the call on when to hit Ctrl-C, the cycle counter is color-coded.
+It is shown in magenta during the first pass, progresses to yellow if new finds
+are still being made in subsequent rounds, then blue when that ends - and
+finally, turns green after the fuzzer hasn't been seeing any action for a
+longer while.
 
 The remaining fields in this part of the screen should be pretty obvious:
 there's the number of test cases ("paths") discovered so far, and the number of
@@ -110,7 +112,7 @@ shows the ID of the test case it is currently working on, plus the number of
 inputs it decided to ditch because they were persistently timing out.
 
 The "*" suffix sometimes shown in the first line means that the currently
-processed path is not favored (as discussed later on, in section 6).
+processed path is not "favored" (a property discussed later on, in section 6).
 
 If you feel that the fuzzer is progressing too slowly, see the note about the
 -d option in section 2 of this doc.
@@ -131,16 +133,16 @@ hit, in proportion to how much the bitmap can hold. Be wary of extremes:
 
   - Absolute numbers below 200 or so suggest one of three things: that the
     program is extremely simple; that it is not instrumented properly (e.g.,
-    due to being linked against the wrong copy of the library); or that it is
-    bailing out prematurely on your input test cases. The fuzzer will try to
-    mark this in pink, just to make you aware.
+    due to being linked against a non-instrumented copy of the target
+    library); or that it is bailing out prematurely on your input test cases.
+    The fuzzer will try to mark this in pink, just to make you aware.
 
   - Percentages over 70% may very rarely happen with very complex programs
     that make heavy use of template-generated code.
 
     Because high bitmap density makes it harder for the fuzzer to reliably
     discern new program states, I recommend recompiling the binary with
-    AFL_INST_RATIO=10 or so (see env_variables.txt).
+    AFL_INST_RATIO=10 or so and trying again (see env_variables.txt).
 
     The fuzzer will flag high percentages in red. Chances are, you will never
     see that unless you're fuzzing extremely hairy software (say, v8, perl,
@@ -150,7 +152,7 @@ The other line deals with the variability in tuple hit counts seen in the
 binary. In essence, if every taken branch is always taken a fixed number of
 times for all the inputs we have tried, this will read "1.00". As we manage
 to trigger other hit counts for every branch, the needle will start to move
-toward "8.00" (every bit in the 8-bit counter hit), but will probably never
+toward "8.00" (every bit in the 8-bit map hit), but will probably never
 reach that extreme.
 
 Together, the values can be useful for comparing the coverage of several
@@ -168,9 +170,6 @@ different fuzzing jobs that rely on the same instrumented binary.
 
 This part gives you an in-depth peek at what the fuzzer is actually doing right
 now. It tells you about the current stage, which can be any of:
-
-  - init - if you see this, you're pretty amazing; it flashes on the screen for
-    a millisecond or so =)
 
   - calibration - a pre-fuzzing stage where the execution path is examined
     to detect anomalies, establish baseline execution speed, and so on. Executed
@@ -286,13 +285,13 @@ out of the instrumentation-guided approach taken by afl-fuzz.
 The next field shows you the number of inputs that have not gone through any
 fuzzing yet. The same stat is also given for "favored" entries that the fuzzer
 really wants to get to in this queue cycle (the non-favored entries may have to
-wait).
+wait a couple of cycles to get their chance).
 
 Next, we have the number of new paths found during this fuzzing section and
 imported from other fuzzer instances when doing parallelized fuzzing; and the
 number of inputs that produce seemingly variable behavior in the tested binary.
 
-That last bit is actually fairly interesting. There are three quasi-common
+That last bit is actually fairly interesting. There are four quasi-common
 explanations for variable behavior of the tested program:
 
   - Use of uninitialized memory in conjunction with some intrinsic sources of
@@ -304,14 +303,15 @@ explanations for variable behavior of the tested program:
     for ImageMagick, you can try --without-threads --disable-openmp; for
     ffmpeg, look for --disable-pthreads instead.
 
-  - Attempts to create files that were already created during previous runs.
-    This is harmless, but you may want to instruct the targeted program to
-    write to stdout or to /dev/null to avoid surprises (and disable the
-    creation of temporary files, if applicable).
+  - Attempts to create files that were already created during previous runs, or
+    otherwise interact with some form of persistent state. This is harmless,
+    but you may want to instruct the targeted program to write to stdout or to
+    /dev/null to avoid surprises (and disable the creation of temporary files
+    and similar artifacts, if applicable).
 
   - Hitting functionality that is actually designed to behave randomly. For
-    example, when fuzzing sqlite, the fuzzer will hit variable behavior once
-    the mutation engine generates something like:
+    example, when fuzzing sqlite, the fuzzer will dutifully detect variable
+    behavior once the mutation engine generates something like:
 
     select random();
 
@@ -319,11 +319,12 @@ Less likely causes may include running out of disk space, SHM handles, or other
 globally limited resources.
 
 The paths where variable behavior is detected are marked with with a matching
-entry in the <out_dir>/.state/variable_behavior/ directory.
+entry in the <out_dir>/.state/variable_behavior/ directory, so you can look
+them up easily.
 
 If you can't suppress variable behavior and don't want to see these warnings,
-simply set AFL_NO_VAR_CHECK=1 in the environment before running afl-fuzz
-(this will also speed up session resumption by a factor of 10x or so).
+simply set AFL_NO_VAR_CHECK=1 in the environment before running afl-fuzz. This
+will also dramatically speed up session resumption.
 
 9) CPU load
 -----------

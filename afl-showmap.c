@@ -16,6 +16,9 @@
    the contents of the trace bitmap in a human-readable form. Useful in
    scripts to eliminate redundant inputs and perform other checks.
 
+   Exit code is 2 if the target program crashes; 1 if it times out or
+   there is a problem executing it; or 0 if execution is successful.
+
  */
 
 #define AFL_MAIN
@@ -65,8 +68,8 @@ static u8  quiet_mode,                /* Hide non-essential messages?      */
 
 static volatile u8
            stop_soon,                 /* Ctrl-C pressed?                   */
-           child_timed_out;           /* Child timed out?                  */
-
+           child_timed_out,           /* Child timed out?                  */
+           child_crashed;             /* Child crashed?                    */
 
 /* Classify tuple counts. Instead of mapping to individual bits, as in
    afl-fuzz.c, we map to more user-friendly numbers between 1 and 8. */
@@ -153,11 +156,18 @@ static u32 write_results(void) {
   FILE* f;
   u32 i, ret = 0;
 
-  unlink(out_file); /* Ignore errors */
+  if (!strncmp(out_file,"/dev/", 5)) {
 
-  fd = open(out_file, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    fd = open(out_file, O_WRONLY, 0600);
+    if (fd < 0) PFATAL("Unable to open '%s'", out_file);
 
-  if (fd < 0) PFATAL("Unable to create '%s'", out_file);
+  } else {
+
+    unlink(out_file); /* Ignore errors */
+    fd = open(out_file, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (fd < 0) PFATAL("Unable to create '%s'", out_file);
+
+  }
 
   f = fdopen(fd, "w");
 
@@ -170,7 +180,8 @@ static u32 write_results(void) {
 
     if (cmin_mode) {
 
-      if (!child_timed_out)
+      if (!child_timed_out && 
+          (!child_crashed || getenv("AFL_KEEP_CRASHES")))
         fprintf(f, "%u%u\n", trace_bits[i], i);
 
     } else fprintf(f, "%06u:%u\n", i, trace_bits[i]);
@@ -280,16 +291,20 @@ static void run_target(char** argv) {
   if (!quiet_mode)
     SAYF("-- Program output ends --\n");
 
+  if (!child_timed_out && !stop_soon && WIFSIGNALED(status))
+    child_crashed = 1;
+
   if (!quiet_mode) {
 
     if (child_timed_out)
       SAYF(cLRD "\n+++ Program timed off +++\n" cRST);
     else if (stop_soon)
       SAYF(cLRD "\n+++ Program aborted by user +++\n" cRST);
-    else if (WIFSIGNALED(status))
+    else if (child_crashed)
       SAYF(cLRD "\n+++ Program killed by signal %u +++\n" cRST, WTERMSIG(status));
 
   }
+
 
 }
 
@@ -687,7 +702,7 @@ int main(int argc, char** argv) {
 
   }
 
-  exit(0);
+  exit(child_crashed * 2 + child_timed_out);
 
 }
 

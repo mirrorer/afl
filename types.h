@@ -73,4 +73,7 @@ typedef int64_t  s64;
 #define STRINGIFY_INTERNAL(x) #x
 #define STRINGIFY(x) STRINGIFY_INTERNAL(x)
 
+#define MEM_BARRIER() \
+  asm volatile("" ::: "memory")
+
 #endif /* ! _HAVE_TYPES_H */

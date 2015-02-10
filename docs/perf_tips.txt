@@ -10,7 +10,7 @@ Tips for performance optimization
 
 This is probably the single most important step to take! Large test cases do
 not merely take more time and memory to be parsed by the tested binary, but
-they also make the fuzzing process dramatically less efficient in several other
+also make the fuzzing process dramatically less efficient in several other
 ways.
 
 To illustrate, let's say that you're randomly flipping bits in a file, one bit
@@ -18,10 +18,14 @@ at a time. If you flip bit #47, you will hit a security bug; flipping any
 other bit just results in an invalid document.
 
 If your starting test case is 100 bytes long, you will have a 71% chance of
-triggering the bug within 1,000 execve() calls - not bad! But if the test case
-is 1 kB long, the probability that we will ever randomly pick that bit goes
-down to 11%. And if it has 10 kB of non-essential cruft, the odds plunge to 1%.
-On top of that, the binary may be now running 2-3x times slower than before.
+triggering the bug within the first 1,000 execs - not bad! But if the test case
+is 1 kB long, the probability that we will randomly hit the right pattern in
+the same timeframe goes down to 11%. And if it has 10 kB of non-essential
+cruft, the odds plunge to 1%.
+
+On top of that, with larger inputs, the binary may be now running 5-10x times
+slower than before - so the overall drop in fuzzing efficiency may be easily
+as high as 500x or so.
 
 In practice, this means that you shouldn't fuzz image parsers with your
 vacation photos. Generate a tiny 16x16 picture instead, and run it through
@@ -36,10 +40,12 @@ or submit new ones!
 
 Consider using a simpler target binary in your fuzzing work. For example, for
 image formats, bundled utilities such as djpeg, readpng, or gifhisto are
-considerably (10-20x) faster than the convert tool from ImageMagick.
+considerably (10-20x) faster than the convert tool from ImageMagick - all while
+exercising roughly the same library-level image parsing code.
 
-Remember that you can always use such simple tools to generate a corpus that
-will be then fed to a more resource-hungry program later on.
+Even if you don't have a lightweight harness for a particular target, remember
+that you can always use another, related library to generate a corpus that will
+be then manually fed to a more resource-hungry program later on.
 
 3) Have a closer look at the binary
 -----------------------------------
@@ -53,17 +59,25 @@ called with:
 ...and that will speed things up. There is a corresponding drop in the quality
 of decoded images, but it's probably not something you care about.
 
-You may also want to use strace -tt or an equivalent profiling tool to see if
-the targeted binary is doing anything unnecessarily slow. Sometimes, you can
-speed things up simply by specifying /dev/null as the config file, or disabling
-some compile-time features that aren't really needed for the job (try
-./configure --help). One of the notoriously resource-consuming things would be
-calling other utilities via exec*(), popen(), system(), or equivalent calls.
+In some programs, it is possible to disable output altogether, or at least use
+an output format that is computationally inexpensive. For example, with image
+transcoding tools, converting to a BMP file will be a lot faster than to PNG.
+
+With some laid-back parsers, enabling "strict" mode (i.e., bailing out after
+first error) may result in smaller files and improved run time without
+sacrificing coverage; for example, for sqlite, you may want to specify -bail.
+
+If you are still stumped, you can use strace -tt or an equivalent profiling
+tool to see if the targeted binary is doing anything unnecessarily slow.
+Sometimes, you can speed things up simply by specifying /dev/null as the
+config file, or disabling some compile-time features that aren't really needed
+for the job (try ./configure --help). One of the notoriously resource-consuming
+things would be calling other utilities via exec*(), popen(), system(), or
+equivalent calls.
 
 Last but not least, if you are using ASAN and the performance is unacceptable,
 consider turning it off for now, and manually examining the generated corpus
-with an ASAN-enabled binary later on. The same goes for any features such as
-gcov.
+with an ASAN-enabled binary later on.
 
 4) Instrument just what you need
 --------------------------------
@@ -72,9 +86,9 @@ Instrument just the libraries you actually want to stress-test right now, one
 at a time. Trying to simultaneously instrument glibc, zlib, gmp, OpenSSL,
 and libxml2 to test a single program is an overkill.
 
-Beware of programs that come with libraries bundled into their source code
-(Spidermonkey is a good example of this). Check ./configure options to use
-non-instrumented system-wide copies instead.
+Beware of programs that come with oddball third-party libraries bundled with
+their source code (Spidermonkey is a good example of this). Check ./configure
+options to use non-instrumented system-wide copies instead.
 
 5) Parallelize your fuzzers
 ---------------------------
@@ -93,10 +107,15 @@ misses, or similar factors, but they are less likely to be a concern.)
 If you have increased the -m or -t limits more than truly necessary, consider
 dialing them back down.
 
-Keep in mind that some programs end up spending a lot of time allocating and
-initializing megabytes of memory to accommodate pathological inputs. Low -m
-values can make them give up sooner - long before hitting the "hard" time
-limit defined with -t - without necessarily sacrificing coverage.
+For programs that are nominally very fast, but get sluggish for some inputs,
+you can also try setting -t values that are more punishing than what afl-fuzz
+dares to use on its own. On fast and idle machines, going down to -t 5 may be
+a viable plan.
+
+The -m parameter is worth looking at, too. Some programs can end up spending
+a fair amount of time allocating and initializing megabytes of memory when
+presented with pathological inputs. Low -m values can make them give up sooner
+and not waste CPU time.
 
 7) Check OS configuration
 -------------------------
@@ -108,31 +127,35 @@ There are several OS-level factors that may affect fuzzing speed:
 
   - Network filesystems, either used for fuzzer input / output, or accessed by
     the fuzzed binary to read configuration files (pay special attention to the
-    home directory).
+    home directory - many programs search it for dot-files).
 
-  - On-demand CPU scaling. The Linux 'ondemand' governor runs on a specific
-    schedule and is known to underestimate the needs of short-lived processes
-    spawned by afl-fuzz (or any other fuzzer). On Linux, this can be fixed with:
+  - On-demand CPU scaling. The Linux 'ondemand' governor performs its analysis
+    on a particular schedule and is known to underestimate the needs of
+    short-lived processes spawned by afl-fuzz (or any other fuzzer). On Linux,
+    this can be fixed with:
 
     cd /sys/devices/system/cpu
     echo performance | tee cpu*/cpufreq/scaling_governor
 
-    On other systems, the impact and potential solutions may be different.
+    On other systems, the impact of CPU scaling will be different; when fuzzing,
+    use OS-specific tools to find out if all cores are running at full speed.
 
-  - Suboptimal scheduling strategies. On Linux, you may want to make sure that
-    the following options are set:
+  - Suboptimal scheduling strategies. The significance of this will vary from
+    one target to another, but on Linux, you may want to make sure that the
+    following options are set:
 
     echo 1 >/proc/sys/kernel/sched_child_runs_first
     echo 1 >/proc/sys/kernel/sched_autogroup_enabled
 
     Setting a different scheduling policy for the fuzzer process - say
-    SCHED_RR - can usually speed things up, but needs to be done with care.
+    SCHED_RR - can usually speed things up, too, but needs to be done with
+    care.
 
 8) If all other options fail, use -d
 ------------------------------------
 
 For programs that are genuinely slow, in cases where you really can't escape
-using huge input files, or if you simply want to get quick and dirty results
+using huge input files, or when you simply want to get quick and dirty results
 early on, you can always resort to the -d mode.
 
 The mode causes afl-fuzz to skip all the deterministic fuzzing steps, which

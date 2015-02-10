@@ -154,6 +154,10 @@ cat >"$2/index.html" <<_EOF_
 
 _EOF_
 
+# Make it easy to remotely view results when outputting directly to a directory
+# served by Apache or other HTTP daemon. Since the plots aren't horribly
+# sensitive, this seems like a reasonable trade-off.
+
 chmod 755 "$2"
 chmod 644 "$2/high_freq.png" "$2/low_freq.png" "$2/exec_speed.png" "$2/index.html"
 

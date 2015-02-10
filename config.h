@@ -37,6 +37,10 @@
 
 #define EXEC_TIMEOUT        1000
 
+/* Timeout rounding factor when auto-scaling (milliseconds): */
+
+#define EXEC_TM_ROUND       20
+
 /* Default memory limit for child process (MB): */
 
 #ifndef __x86_64__ 
@@ -187,6 +191,10 @@
 /* Sync interval (every n havoc cycles): */
 
 #define SYNC_INTERVAL       5
+
+/* Output directory reuse grace period (minutes): */
+
+#define OUTPUT_GRACE        25
 
 /* List of interesting values to use in fuzzing. */
 

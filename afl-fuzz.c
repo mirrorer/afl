@@ -96,7 +96,8 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            no_var_check,              /* Don't detect variable behavior   */
            bitmap_changed = 1,        /* Time to update bitmap?           */
            qemu_mode,                 /* Running in QEMU mode?            */
-           skip_requested;            /* Skip request, via SIGUSR1        */
+           skip_requested,            /* Skip request, via SIGUSR1        */
+           run_over5m;                /* Run time over 5 minutes?         */
 
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
@@ -1886,7 +1887,12 @@ static u8 run_target(char** argv) {
 
   child_timed_out = 0;
 
+  /* After this memset, trace_bits[] are effectively volatile, so we
+     must prevent any earlier operations from venturing into that
+     territory. */
+
   memset(trace_bits, 0, MAP_SIZE);
+  MEM_BARRIER();
 
   /* If we're running in "dumb" mode, we can't rely on the fork server
      logic compiled into the target program, so we will just keep calling
@@ -2021,6 +2027,12 @@ static u8 run_target(char** argv) {
   setitimer(ITIMER_REAL, &it, NULL);
 
   total_execs++;
+
+  /* Any subsequent operations on trace_bits must not be moved by the
+     compiler above this point. Past this location, trace_bits[] behave
+     very normally and do not have to be treated as volatile. */
+
+  MEM_BARRIER();
 
   tb4 = *(u32*)trace_bits;
 
@@ -3080,17 +3092,17 @@ static void maybe_delete_out_dir(void) {
 
     /* Let's see how much work is at stake. */
 
-    if (!in_place_resume && last_update - start_time > 60 * 60) {
+    if (!in_place_resume && last_update - start_time > OUTPUT_GRACE * 60) {
 
       SAYF("\n" cLRD "[-] " cRST
            "The job output directory already exists and contains the results of more\n"
-           "    than an hour's worth of fuzzing. To avoid data loss, afl-fuzz will *NOT*\n"
+           "    than %u minutes worth of fuzzing. To avoid data loss, afl-fuzz will *NOT*\n"
            "    automatically delete this data for you.\n\n"
 
            "    If you wish to start a new session, remove or rename the directory manually,\n"
            "    or specify a different output location for this job. To resume the old\n"
            "    session, put '-' as the input directory in the command line ('-i -') and\n"
-           "    try again.\n");
+           "    try again.\n", OUTPUT_GRACE);
 
        FATAL("At-risk data found in in '%s'", out_dir);
 
@@ -3268,11 +3280,15 @@ static void show_stats(void) {
   u32 banner_len, banner_pad;
   u8  tmp[256];
 
-  cur_ms   = get_cur_time();
+  cur_ms = get_cur_time();
 
   /* If not enough time has passed since last UI update, bail out. */
 
   if (cur_ms - last_ms < 1000 / UI_TARGET_HZ) return;
+
+  /* Check if we're past the 5 minute mark. */
+
+  if (cur_ms - start_time > 5 * 60 * 1000) run_over5m = 1;
 
   /* Calculate smoothed exec speed stats. */
 
@@ -3732,16 +3748,18 @@ static void show_init_stats(void) {
   if (!timeout_given) {
 
     /* Figure out the appropriate timeout. The basic idea is: 5x average or
-       1x max, rounded up to 25 ms and capped at 1 second.
+       1x max, rounded up to EXEC_TM_ROUND ms and capped at 1 second.
 
-       If the program is slow, we use smaller multipliers for avg_us. */
+       If the program is slow, the multiplier is lowered to 2x or 3x, because
+       random scheduler jitter is less likely to have any impact, and because
+       our patience is wearing thin =) */
 
     if (avg_us > 50000) exec_tmout = avg_us * 2 / 1000;
     else if (avg_us > 10000) exec_tmout = avg_us * 3 / 1000;
     else exec_tmout = avg_us * 5 / 1000;
 
     exec_tmout = MAX(exec_tmout, max_us / 1000);
-    exec_tmout = (exec_tmout + 25) / 25 * 25;
+    exec_tmout = (exec_tmout + EXEC_TM_ROUND) / EXEC_TM_ROUND * EXEC_TM_ROUND;
 
     if (exec_tmout > EXEC_TIMEOUT) exec_tmout = EXEC_TIMEOUT;
 
@@ -3946,8 +3964,11 @@ static u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 static u32 choose_block_len(u32 limit) {
 
   u32 min_value, max_value;
+  u32 rlim = MIN(queue_cycle, 3);
 
-  switch (UR(MIN(queue_cycle, 3))) {
+  if (!run_over5m) rlim = 1;
+
+  switch (UR(rlim)) {
 
     case 0:  min_value = 1;
              max_value = HAVOC_BLK_SMALL;
