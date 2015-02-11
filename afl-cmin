@@ -30,8 +30,7 @@
 #     past, but have been made obsolete by later finds.
 #
 # Note that the tool doesn't modify the files themselves. For that, you want
-# afl-tmin. Oh, and if you want to minimize a corpus without removing crashing
-# files, set AFL_KEEP_CRASHES=1 first. 
+# afl-tmin.
 #
 # This script must use bash because other shells may have hardcoded limits on
 # array sizes.
@@ -49,9 +48,10 @@ echo
 MEM_LIMIT=100
 TIMEOUT=none
 
-unset IN_DIR OUT_DIR STDIN_FILE EXTRA_PAR MEM_LIMIT_GIVEN
+unset IN_DIR OUT_DIR STDIN_FILE EXTRA_PAR MEM_LIMIT_GIVEN \
+  AFL_CMIN_CRASHES_ONLY AFL_CMIN_ALLOW_ANY
 
-while getopts "+i:o:f:m:t:eQ" opt; do
+while getopts "+i:o:f:m:t:eQC" opt; do
 
   case "$opt" in 
 
@@ -74,6 +74,9 @@ while getopts "+i:o:f:m:t:eQ" opt; do
          ;;
     "e")
          EXTRA_PAR="$EXTRA_PAR -e"
+         ;;
+    "C")
+         export AFL_CMIN_CRASHES_ONLY=1
          ;;
     "Q")
          EXTRA_PAR="$EXTRA_PAR -Q"
@@ -110,6 +113,7 @@ Execution control settings:
 
 Minimization settings:
 
+  -C            - keep crashing inputs, reject everything else
   -e            - solve for edge coverage only, ignore hit counts
 
 For additional tips, please consult docs/README.
@@ -255,12 +259,12 @@ echo "[*] Testing the target binary..."
 
 if [ "$STDIN_FILE" = "" ]; then
 
-  "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/.run_test" -C $EXTRA_PAR -- "$@" <"$IN_DIR/$fn"
+  AFL_CMIN_ALLOW_ANY=1 "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/.run_test" -Z $EXTRA_PAR -- "$@" <"$IN_DIR/$fn"
 
 else
 
   cp "$IN_DIR/$FIRST_FILE" "$STDIN_FILE"
-  "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/.run_test" -C $EXTRA_PAR -A "$STDIN_FILE" -- "$@" </dev/null
+  AFL_CMIN_ALLOW_ANY=1 "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/.run_test" -Z $EXTRA_PAR -A "$STDIN_FILE" -- "$@" </dev/null
 
 fi
 
@@ -297,7 +301,7 @@ echo "[*] Obtaining traces for input files in '$IN_DIR'..."
       CUR=$((CUR+1))
       printf "\\r    Processing file $CUR/$IN_COUNT... "
 
-      "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/$fn" -C $EXTRA_PAR -- "$@" <"$IN_DIR/$fn"
+      "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/$fn" -Z $EXTRA_PAR -- "$@" <"$IN_DIR/$fn"
 
     done
 
@@ -310,7 +314,7 @@ echo "[*] Obtaining traces for input files in '$IN_DIR'..."
 
       cp "$IN_DIR/$fn" "$STDIN_FILE"
 
-      "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/$fn" -C $EXTRA_PAR -A "$STDIN_FILE" -- "$@" </dev/null
+      "$SHOWMAP" -m "$MEM_LIMIT" -t "$TIMEOUT" -o "$TRACE_DIR/$fn" -Z $EXTRA_PAR -A "$STDIN_FILE" -- "$@" </dev/null
 
     done
 
@@ -377,6 +381,12 @@ echo "[*] Sorting candidate list (be patient)..."
 
 sort -k1,1 -s -u "$TRACE_DIR/.candidate_list" | \
   sed 's/^/BEST_FILE[/;s/ /]="/;s/$/"/' >"$TRACE_DIR/.candidate_script"
+
+if [ ! -s "$TRACE_DIR/.candidate_script" ]; then
+  echo "[-] ERROR: No traces obtained from test cases, check syntax!"
+  test "$AFL_KEEP_TRACES" = "" && rm -rf "$TRACE_DIR"
+  exit 1
+fi
 
 # The sed command converted the sorted list to a shell script that populates
 # BEST_FILE[tuple]="fname". Let's load that!

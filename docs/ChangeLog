@@ -17,6 +17,26 @@ is 1.40b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.44b:
+--------------
+
+  - Really fixed -C mode support in afl-cmin (sorry).
+
+  - Said goodbye to Hello Kitty.
+
+--------------
+Version 1.43b:
+--------------
+
+  - Fixed -C mode support in afl-cmin (d'oh).
+
+--------------
+Version 1.42b:
+--------------
+
+  - Replaced AFL_ALLOW_CRASHES with -C mode in afl-cmin.
+
+--------------
 Version 1.41b:
 --------------
 

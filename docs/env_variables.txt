@@ -128,9 +128,6 @@ The corpus minimization script offers very little customization:
     minimization and normally deleted at exit. The files can be found in the
     <out_dir>/.traces/*.
 
-  - AFL_KEEP_CRASHES makes the tool keep any crashing test cases in the
-    corpus (normally, they are ignored).
-
 5) Third-party variables set by afl-fuzz & other tools
 ------------------------------------------------------
 

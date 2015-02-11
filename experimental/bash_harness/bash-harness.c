@@ -31,7 +31,7 @@
       /path/to/afl-fuzz -d -i in_dir -o out_dir ./bash-harness
 
       The -d parameter is advisable only if the tested shell is fairly slow
-      or if you are in a hury; will cover more ground faster, but
+      or if you are in a hurry; will cover more ground faster, but
       less systematically.
 
    5) Watch for crashes in out_dir/crashes/. Also watch for any new files
