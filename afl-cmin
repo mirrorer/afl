@@ -207,7 +207,7 @@ fi
 
 test -d "$IN_DIR/queue" && IN_DIR="$IN_DIR/queue"
 
-find "$OUT_DIR" -name 'id:*' -maxdepth 1 -exec rm -- {} \; 2>/dev/null
+find "$OUT_DIR" -name 'id[:_]*' -maxdepth 1 -exec rm -- {} \; 2>/dev/null
 rm -rf "$TRACE_DIR" 2>/dev/null
 
 rmdir "$OUT_DIR" 2>/dev/null

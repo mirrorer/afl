@@ -97,7 +97,7 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            bitmap_changed = 1,        /* Time to update bitmap?           */
            qemu_mode,                 /* Running in QEMU mode?            */
            skip_requested,            /* Skip request, via SIGUSR1        */
-           run_over5m;                /* Run time over 5 minutes?         */
+           run_over10m;               /* Run time over 10 minutes?        */
 
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
@@ -538,19 +538,25 @@ static void mark_as_det_done(struct queue_entry* q) {
 }
 
 
-/* Mark as variable. */
+/* Mark as variable. Create symlinks if possible to make it easier to examine
+   the files. */
 
 static void mark_as_variable(struct queue_entry* q) {
 
-  u8* fn = strrchr(q->fname, '/');
-  s32 fd;
+  u8 *fn = strrchr(q->fname, '/') + 1, *ldest;
 
-  fn = alloc_printf("%s/queue/.state/variable_behavior/%s", out_dir, fn + 1);
+  ldest = alloc_printf("../../%s", fn);
+  fn = alloc_printf("%s/queue/.state/variable_behavior/%s", out_dir, fn);
 
-  fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
-  if (fd < 0) PFATAL("Unable to create '%s'", fn);
-  close(fd);
+  if (symlink(ldest, fn)) {
 
+    s32 fd = open(fn, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    if (fd < 0) PFATAL("Unable to create '%s'", fn);
+    close(fd);
+
+  }
+
+  ck_free(ldest);
   ck_free(fn);
 
   q->var_behavior = 1;
@@ -2518,8 +2524,14 @@ static void pivot_inputs(void) {
        ID matches the one we'd assign, just use the original file name.
        This is valuable for resuming fuzzing runs. */
 
-    if (!strncmp(rsl, "id:", 3) && sscanf(rsl + 3, "%06u", &orig_id) == 1 &&
-        orig_id == id) {
+#ifndef SIMPLE_FILES
+#  define CASE_PREFIX "id:"
+#else
+#  define CASE_PREFIX "id_"
+#endif /* ^!SIMPLE_FILES */
+
+    if (!strncmp(rsl, CASE_PREFIX, 3) &&
+        sscanf(rsl + 3, "%06u", &orig_id) == 1 && orig_id == id) {
 
       u8* src_str;
       u32 src_id;
@@ -2547,10 +2559,18 @@ static void pivot_inputs(void) {
       /* No dice - invent a new name, capturing the original one as a
          substring. */
 
+#ifndef SIMPLE_FILES
+
       u8* use_name = strstr(rsl, ",orig:");
 
       if (use_name) use_name += 6; else use_name = rsl;
       nfn = alloc_printf("%s/queue/id:%06u,orig:%s", out_dir, id, use_name);
+
+#else
+
+      nfn = alloc_printf("%s/queue/id_%06u", out_dir, id);
+
+#endif /* ^!SIMPLE_FILES */
 
     }
 
@@ -2573,6 +2593,8 @@ static void pivot_inputs(void) {
 
 }
 
+
+#ifndef SIMPLE_FILES
 
 /* Construct a file name for a new test case, capturing the operation
    that led to its discovery. Uses a static buffer. */
@@ -2612,6 +2634,8 @@ static u8* describe_op(u8 hnb) {
   return ret;
 
 }
+
+#endif /* !SIMPLE_FILES */
 
 
 /* Write a message accompanying the crash directory :-) */
@@ -2675,8 +2699,16 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
       return 0;
     }    
 
+#ifndef SIMPLE_FILES
+
     fn = alloc_printf("%s/queue/id:%06u,%s", out_dir, queued_paths,
                       describe_op(hnb));
+
+#else
+
+    fn = alloc_printf("%s/queue/id_%06u", out_dir, queued_paths);
+
+#endif /* ^!SIMPLE_FILES */
 
     add_to_queue(fn, len, 0);
 
@@ -2729,8 +2761,17 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 
       }
 
+#ifndef SIMPLE_FILES
+
       fn = alloc_printf("%s/hangs/id:%06llu,%s", out_dir,
                         unique_hangs, describe_op(0));
+
+#else
+
+      fn = alloc_printf("%s/hangs/id_%06llu", out_dir,
+                        unique_hangs);
+
+#endif /* ^!SIMPLE_FILES */
 
       unique_hangs++;
 
@@ -2761,8 +2802,17 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 
       if (!unique_crashes) write_crash_readme();
 
+#ifndef SIMPLE_FILES
+
       fn = alloc_printf("%s/crashes/id:%06llu,sig:%02u,%s", out_dir,
                         unique_crashes, kill_signal, describe_op(0));
+
+#else
+
+      fn = alloc_printf("%s/crashes/id_%06llu_%02u", out_dir, unique_crashes,
+                        kill_signal);
+
+#endif /* ^!SIMPLE_FILES */
 
       unique_crashes++;
 
@@ -3017,7 +3067,7 @@ static void nuke_resume_dir(void) {
   u8* fn;
 
   fn = alloc_printf("%s/_resume/.state/deterministic_done", out_dir);
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/_resume/.state/auto_extras", out_dir);
@@ -3025,11 +3075,11 @@ static void nuke_resume_dir(void) {
   ck_free(fn);
 
   fn = alloc_printf("%s/_resume/.state/redundant_edges", out_dir);
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/_resume/.state/variable_behavior", out_dir);
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/_resume/.state", out_dir);
@@ -3037,7 +3087,7 @@ static void nuke_resume_dir(void) {
   ck_free(fn);
 
   fn = alloc_printf("%s/_resume", out_dir);
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   return;
@@ -3148,7 +3198,7 @@ static void maybe_delete_out_dir(void) {
   /* Next, we need to clean up <out_dir>/queue/.state/ subdirectories: */
 
   fn = alloc_printf("%s/queue/.state/deterministic_done", out_dir);
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/queue/.state/auto_extras", out_dir);
@@ -3156,11 +3206,11 @@ static void maybe_delete_out_dir(void) {
   ck_free(fn);
 
   fn = alloc_printf("%s/queue/.state/redundant_edges", out_dir);
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/queue/.state/variable_behavior", out_dir);
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   /* Then, get rid of the .state subdirectory itself (should be empty by now)
@@ -3171,7 +3221,7 @@ static void maybe_delete_out_dir(void) {
   ck_free(fn);
 
   fn = alloc_printf("%s/queue", out_dir);
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   /* All right, let's do <out_dir>/crashes/id:* and <out_dir>/hangs/id:*. */
@@ -3199,7 +3249,7 @@ static void maybe_delete_out_dir(void) {
 
   }
 
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   fn = alloc_printf("%s/hangs", out_dir);
@@ -3220,7 +3270,7 @@ static void maybe_delete_out_dir(void) {
 
   }
 
-  if (delete_files(fn, "id:")) goto dir_cleanup_failed;
+  if (delete_files(fn, CASE_PREFIX)) goto dir_cleanup_failed;
   ck_free(fn);
 
   /* And now, for some finishing touches. */
@@ -3286,9 +3336,9 @@ static void show_stats(void) {
 
   if (cur_ms - last_ms < 1000 / UI_TARGET_HZ) return;
 
-  /* Check if we're past the 5 minute mark. */
+  /* Check if we're past the 10 minute mark. */
 
-  if (cur_ms - start_time > 5 * 60 * 1000) run_over5m = 1;
+  if (cur_ms - start_time > 10 * 60 * 1000) run_over10m = 1;
 
   /* Calculate smoothed exec speed stats. */
 
@@ -3966,7 +4016,7 @@ static u32 choose_block_len(u32 limit) {
   u32 min_value, max_value;
   u32 rlim = MIN(queue_cycle, 3);
 
-  if (!run_over5m) rlim = 1;
+  if (!run_over10m) rlim = 1;
 
   switch (UR(rlim)) {
 
@@ -5800,7 +5850,7 @@ static void sync_fuzzers(char** argv) {
       struct stat st;
 
       if (qd_ent->d_name[0] == '.' ||
-          sscanf(qd_ent->d_name, "id:%06u", &syncing_case) != 1 || 
+          sscanf(qd_ent->d_name, CASE_PREFIX "%06u", &syncing_case) != 1 || 
           syncing_case < min_accept) continue;
 
       /* OK, sounds like a new one. Let's give it a try. */

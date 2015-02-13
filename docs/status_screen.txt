@@ -197,7 +197,9 @@ now. It tells you about the current stage, which can be any of:
 
   - havoc - a sort-of-fixed-length cycle with stacked random tweaks. The
     operations attempted during this stage include bit flips, overwrites with
-    random and "interesting" integers, block deletion, and block duplication.
+    random and "interesting" integers, block deletion, block duplication, plus
+    assorted dictionary-related operations (if a dictionary is supplied in the
+    first place).
 
   - splice - a last-resort strategy that kicks in after the first full queue
     cycle with no new paths. It is equivalent to 'havoc', except that it first

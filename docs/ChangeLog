@@ -17,24 +17,29 @@ is 1.40b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.45b:
+--------------
+
+  - Added support for SIMPLE_FILES in config.h for folks who don't like
+    descriptive file names. Generates very simple names without colons,
+    commas, plus signs, dashes, etc.
+
+  - Replaced zero-sized files with symlinks in the variable behavior state
+    dir to simplify examining the relevant test cases.
+
+  - Made several minor updates to docs.
+
+--------------
 Version 1.44b:
 --------------
 
-  - Really fixed -C mode support in afl-cmin (sorry).
+  - Corrected two bungled attempts to get the -C mode work properly
+    with afl-cmin (accounting for the short-lived releases tagged 1.42 and
+    1.43b) - sorry.
 
-  - Said goodbye to Hello Kitty.
+  - Removed AFL_ALLOW_CRASHES in favor of the -C mode.
 
---------------
-Version 1.43b:
---------------
-
-  - Fixed -C mode support in afl-cmin (d'oh).
-
---------------
-Version 1.42b:
---------------
-
-  - Replaced AFL_ALLOW_CRASHES with -C mode in afl-cmin.
+  - Said goodbye to Hello Kitty, as requested by Padraig Brady.
 
 --------------
 Version 1.41b:

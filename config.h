@@ -196,6 +196,10 @@
 
 #define OUTPUT_GRACE        25
 
+/* Uncomment to use simple file names (id_NNNNNN): */
+
+// #define SIMPLE_FILES
+
 /* List of interesting values to use in fuzzing. */
 
 #define INTERESTING_8 \

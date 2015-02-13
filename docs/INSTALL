@@ -104,7 +104,7 @@ experimental/arm_support/README for hints.
 -----------------
 
 The fuzzer reportedly works on Solaris, but I have not tested this first-hand,
-and the user base is fairly small.
+and the user base is fairly small, so I don't get a lot of feedback.
 
 To get the ball rolling, you will need to use GNU make and GCC or clang. I'm
 being told that the stock version of GCC that comes with the platform does not
@@ -141,7 +141,9 @@ following the instructions in section #4.
 The fuzzer will not run on Windows. It will also not work under Cygwin. It
 could be ported to the latter platform fairly easily, but it's a pretty bad
 idea, because Cygwin is extremely slow. It makes much more sense to use
-VirtualBox or so to run a hardware-accelerated Linux VM.
+VirtualBox or so to run a hardware-accelerated Linux VM; it will run around
+20x faster or so. If you have a *really* compelling use case for Cygwin, let
+me know.
 
 Although Android on x86 should theoretically work, the stock kernel has SHM
-supported compiled out, so you will need to address this issue first.
+support compiled out, so you will need to address this issue first.
