@@ -769,7 +769,7 @@ static void find_binary(u8* fname) {
 
 static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
-  char** new_argv = ck_alloc(sizeof(char*) * (argc + 3));
+  char** new_argv = ck_alloc(sizeof(char*) * (argc + 4));
   u8 *tmp, *cp, *rsl, *own_copy;
 
   memcpy(new_argv + 3, argv + 1, sizeof(char*) * argc);

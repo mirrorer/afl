@@ -68,7 +68,14 @@
 
    - popf is *awfully* slow, which is why we're doing the lahf / sahf +
      overflow test trick. Unfortunately, this forces us to taint eax / rax, but
-     this dependency on a commonly-used register still beats the alternative.
+     this dependency on a commonly-used register still beats the alternative of
+     using pushf / popf.
+
+     One possible optimization is to avoid touching flags by using a circular
+     buffer that stores just a sequence of current locations, with the XOR stuff
+     happening offline. Alas, this doesn't seem to have a huge impact:
+
+     https://groups.google.com/d/msg/afl-users/MsajVf4fRLo/2u6t88ntUBIJ
 
    - Preforking one child a bit sooner, and then waiting for the "go" command
      from within the child, doesn't offer major performance gains; fork() seems

@@ -49,7 +49,7 @@ MEM_LIMIT=100
 TIMEOUT=none
 
 unset IN_DIR OUT_DIR STDIN_FILE EXTRA_PAR MEM_LIMIT_GIVEN \
-  AFL_CMIN_CRASHES_ONLY AFL_CMIN_ALLOW_ANY
+  AFL_CMIN_CRASHES_ONLY AFL_CMIN_ALLOW_ANY QEMU_MODE
 
 while getopts "+i:o:f:m:t:eQC" opt; do
 
@@ -81,6 +81,7 @@ while getopts "+i:o:f:m:t:eQC" opt; do
     "Q")
          EXTRA_PAR="$EXTRA_PAR -Q"
          test "$MEM_LIMIT_GIVEN" = "" && MEM_LIMIT=250
+         QEMU_MODE=1
          ;;
     "?")
          exit 1
@@ -191,7 +192,7 @@ if [ ! -f "$TARGET_BIN" -o ! -x "$TARGET_BIN" ]; then
 
 fi
 
-if [ "$AFL_SKIP_BIN_CHECK" = "" ]; then
+if [ "$AFL_SKIP_BIN_CHECK" = "" -a "$QEMU_MODE" = "" ]; then
 
   if ! grep -qF "__AFL_SHM_ID" "$TARGET_BIN"; then
     echo "[-] Error: binary '$TARGET_BIN' doesn't appear to be instrumented." 1>&2

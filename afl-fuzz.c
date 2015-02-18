@@ -3572,9 +3572,19 @@ static void show_stats(void) {
   sprintf(tmp, "%s (%s%s unique)", DI(total_crashes), DI(unique_crashes),
           (unique_crashes >= KEEP_UNIQUE_CRASH) ? "+" : "");
 
-  SAYF(bV bSTOP " total execs : " cNOR "%-21s " bSTG bV bSTOP
-       " total crashes : %s%-22s " bSTG bV "\n", DI(total_execs),
-       total_crashes ? cLRD : cNOR, tmp);
+  if (crash_mode) {
+
+    SAYF(bV bSTOP " total execs : " cNOR "%-21s " bSTG bV bSTOP
+         "   new crashes : %s%-22s " bSTG bV "\n", DI(total_execs),
+         unique_crashes ? cLRD : cNOR, tmp);
+
+  } else {
+
+    SAYF(bV bSTOP " total execs : " cNOR "%-21s " bSTG bV bSTOP
+         " total crashes : %s%-22s " bSTG bV "\n", DI(total_execs),
+         unique_crashes ? cLRD : cNOR, tmp);
+
+  }
 
   /* Show a warning about slow execution. */
 
@@ -6684,10 +6694,10 @@ static void setup_signal_handlers(void) {
 
 static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
-  char** new_argv = ck_alloc(sizeof(char*) * (argc + 3));
+  char** new_argv = ck_alloc(sizeof(char*) * (argc + 4));
   u8 *tmp, *cp, *rsl, *own_copy;
 
-  memcpy(new_argv + 2, argv + 1, sizeof(char*) * argc);
+  memcpy(new_argv + 3, argv + 1, sizeof(char*) * argc);
 
   new_argv[2] = target_path;
   new_argv[1] = "--";

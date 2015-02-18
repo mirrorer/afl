@@ -52,7 +52,8 @@ branch points:
        50,000 | 30%              | -
 
 At the same time, its size is small enough to allow the map to be analyzed
-in a matter of microseconds on the receiving end.
+in a matter of microseconds on the receiving end, and to effortlessly fit
+within L2 cache.
 
 This form of coverage provides considerably more insight into the execution
 path of the program than simple block coverage. In particular, it trivially

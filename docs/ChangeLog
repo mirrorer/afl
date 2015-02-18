@@ -13,8 +13,20 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 1.40b. If you're stuck on an earlier release, it's strongly advisable
+is 1.47b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 1.47b:
+--------------
+
+  - Fixed a bug with afl-cmin in -Q mode complaining about binary being not
+    instrumented. Thanks to Jonathan Neuschafer for the bug report.
+
+  - Fixed another bug with argv handling for afl-fuzz in -Q mode. Reported
+    by Jonathan Neuschafer.
+
+  - Improved the use of colors when showing crash counts in -C mode.
 
 --------------
 Version 1.46b:
