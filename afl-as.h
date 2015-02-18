@@ -49,6 +49,11 @@
      really worth optimizing; the setup / fork server stuff matters a lot less
      and should be mostly just kept readable.
 
+   - We're aiming for modern CPUs with out-of-order execution and large
+     pipelines; the code is mostly follows intuitive, human-readable
+     instruction ordering, because "textbook" manual reorderings make no
+     substantial difference.
+
    - Interestingly, instrumented execution isn't a lot faster if we store a
      variable pointer to the setup, log, or return routine and then do a reg
      call from within trampoline_fmt. It does speed up non-instrumented
@@ -56,13 +61,14 @@
      push-call-ret-pop.
 
    - There is also not a whole lot to be gained by doing SHM attach at a
-     fixed address instead of retrieving __afl_area_ptr. There was essentially
-     no measurable gain, so I didn't make that optimization to minimize the
-     likelihood of problems if the hardcoded region is already mapped for
-     whatever reason (e.g., by ASAN).
+     fixed address instead of retrieving __afl_area_ptr. Although it allows us
+     to have a shorter log routine inserted for conditional jumps and jump
+     labels (for a ~10% perf gain), there is a risk of bumping into other
+     allocations created by the program or by tools such as ASAN.
 
    - popf is *awfully* slow, which is why we're doing the lahf / sahf +
-     overflow test trick.
+     overflow test trick. Unfortunately, this forces us to taint eax / rax, but
+     this dependency on a commonly-used register still beats the alternative.
 
    - Preforking one child a bit sooner, and then waiting for the "go" command
      from within the child, doesn't offer major performance gains; fork() seems
@@ -96,18 +102,20 @@ static const u8* trampoline_fmt_32 =
   "\n"
   "/* --- AFL TRAMPOLINE (32-BIT) --- */\n"
   "\n"
-  ".align 8\n"
+  ".align 4\n"
   "\n"
-  "leal -12(%%esp), %%esp\n"
-  "movl %%edx, 0(%%esp)\n"
-  "movl %%ecx, 4(%%esp)\n"
-  "movl %%eax, 8(%%esp)\n"
+  "leal -16(%%esp), %%esp\n"
+  "movl %%edi,  0(%%esp)\n"
+  "movl %%edx,  4(%%esp)\n"
+  "movl %%ecx,  8(%%esp)\n"
+  "movl %%eax, 12(%%esp)\n"
   "movl $0x%08x, %%ecx\n"
   "call __afl_maybe_log\n"
-  "movl 0(%%esp), %%edx\n"
-  "movl 4(%%esp), %%ecx\n"
-  "movl 8(%%esp), %%eax\n"
-  "leal 12(%%esp), %%esp\n"
+  "movl 12(%%esp), %%eax\n"
+  "movl  8(%%esp), %%ecx\n"
+  "movl  4(%%esp), %%edx\n"
+  "movl  0(%%esp), %%edi\n"
+  "leal 16(%%esp), %%esp\n"
   "\n"
   "/* --- END --- */\n"
   "\n";
@@ -117,17 +125,17 @@ static const u8* trampoline_fmt_64 =
   "\n"
   "/* --- AFL TRAMPOLINE (64-BIT) --- */\n"
   "\n"
-  ".align 8\n"
+  ".align 4\n"
   "\n"
   "leaq -(128+24)(%%rsp), %%rsp\n"
-  "movq %%rdx, 0(%%rsp)\n"
-  "movq %%rcx, 8(%%rsp)\n"
+  "movq %%rdx,  0(%%rsp)\n"
+  "movq %%rcx,  8(%%rsp)\n"
   "movq %%rax, 16(%%rsp)\n"
   "movq $0x%08x, %%rcx\n"
   "call __afl_maybe_log\n"
-  "movq 0(%%rsp), %%rdx\n"
-  "movq 8(%%rsp), %%rcx\n"
   "movq 16(%%rsp), %%rax\n"
+  "movq  8(%%rsp), %%rcx\n"
+  "movq  0(%%rsp), %%rdx\n"
   "leaq (128+24)(%%rsp), %%rsp\n"
   "\n"
   "/* --- END --- */\n"
@@ -143,6 +151,7 @@ static const u8* main_payload_32 =
   ".code32\n"
   ".align 8\n"
   "\n"
+
   "__afl_maybe_log:\n"
   "\n"
   "  lahf\n"
@@ -156,18 +165,21 @@ static const u8* main_payload_32 =
   "\n"
   "__afl_store:\n"
   "\n"
-  "  /* Calculate and store hit for the code location specified in ecx. */\n"
+  "  /* Calculate and store hit for the code location specified in ecx. There\n"
+  "     is a double-XOR way of doing this without tainting another register,\n"
+  "     and we use it on 64-bit systems; but it's slower for 32-bit ones. */\n"
   "\n"
 #ifndef COVERAGE_ONLY
-  "  xorl __afl_prev_loc, %ecx\n"
-  "  xorl %ecx, __afl_prev_loc\n"
-  "  shrl $1, __afl_prev_loc\n"
+  "  movl __afl_prev_loc, %edi\n"
+  "  xorl %ecx, %edi\n"
+  "  shrl $1, %ecx\n"
+  "  movl %ecx, __afl_prev_loc\n"
 #endif /* !COVERAGE_ONLY */
   "\n"
 #ifdef SKIP_COUNTS
-  "  orb  $1, (%edx, %ecx, 1)\n"
+  "  orb  $1, (%edx, %edi, 1)\n"
 #else
-  "  incb (%edx, %ecx, 1)\n"
+  "  incb (%edx, %edi, 1)\n"
 #endif /** ^SKIP_COUNTS */
   "\n"
   "__afl_return:\n"
@@ -384,7 +396,7 @@ static const u8* main_payload_64 =
   "\n"
   "__afl_store:\n"
   "\n"
-  "  /* Calculate and store hit for the code location specified in ecx. */\n"
+  "  /* Calculate and store hit for the code location specified in rcx. */\n"
   "\n"
 #ifndef COVERAGE_ONLY
   "  xorq __afl_prev_loc(%rip), %rcx\n"
@@ -425,7 +437,6 @@ static const u8* main_payload_64 =
 #else
   "  movq  __afl_global_area_ptr(%rip), %rdx\n"
 #endif /* !^__APPLE__ */
-
   "  testq %rdx, %rdx\n"
   "  je    __afl_setup_first\n"
   "\n"

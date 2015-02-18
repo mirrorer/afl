@@ -5793,6 +5793,7 @@ static void sync_fuzzers(char** argv) {
   if (!sd) PFATAL("Unable to open '%s'", sync_dir);
 
   stage_max = stage_cur = 0;
+  cur_depth = 0;
 
   /* Look at the entries created for every other fuzzer in the sync directory. */
 

@@ -383,6 +383,12 @@ static void add_instrumentation(void) {
 
 #endif /* __APPLE__ */
 
+          /* An optimization is possible here by adding the code only if the
+             label is mentioned in the code in contexts other than call / jmp.
+             That said, this complicates the code by requiring two-pass
+             processing (messy with stdin), and results in a speed gain
+             typically under 10%. */
+
           if (!skip_next_label) {
 
             fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,

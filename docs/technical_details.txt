@@ -126,7 +126,12 @@ immunity against tuple collisions in dense trace maps.
 
 The execution is policed fairly heavily through memory and execution time
 limits; by default, the timeout is set at 5x the initially-calibrated
-execution speed.
+execution speed, rounded up to 20 ms. The aggressive timeouts are meant to
+prevent dramatic fuzzer performance degradation by descending into tarpits
+that, say, improve coverage by 1% while being 100x slower; we pragmatically
+reject them and hope that the fuzzer will find a less expensive way to reach
+the same code. Empirical testing strongly suggests that more generous time
+limits are not worth the cost.
 
 3) Evolving the input queue
 ---------------------------
@@ -312,7 +317,8 @@ regions in the file are observed to have no effect on the checksum of the
 execution path, they may be excluded from the remaining phases of
 deterministic fuzzing - and proceed straight to random tweaks. Especially for
 verbose, human-readable data formats, this can reduce the number of execs by
-10-40% or so without an appreciable drop in coverage.
+10-40% or so without an appreciable drop in coverage. In extreme cases, such
+as normally block-aligned tar archives, the gains can be as high as 90%.
 
 Because the underlying "effector maps" are local every queue entry and remain
 in force only during deterministic stages that do not alter the size or the

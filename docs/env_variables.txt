@@ -70,7 +70,7 @@ checks or alter some of the more exotic semantics of the tool:
   - Setting AFL_NO_FORKSRV disables the forkserver optimization, reverting to
     fork + execve() call for every tested input. This is useful mostly when
     working with unruly libraries that create threads or do other crazy
-    things when initializing before the instrumentation has a chance to run.
+    things when initializing (before the instrumentation has a chance to run).
 
     Note that this setting inhibits some of the user-friendly diagnostics
     normally done when starting up the forkserver and causes a pretty
@@ -85,7 +85,8 @@ checks or alter some of the more exotic semantics of the tool:
   - When developing custom instrumentation on top of afl-fuzz, you can use
     AFL_SKIP_BIN_CHECK to inhibit the checks for non-instrumented binaries
     and shell scripts; and AFL_DUMB_FORKSRV in conjunction with the -n
-    setting to instruct afl-fuzz to still follow the fork server protocol.
+    setting to instruct afl-fuzz to still follow the fork server protocol,
+    without expecting any instrumentation data in return.
 
   - When running in the -M or -S mode, setting AFL_IMPORT_FIRST causes the
     fuzzer to import test cases from other instances before doing anything
@@ -95,7 +96,7 @@ checks or alter some of the more exotic semantics of the tool:
 
     The benefit of AFL_IMPORT_FIRST is that it makes the "own finds" counter
     in the UI more accurately reflect the number of findings made by the
-    instance that the remaining ones did not already have.
+    instance (that the remaining ones did not already have).
 
   - The CPU widget shown at the bottom of the screen is fairly simplistic and
     may complain of high load prematurely, especially on systems with low core

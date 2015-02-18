@@ -17,6 +17,16 @@ is 1.40b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.46b:
+--------------
+
+  - Improved instrumentation performance on 32-bit systems by getting rid of
+    xor-swap (oddly enough, xor-swap is still faster on 64-bit) and tweaking
+    alignment.
+
+  - Made path depth numbers more accurate with imported test cases.
+
+--------------
 Version 1.45b:
 --------------
 
@@ -26,6 +36,12 @@ Version 1.45b:
 
   - Replaced zero-sized files with symlinks in the variable behavior state
     dir to simplify examining the relevant test cases.
+
+  - Changed the period of limited-range block ops from 5 to 10 minutes based
+    on a couple of experiments. The basic goal of this delay timer behavior
+    is to better support jobs that are seeded with completely invalid files,
+    in which case, the first few queue cycles may be completed very quickly
+    without discovering new paths. Should have no effect on well-seeded jobs.
 
   - Made several minor updates to docs.
 
@@ -37,7 +53,7 @@ Version 1.44b:
     with afl-cmin (accounting for the short-lived releases tagged 1.42 and
     1.43b) - sorry.
 
-  - Removed AFL_ALLOW_CRASHES in favor of the -C mode.
+  - Removed AFL_ALLOW_CRASHES in favor of the -C mode in said tool.
 
   - Said goodbye to Hello Kitty, as requested by Padraig Brady.
 

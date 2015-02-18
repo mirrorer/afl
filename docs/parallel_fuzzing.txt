@@ -55,7 +55,7 @@ The only difference between the -M and -S modes is that the master instance
 will still perform deterministic checks; while the slaves will proceed straight
 to random tweaks. If you don't want to do deterministic fuzzing at all, it's OK
 to run all instances with -S. With very slow or complex targets, or when running
-heavily parallelized jobs, it may be a good plan.
+heavily parallelized jobs, this is usually a good plan.
 
 You can monitor the progress of your jobs from the command line with the
 provided afl-whatsup tool. When the instances are no longer finding new paths,
@@ -171,8 +171,7 @@ It is perhaps worth noting that all of the following is permitted:
     the discovered test cases can have synergistic effects and improve the
     overall coverage.
 
-    (In this case, running one -M instance per each binary is a good
-    plan.)
+    (In this case, running one -M instance per each binary is a good plan.)
 
   - Having some of the fuzzers invoke the binary in different ways.
     For example, 'djpeg' supports several DCT modes, configurable with

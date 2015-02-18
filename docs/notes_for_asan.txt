@@ -38,9 +38,9 @@ safer, and likely to give you roughly comparable results.
 
 ASAN allocates a huge region of virtual address space for bookkeeping purposes.
 Most of this is never actually accessed, so the OS never has to allocate any
-real pages of memory for the process, and the memory grabbed by ASAN is
-essentially "free" - but the mapping counts against the OS-enforced limit
-of virtual memory (RLIMIT_AS, aka ulimit -v).
+real pages of memory for the process, and the VM grabbed by ASAN is essentially
+"free" - but the mapping counts against the OS-enforced limit (RLIMIT_AS, aka
+ulimit -v).
 
 On our end, afl-fuzz tries to protect you from processes that go off-rails
 and start consuming all the available memory in a vain attempt to parse a
@@ -54,7 +54,7 @@ pages actually given to a process in a way that distinguishes between that
 and the harmless "land grab" done by ASAN. In principle, there are three standard
 ways to limit the size of the heap:
 
-  - The RLIMIT_AS mechanism (ulimit -v) caps the size of the virtual space,
+  - The RLIMIT_AS mechanism (ulimit -v) caps the size of the virtual space -
     but as noted, this pays no attention to the number of pages actually
     in use by the process, and doesn't help us here.
 
