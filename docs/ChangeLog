@@ -13,8 +13,15 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 1.47b. If you're stuck on an earlier release, it's strongly advisable
+is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 1.48b:
+--------------
+
+  - Fixed a bug with QEMU fork server crashes when translation is attempted
+    after a jump to an invalid pointer. Reported by Tyler Nighswander.
 
 --------------
 Version 1.47b:
