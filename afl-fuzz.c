@@ -71,7 +71,8 @@ static u8 *in_dir,                    /* Input directory with test cases  */
           *use_banner,                /* Display banner                   */
           *in_bitmap,                 /* Input bitmap                     */
           *doc_path,                  /* Path to documentation dir        */
-          *target_path;               /* Path to target binary            */
+          *target_path,               /* Path to target binary            */
+          *orig_cmdline;              /* Original command line            */
 
 static u32 exec_tmout = EXEC_TIMEOUT; /* Configurable exec timeout (ms)   */
 static u64 mem_limit = MEM_LIMIT;     /* Memory cap for child (MB)        */
@@ -2660,18 +2661,25 @@ static void write_crash_readme(void) {
     return;
   }
 
-  fprintf(f, "Found any cool bugs in open-source tools using afl-fuzz? If yes, please drop\n"
+  fprintf(f, "Command line used to find this crash:\n\n"
+
+             "%s\n\n"
+
+             "If you can't reproduce a bug outside of afl-fuzz, be sure to set the same\n"
+             "memory limit. The limit used for this fuzzing session was %s.\n\n"
+
+             "Need a tool to minimize test cases before investigating the crashes or sending\n"
+             "them to a vendor? Check out the afl-tmin that comes with the fuzzer!\n\n"
+
+             "Found any cool bugs in open-source tools using afl-fuzz? If yes, please drop\n"
              "me a mail at <lcamtuf@coredump.cx> once the issues are fixed - I'd love to\n"
              "add your finds to the gallery at:\n\n"
 
              "  http://lcamtuf.coredump.cx/afl/\n\n"
 
-             "Thanks :-)\n\n"
+             "Thanks :-)\n",
 
-             "PS. If you need a tool to minimize test cases, check out afl-tmin!\n\n"
-
-             "PPS. Can't reproduce a crash outside of afl-fuzz? Be sure to set the same\n"
-             "memory limit (currently: %s).\n", DMS(mem_limit << 20)); /* ignore errors */
+             orig_cmdline, DMS(mem_limit << 20)); /* ignore errors */
 
   fclose(f);
 
@@ -2923,13 +2931,15 @@ static void write_stats_file(double bitmap_cvg, double eps) {
              "bitmap_cvg     : %0.02f%%\n"
              "unique_crashes : %llu\n"
              "unique_hangs   : %llu\n"
-             "afl_banner     : %s\n",
+             "afl_banner     : %s\n"
+             "afl_version    : " VERSION "\n"
+             "command_line   : %s\n",
              start_time / 1000, get_cur_time() / 1000, getpid(),
              queue_cycle ? (queue_cycle - 1) : 0, total_execs, eps,
              queued_paths, queued_discovered, queued_imported, max_depth,
              current_entry, pending_favored, pending_not_fuzzed,
              queued_variable, bitmap_cvg, unique_crashes, unique_hangs,
-             use_banner); /* ignore errors */
+             use_banner, orig_cmdline); /* ignore errors */
 
   fclose(f);
 
@@ -6759,6 +6769,33 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 }
 
 
+/* Make a copy of the current command line. */
+
+static void save_cmdline(u32 argc, char** argv) {
+
+  u32 len = 1, i;
+  u8* buf;
+
+  for (i = 0; i < argc; i++)
+    len += strlen(argv[i]) + 1;
+  
+  buf = orig_cmdline = ck_alloc(len);
+
+  for (i = 0; i < argc; i++) {
+
+    u32 l = strlen(argv[i]);
+
+    memcpy(buf, argv[i], l);
+    buf += l;
+
+    if (i != argc - 1) *(buf++) = ' ';
+
+  }
+
+  *buf = 0;
+
+}
+
 
 /* Main entry point */
 
@@ -6936,7 +6973,6 @@ int main(int argc, char** argv) {
   if (optind == argc || !in_dir || !out_dir) usage(argv[0]);
 
   setup_signal_handlers();
-
   check_asan_opts();
 
   if (sync_id) fix_up_sync();
@@ -6957,6 +6993,8 @@ int main(int argc, char** argv) {
 
   if (dumb_mode == 2 && no_forkserver)
     FATAL("AFL_DUMB_FORKSRV and AFL_NO_FORKSRV are mutually exclusive");
+
+  save_cmdline(argc, argv);
 
   fix_up_banner(argv[optind]);
 

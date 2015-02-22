@@ -75,7 +75,7 @@ fi
 
 for i in `find . -maxdepth 2 -iname fuzzer_stats`; do
 
-  sed 's/[ ]*:[ ]*/="/;s/$/"/' "$i" >"$TMP"
+  sed 's/^command_line.*$/_skip:1/;s/[ ]*:[ ]*/="/;s/$/"/' "$i" >"$TMP"
   . "$TMP"
 
   RUN_UNIX=$((CUR_TIME - start_time))

@@ -17,6 +17,14 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.49b:
+--------------
+
+  - Added code save original command line in fuzzer_stats and
+    crashes/README.txt. Also saves fuzzer version in fuzzer_Stats.
+    Requested by Ben Nagy.
+
+--------------
 Version 1.48b:
 --------------
 
