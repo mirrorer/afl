@@ -26,33 +26,20 @@ mutations needed to reach new code paths are exceedingly unlikely to be hit
 purely by chance.
 
 There have been numerous attempts to solve this problem by augmenting the
-process with additional information about the behavior of the tested code.
-These techniques can be divided into three broad groups:
+process with additional information about the behavior of the tested code,
+ranging from simple corpus distillation, to flow analysis (aka "concolic"
+execution), to static analysis and pure symbolic execution.
 
-  - Simple coverage maximization. This approach boils down to trying to find
-    initial test cases that offer diverse code coverage in the targeted
-    application - and then fuzzing that corpus using conventional strategies.
+The first of these methods has been demonstrated to work well, but depends on
+the availability of a massive, high-quality corpus of valid input data. On top
+of this, coverage measurements provide only a fairly simplistic view of program
+state, making them elss suited for guiding the fuzzing process later on.
 
-  - Flow analysis / "concolic" execution. This technique leverages instrumented
-    binaries and taint tracking to identify mutations that will hopefully
-    trigger new internal states within the tested program.
-
-  - Static analysis and pure symbolic execution. Uses mathematical models to
-    reason about the relationship between inputs and program states in lieu
-    of actually running the code.
-
-The first technique is surprisingly powerful when used to pre-select initial test
-cases from a massive corpus of valid data. Unfortunately, such corpora are not
-always available. On top of this, coverage measurements provide only a very
-simplistic view of the internal state of the program, making them less suited
-for guiding the fuzzing process later on.
-
-The latter two techniques are extremely promising in experimental settings, but
-in real-world applications, they frequently suffer from reliability problems or
-irreducible complexity. Most of the high-value targets have enough internal
-states and possible execution paths to make such tools fall apart and perform
-strictly worse than their traditional counterparts unless fine-tuned with
-utmost care.
+The remaining technqiues are extremely promising in experimental settings, but
+frequently suffer from reliability problems or irreducible complexity. Most of
+the high-value targets have enough internal states and possible execution paths
+to make such tools fall apart and perform strictly worse than their traditional
+counterparts, at least until fine-tuned with utmost care.
 
 2) The afl-fuzz approach
 ------------------------
@@ -172,8 +159,9 @@ You can find quite a few good examples of starting files in the testcases/
 subdirectory that comes with this tool.
 
 If a large corpus of data is available for screening, you may want to use the
-afl-cmin utility to reject redundant files; afl-showmap can be used to manually
-examine and compare execution traces, too.
+afl-cmin utility to reject redundant files - ideally, with an aggressive
+timeout (-t); afl-showmap can be used to manually examine and compare execution
+traces, too.
 
 6) Fuzzing binaries
 -------------------
@@ -410,42 +398,32 @@ Here are some of the most important caveats for AFL:
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for
     more.
 
+  - There is no direct support for fuzzing network services, background
+    daemons, or interactive apps that require UI interaction to work. You may
+    need to make simple code changes to make them behave in a more traditional
+    way.
+
 13) Special thanks
 ------------------
 
 Many of the improvements to afl-fuzz wouldn't be possible without feedback,
 bug reports, or patches from:
 
-  - Jann Horn,
-  - Hanno Boeck,
-  - Felix Groebert,
-  - Jakub Wilk,
-  - Richard W. M. Jones,
-  - Alexander Cherepanov,
-  - Tom Ritter,
-  - Hovik Manucharyan,
-  - Sebastian Roschke,
-  - Eberhard Mattes,
-  - Padraig Brady,
-  - Ben Laurie,
-  - @dronesec,
-  - Luca Barbato,
-  - Tobias Ospelt,
-  - Thomas Jarosch,
-  - Martin Carpenter,
-  - Mudge Zatko,
-  - Joe Zbiciak,
-  - Ryan Govostes,
-  - Michael Rash,
-  - William Robinet,
-  - Jonathan Gray,
-  - Filipe Cabecinhas,
-  - Nico Weber,
-  - Jodie Cunningham,
-  - Andrew Griffiths,
-  - Parker Thompson,
-  - Jonathan Neuschfer,
-  - Tyler Nighswander.
+  Jann Horn                             Hanno Boeck
+  Felix Groebert                        Jakub Wilk
+  Richard W. M. Jones                   Alexander Cherepanov
+  Tom Ritter                            Hovik Manucharyan
+  Sebastian Roschke                     Eberhard Mattes
+  Padraig Brady                         Ben Laurie
+  @dronesec                             Luca Barbato
+  Tobias Ospelt                         Thomas Jarosch
+  Martin Carpenter                      Mudge Zatko
+  Joe Zbiciak                           Ryan Govostes
+  Michael Rash                          William Robinet
+  Jonathan Gray                         Filipe Cabecinhas
+  Nico Weber                            Jodie Cunningham
+  Andrew Griffiths                      Parker Thompson
+  Jonathan Neuschfer                    Tyler Nighswander
 
 Thank you!
 

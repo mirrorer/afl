@@ -27,7 +27,7 @@ afl-gcc / afl-clang wrappers will pick that up and add the appropriate flags.
 
 For 32-bit targets, you will need to run afl-fuzz with '-m 800' or so to give
 ASAN some breathing room. For 64-bit targets, you either need to make precise
-measurements using ppvm (http://jwilk.net/software/ppvm), or specify '-m none'.
+measurements using http://jwilk.net/software/recidivm, or specify '-m none'.
 
 There is also the option of generating a corpus using a non-ASAN binary, and
 then feeding it to an ASAN-instrumented one to check for bugs. This is faster,
@@ -87,8 +87,8 @@ version of gcc is around 17,825,850 MB; for newest clang, it's 20,971,600.
 But there is no guarantee that these numbers are stable, and if you get them
 wrong by "just" a couple gigs or so, you will be at risk.
 
-To get the precise number, you can use the ppvm tool developed by Jakub
-Wilk (http://jwilk.net/software/ppvm). In absence of this, ASAN is *not*
+To get the precise number, you can use the recidivm tool developed by Jakub
+Wilk (http://jwilk.net/software/recidivm). In absence of this, ASAN is *not*
 recommended when fuzzing 64-bit binaries, unless you are confident that they
 are robust and enforce reasonable memory limits (in which case, you can
 specify '-m none' when calling afl-fuzz).

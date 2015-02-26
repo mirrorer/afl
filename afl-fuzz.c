@@ -101,13 +101,14 @@ static u8  skip_deterministic,        /* Skip deterministic stages?       */
            run_over10m;               /* Run time over 10 minutes?        */
 
 static s32 out_fd,                    /* Persistent fd for out_file       */
-           dev_urandom_fd,            /* Persistent fd for /dev/urandom   */
-           dev_null_fd,               /* Persistent fd for /dev/null      */
+           dev_urandom_fd = -1,       /* Persistent fd for /dev/urandom   */
+           dev_null_fd = -1,          /* Persistent fd for /dev/null      */
            fsrv_ctl_fd,               /* Fork server control pipe (write) */
            fsrv_st_fd;                /* Fork server status pipe (read)   */
 
 static s32 forksrv_pid,               /* PID of the fork server           */
-           child_pid = -1;            /* PID of the fuzzed program        */
+           child_pid = -1,            /* PID of the fuzzed program        */
+           out_dir_fd = -1;           /* FD of the lock file              */
 
 static u8* trace_bits;                /* SHM with instrumentation bitmap  */
 
@@ -1689,7 +1690,6 @@ static void init_forkserver(char** argv) {
 
     }
 
-    close(dev_null_fd);
 
     /* Set up control and status pipes, close the unneeded original fds. */
 
@@ -1700,6 +1700,11 @@ static void init_forkserver(char** argv) {
     close(ctl_pipe[1]);
     close(st_pipe[0]);
     close(st_pipe[1]);
+
+    close(out_dir_fd);
+    close(dev_null_fd);
+    close(dev_urandom_fd);
+    close(fileno(plot_file));
 
     /* This should improve performance a bit, since it stops the linker from
        doing extra work post-fork(). */
@@ -1811,7 +1816,7 @@ static void init_forkserver(char** argv) {
            "      ( ulimit -Sd $[%llu << 10]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
-           "      Tip: you can use ppvm (http://jwilk.net/software/ppvm) to quickly\n"
+           "      Tip: you can use http://jwilk.net/software/recidivm to quickly\n"
            "      estimate the required amount of virtual memory for the binary.\n\n"
 
            "    - The binary is just buggy and explodes entirely on its own. If so, you\n"
@@ -1869,7 +1874,7 @@ static void init_forkserver(char** argv) {
          "      ( ulimit -Sd $[%llu << 10]; /path/to/fuzzed_app )\n\n"
 #endif /* ^RLIMIT_AS */
 
-         "      Tip: you can use ppvm (http://jwilk.net/software/ppvm) to quickly\n"
+         "      Tip: you can use http://jwilk.net/software/recidivm to quickly\n"
          "      estimate the required amount of virtual memory for the binary.\n\n"
 
          "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
@@ -1956,6 +1961,9 @@ static u8 run_target(char** argv) {
       }
 
       close(dev_null_fd);
+      close(out_dir_fd);
+      close(dev_urandom_fd);
+      close(fileno(plot_file));
 
       /* Set sane defaults for ASAN if nothing else specified. */
 
@@ -2387,7 +2395,7 @@ static void perform_dry_run(char** argv) {
                "      ( ulimit -Sd $[%llu << 10]; /path/to/binary [...] <testcase )\n\n"
 #endif /* ^RLIMIT_AS */
 
-               "      Tip: you can use ppvm (http://jwilk.net/software/ppvm) to quickly\n"
+               "      Tip: you can use http://jwilk.net/software/recidivm to quickly\n"
                "      estimate the required amount of virtual memory for the binary. Also,\n"
                "      if you are using ASAN, see %s/notes_for_asan.txt.\n\n"
 
@@ -3116,8 +3124,6 @@ static void maybe_delete_out_dir(void) {
 
   FILE* f;
   u8 *fn = alloc_printf("%s/fuzzer_stats", out_dir);
-
-  static s32 out_dir_fd;
 
   /* See if the output directory is locked. If yes, bail out. If not,
      create a lock that will persist for the lifetime of the process
@@ -6240,6 +6246,11 @@ static void setup_dirs_fds(void) {
 
     if (in_place_resume)
       FATAL("Resume attempted but old output directory not found");
+
+    out_dir_fd = open(out_dir, O_RDONLY);
+
+    if (out_dir_fd < 0 || flock(out_dir_fd, LOCK_EX | LOCK_NB))
+      PFATAL("Unable to flock() output directory.");
 
   }
 

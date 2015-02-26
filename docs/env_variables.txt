@@ -44,6 +44,9 @@ tools make fairly broad use of environmental variables:
     (If this ever happens, afl-fuzz will warn you ahead of the time by
     displaying the "bitmap density" field in fiery red.)
 
+    Setting AFL_INST_RATIO to 0 is a valid choice. This will instrument only
+    the transitions between function entry points, but not individual branches.
+
   - TMPDIR is used by afl-as for temporary files; if this variable is not set,
     the tool defaults to /tmp.
 

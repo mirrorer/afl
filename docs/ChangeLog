@@ -17,11 +17,24 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.50b:
+--------------
+
+  - Fixed a flock() bug that would prevent dir reuse errors from kicking
+    in every now and then.
+
+  - Renamed references to ppvm (the project is now called recidivm).
+
+  - Fixed a typo or two.
+
+  - Made improvements to file descriptor handling.
+
+--------------
 Version 1.49b:
 --------------
 
   - Added code save original command line in fuzzer_stats and
-    crashes/README.txt. Also saves fuzzer version in fuzzer_Stats.
+    crashes/README.txt. Also saves fuzzer version in fuzzer_stats.
     Requested by Ben Nagy.
 
 --------------
@@ -29,7 +42,9 @@ Version 1.48b:
 --------------
 
   - Fixed a bug with QEMU fork server crashes when translation is attempted
-    after a jump to an invalid pointer. Reported by Tyler Nighswander.
+    after a jump to an invalid pointer in the child process (i.e., after
+    bumping into a particularly nasty security bug in the tested binary).
+    Reported by Tyler Nighswander.
 
 --------------
 Version 1.47b:

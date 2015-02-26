@@ -35,6 +35,9 @@ of documents.
 There's plenty of small starting test cases in ../testcases/* - try them out
 or submit new ones!
 
+If you want to start with a larger, third-party corpus, run afl-cmin with an
+aggressive timeout on that data set first.
+
 2) Use a simpler target
 -----------------------
 
