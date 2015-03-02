@@ -33,9 +33,9 @@ execution), to static analysis and pure symbolic execution.
 The first of these methods has been demonstrated to work well, but depends on
 the availability of a massive, high-quality corpus of valid input data. On top
 of this, coverage measurements provide only a fairly simplistic view of program
-state, making them elss suited for guiding the fuzzing process later on.
+state, making them less suited for guiding the fuzzing process later on.
 
-The remaining technqiues are extremely promising in experimental settings, but
+The remaining techniques are extremely promising in experimental settings, but
 frequently suffer from reliability problems or irreducible complexity. Most of
 the high-value targets have enough internal states and possible execution paths
 to make such tools fall apart and perform strictly worse than their traditional

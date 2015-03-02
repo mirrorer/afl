@@ -18,7 +18,7 @@ that rely on longer atomically checked tokens (e.g., 4-byte PNG section
 headers), the gains are are much more profound.
 
 Oh, by the way: contributions to both data sets are very welcome. For the
-initial samples, my current "most wanted" list inclues:
+initial samples, my current "most wanted" list includes:
 
   - JBIG,
   - Ogg Vorbis,

@@ -17,6 +17,17 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.51b:
+--------------
+
+  - Made it possible to properly override LD_BIND_NOW after one very unusual
+    report of trouble.
+
+  - Cleaned up typos, thanks to Jakub Wilk.
+
+  - Fixed a bug in AFL_DUMB_FORKSRV.
+
+--------------
 Version 1.50b:
 --------------
 
@@ -25,15 +36,16 @@ Version 1.50b:
 
   - Renamed references to ppvm (the project is now called recidivm).
 
-  - Fixed a typo or two.
+  - Made improvements to file descriptor handling to avoid leaving some fds
+    unnecessarily open in the child process.
 
-  - Made improvements to file descriptor handling.
+  - Fixed a typo or two.
 
 --------------
 Version 1.49b:
 --------------
 
-  - Added code save original command line in fuzzer_stats and
+  - Added code to save original command line in fuzzer_stats and
     crashes/README.txt. Also saves fuzzer version in fuzzer_stats.
     Requested by Ben Nagy.
 

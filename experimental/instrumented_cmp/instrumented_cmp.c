@@ -10,7 +10,7 @@
    This is because the strcmp() operation is completely opaque to the tool.
    A simple and non-invasive workaround that doesn't require complex code
    analysis is to replace strcpy(), memcpy(), and equivalents with
-   inlined, non-optimized coe.
+   inlined, non-optimized code.
 
    I am still evaluating the value of doing this, but for time being, here's
    a quick demo of how it may work. To test:
