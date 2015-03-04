@@ -24,6 +24,8 @@ Here's a quick overview of the stuff you can find in this directory:
 
   - libpng_no_checksum  - a sample patch for removing CRC checks in libpng.
 
+  - post_library        - an example of how to build postprocessors for AFL.
+
 Note that the minimize_corpus.sh tool has graduated from the experimental/
 directory and is now available as ../afl-cmin.
 

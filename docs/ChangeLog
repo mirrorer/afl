@@ -17,6 +17,14 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.52b:
+--------------
+
+  - Added support for file format postprocessors. Requested by Ben Nagy. This
+    feature is intentionally buried, since it's fairly easy to misuse and
+    useful only in some scenarios. See experimental/post_library/.
+
+--------------
 Version 1.51b:
 --------------
 

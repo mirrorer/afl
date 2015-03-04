@@ -4,7 +4,8 @@ Environmental variables
 
   This document discusses the environment variables used by American Fuzzy Lop
   to expose various exotic functions that may be (rarely) useful for power
-  users. See README for the general instruction manual.
+  users or for some types of custom fuzzing setups. See README for the general
+  instruction manual.
 
 1) Settings for afl-gcc, afl-clang, and afl-as
 ----------------------------------------------
@@ -100,6 +101,10 @@ checks or alter some of the more exotic semantics of the tool:
     The benefit of AFL_IMPORT_FIRST is that it makes the "own finds" counter
     in the UI more accurately reflect the number of findings made by the
     instance (that the remaining ones did not already have).
+
+  - Setting AFL_POST_LIBRARY allows you to configure a postprocessor for
+    mutated files - say, to fix up checksums. See experimental/post_library/
+    for more.
 
   - The CPU widget shown at the bottom of the screen is fairly simplistic and
     may complain of high load prematurely, especially on systems with low core

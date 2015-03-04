@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.51b
+VERSION     = 1.52b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -28,6 +28,10 @@ CFLAGS     ?= -O3 -funroll-loops
 CFLAGS     += -Wall -D_FORTIFY_SOURCE=2 -g -Wno-pointer-sign \
 	      -DAFL_PATH=\"$(HELPER_PATH)\" -DDOC_PATH=\"$(DOC_PATH)\" \
 	      -DVERSION=\"$(VERSION)\"
+
+ifeq "$(shell uname)" "Linux"
+  LDFLAGS  += -ldl
+endif
 
 ifeq "$(findstring clang, $(shell $(CC) --version 2>/dev/null))" ""
   TEST_CC   = afl-gcc

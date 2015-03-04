@@ -43,6 +43,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <dlfcn.h>
 
 #include <sys/fcntl.h>
 #include <sys/wait.h>
@@ -234,6 +235,8 @@ static u32 extras_cnt;                /* Total number of tokens read      */
 
 static struct extra_data* a_extras;   /* Automatically selected extras    */
 static u32 a_extras_cnt;              /* Total number of tokens available */
+
+static u8* (*post_handler)(u8* buf, u32* len);
 
 /* Interesting values, as per config.h */
 
@@ -1206,6 +1209,33 @@ static void setup_shm(void) {
   trace_bits = shmat(shm_id, NULL, 0);
   
   if (!trace_bits) PFATAL("shmat() failed");
+
+}
+
+
+/* Load postprocessor, if available. */
+
+static void setup_post(void) {
+
+  void* dh;
+  u8* fn = getenv("AFL_POST_LIBRARY");
+  u32 tlen = 6;
+
+  if (!fn) return;
+
+  ACTF("Loading postprocessor from '%s'...", fn);
+
+  dh = dlopen(fn, RTLD_NOW);
+  if (!dh) FATAL("%s", dlerror());
+
+  post_handler = dlsym(dh, "afl_postprocess");
+  if (!post_handler) FATAL("Symbol 'afl_postprocess' not found.");
+
+  /* Do a quick test. It's better to segfault now than later =) */
+
+  post_handler("hello", &tlen);
+
+  OKF("Postprocessor installed successfully.");
 
 }
 
@@ -3997,6 +4027,13 @@ abort_trimming:
 static u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 
   u8 fault;
+
+  if (post_handler) {
+
+    out_buf = post_handler(out_buf, &len);
+    if (!out_buf || !len) return 0;
+
+  }
 
   write_to_testcase(out_buf, len);
 
@@ -7017,6 +7054,7 @@ int main(int argc, char** argv) {
   check_crash_handling();
   check_cpu_governor();
 
+  setup_post();
   setup_shm();
 
   setup_dirs_fds();

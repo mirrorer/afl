@@ -17,7 +17,7 @@ most robust way I could think of at the time.
 
 Many of the resulting features are made possible thanks to the availability of
 lightweight instrumentation that served as a foundation for the tool, but this
-mechanism should be though of merely as a means to an end. The only true
+mechanism should be thought of merely as a means to an end. The only true
 governing principles are speed, reliability, and ease of use.
 
 1) Coverage measurements

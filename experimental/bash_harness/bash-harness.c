@@ -1,7 +1,6 @@
 /* 
 
-   A very rudimentary harness for fuzzing bash, by popular request.
-   Relevant link:
+   A very rudimentary harness for fuzzing bash. Relevant link:
 
    http://lcamtuf.blogspot.com/2014/10/bash-bug-how-we-finally-cracked.html
 
@@ -45,6 +44,9 @@
       as a seed for other, possibly slower or more involved testing regimes.
 
       Expect several hours to several days to get decent coverage.
+
+    A higher-performance but more involved way of doing this would be to
+    specify a postprocessor library to afl-fuzz; see ../post_library/ for that.
 
  */
 

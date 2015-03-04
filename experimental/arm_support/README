@@ -1,8 +1,8 @@
 This directory contains replacement files that should enable experimental
 ARMv7 instrumentation in place of the default x86 code. Several notes:
 
-  - This code is NO LONGER MAINTAINED and lags behind the rest of afl-fuzz.
-    You are very much on your own.
+  - This code is UNFINISHED AND NO LONGER MAINTAINED and lags behind the
+    rest of afl-fuzz. You are very much on your own.
 
   - The code was once confirmed to work only in the sense that it allowed
     libpng and jpeg9c to be compiled with ./configure --disable-shared and run
