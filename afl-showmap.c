@@ -228,7 +228,7 @@ static void run_target(char** argv) {
 
     if (quiet_mode) {
 
-      s32 fd = open("/dev/null", O_RDONLY);
+      s32 fd = open("/dev/null", O_RDWR);
 
       if (fd < 0 || dup2(fd, 1) < 0 || dup2(fd, 2) < 0) {
         *(u32*)trace_bits = EXEC_FAIL_SIG;

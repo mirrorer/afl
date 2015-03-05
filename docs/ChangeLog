@@ -17,6 +17,13 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.55b:
+--------------
+
+  - Fixed a glitch with afl-showmap opening /dev/null with O_RDONLY when
+    running in quiet mode. Spotted by Tyler Nighswander.
+
+--------------
 Version 1.54b:
 --------------
 
