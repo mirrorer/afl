@@ -17,6 +17,17 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.54b:
+--------------
+
+  - Added another postprocessor example for PNG.
+
+  - Made a cosmetic fix to realloc() handling in experimental/post_library/,
+    suggested by Jakub Wilk.
+
+  - Improved -ldl handling. Suggested by Jakub Wilk.
+
+--------------
 Version 1.53b:
 --------------
 
