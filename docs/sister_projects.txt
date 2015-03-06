@@ -1,0 +1,76 @@
+===============
+Sister projects
+===============
+
+  This doc lists some of the projects that are inspired, derived from, or meant
+  to integrate with AFL. See README for the general instruction manual.
+
+AFL Utils (rc0r)
+----------------
+
+  Simplifies the triage of discovered crashes.
+
+  https://github.com/rc0r/afl-utils
+
+AFL Fixup Shim (Ben Nagy)
+-------------------------
+
+  Allows AFL_POST_LIBRARY postprocessors to be written in arbitrary languages
+  that don't have C bindings. Includes examples in Go.
+
+  https://github.com/bnagy/aflfix
+
+Python AFL (Jakub Wilk)
+-----------------------
+
+  Allows fuzz-testing of Python programs. Uses custom instrumentation and its
+  own forkserver.
+
+  https://bitbucket.org/jwilk/python-afl
+
+RecidiVM (Jakub Wilk)
+---------------------
+
+  Makes it easy to estimate memory usage limits when fuzzing with ASAN or MSAN.
+
+  http://jwilk.net/software/recidivm
+
+AFL PIN (Parker Thompson)
+-------------------------
+
+  Early-stage Intel PIN instrumentation support (from before we settled on
+  faster-running QEMU).
+
+  https://github.com/mothran/aflpin
+
+AFL JS (Han Choongwoo)
+----------------------
+
+  One-off optimizations to speed up the fuzzing of JavaScriptCore.
+
+  https://github.com/tunz/afl-fuzz-js
+
+AFL harness for fwknop (Michael Rash)
+-------------------------------------
+
+  An example of a fairly involved integration with AFL.
+
+  https://github.com/mrash/fwknop/tree/master/test/afl
+
+AFL-style instrumentation in llvm (Kostya Serebryany)
+-----------------------------------------------------
+
+  Allows AFL-equivalent instrumentation to be injected at compiler level.
+  This is currently not supported by AFL as-is, but may be useful in other
+  projects.
+
+  https://code.google.com/p/address-sanitizer/wiki/AsanCoverage#Coverage_counters
+
+AFL-style in-process fuzzer for llvm (Kostya Serebryany)
+--------------------------------------------------------
+
+  Provides an evolutionary instrumentation-guided fuzzing harness that allows
+  some programs to be fuzzed without the fork / execve overhead.
+
+  https://github.com/llvm-mirror/llvm/tree/master/lib/Fuzzer
+

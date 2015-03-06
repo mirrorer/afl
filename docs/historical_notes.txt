@@ -1,6 +1,6 @@
-===============================
-Related work & historical notes
-===============================
+================
+Historical notes
+================
 
   This doc talks about the rationale of some of the high-level design decisions
   for American Fuzzy Lop. It's adopted from a discussion with Rob Graham.

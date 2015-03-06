@@ -61,6 +61,9 @@
     Aight. The example below shows a simple postprocessor that tries to make
     sure that all input files start with "GIF89a".
 
+    PS. If you don't like C, you can try out the unix-based wrapper from
+    Ben Nagy instead: https://github.com/bnagy/aflfix
+
  */
 
 #include <stdio.h>

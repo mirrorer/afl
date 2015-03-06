@@ -11,14 +11,15 @@ Notes for using ASAN with afl-fuzz
 ASAN on 64-bit systems uses a lot of memory in a way that can't be easily
 distinguished from a misbehaving program bent on crashing your system.
 
-Because of this, fuzzing with ASAN is recommended only in two scenarios:
+Because of this, fuzzing with ASAN is recommended only in three scenarios:
 
-  - When using a 32-bit system, or when it's possible to compile the target
-    binary with the -m32 flag. In this case, we can still enforce reasonable
-    memory limits.
+  - On 32-bit systems, where we can always enforce a reasonable memory limit,
 
-  - On 64-bit systems, only if you trust the target binary to be well-behaved
-    and not attempt to use up all physical memory on the host OS.
+  - On 64-bit systems when fuzzing 32-bit binaries (say, compiled with the
+    -m32 flag),
+
+  - On 64-bit systems where the memory usage of the program can be gauged
+    very precisely beforehand using  http://jwilk.net/software/recidivm .
 
 To compile with ASAN, set AFL_USE_ASAN=1 before calling 'make clean all'. The
 afl-gcc / afl-clang wrappers will pick that up and add the appropriate flags.
@@ -27,7 +28,8 @@ afl-gcc / afl-clang wrappers will pick that up and add the appropriate flags.
 
 For 32-bit targets, you will need to run afl-fuzz with '-m 800' or so to give
 ASAN some breathing room. For 64-bit targets, you either need to make precise
-measurements using http://jwilk.net/software/recidivm, or specify '-m none'.
+measurements using recidivm (see above), or specify '-m none' and hope for the
+best.
 
 There is also the option of generating a corpus using a non-ASAN binary, and
 then feeding it to an ASAN-instrumented one to check for bugs. This is faster,

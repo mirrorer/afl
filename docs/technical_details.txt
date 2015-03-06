@@ -4,7 +4,7 @@ Technical "whitepaper" for afl-fuzz
 
   This document provides a quick overview of the guts of American Fuzzy Lop.
   See README for the general instruction manual; and for a discussion of
-  motivations and design goals behind AFL, see related_work.txt.
+  motivations and design goals behind AFL, see historical_notes.txt.
 
 0) Design statement
 -------------------
@@ -307,10 +307,11 @@ arithmetics, and splicing of different test cases.
 Their relative yields and execve() costs have been investigated and are
 discussed in the aforementioned blog post.
 
-For the reasons discussed in related_work.txt (chiefly, performance, simplicity,
-and reliability), AFL generally does not try to reason about the relationship
-between specific mutations and program states; the fuzzing steps are nominally
-blind, and are guided only by the evolutionary design of the input queue.
+For the reasons discussed in historical_notes.txt (chiefly, performance,
+simplicity, and reliability), AFL generally does not try to reason about the
+relationship between specific mutations and program states; the fuzzing steps
+are nominally blind, and are guided only by the evolutionary design of the
+input queue.
 
 That said, there is one (trivial) exception to this rule: when a new queue
 entry goes through the initial set of deterministic fuzzing steps, and some

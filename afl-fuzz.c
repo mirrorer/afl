@@ -2076,7 +2076,7 @@ static u8 run_target(char** argv) {
   total_execs++;
 
   /* Any subsequent operations on trace_bits must not be moved by the
-     compiler above this point. Past this location, trace_bits[] behave
+     compiler below this point. Past this location, trace_bits[] behave
      very normally and do not have to be treated as volatile. */
 
   MEM_BARRIER();
