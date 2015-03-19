@@ -219,7 +219,7 @@ static void add_instrumentation(void) {
   u32 ins_lines = 0;
 
   u8  instr_ok = 0, skip_csect = 0, skip_next_label = 0,
-      skip_intel = 0, skip_app = 0;
+      skip_intel = 0, skip_app = 0, instrument_next = 0;
 
 #ifdef __APPLE__
 
@@ -244,12 +244,31 @@ static void add_instrumentation(void) {
 
   while (fgets(line, MAX_AS_LINE, inf)) {
 
+    /* In some cases, we want to defer writing the instrumentation trampoline
+       until after all the labels, macros, comments, etc. If we're in this
+       mode, and if the line starts with a tab followed by a character, dump
+       the trampoline now. */
+
+    if (!pass_thru && !skip_intel && !skip_app && !skip_csect && instr_ok &&
+        instrument_next && line[0] == '\t' && isalpha(line[1])) {
+
+      fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
+              R(MAP_SIZE));
+
+      instrument_next = 0;
+      ins_lines++;
+
+    }
+
+    /* Output the actual line, call it a day in pass-thru mode. */
+
     fputs(line, outf);
 
     if (pass_thru) continue;
 
-    /* We only want to instrument the .text section. So, let's keep track
-       of that in processed files. */
+    /* All right, this is where the actual fun begins. For one, we only want to
+       instrument the .text section. So, let's keep track of that in processed
+       files - and let's set instr_ok accordingly. */
 
     if (line[0] == '\t' && line[1] == '.') {
 
@@ -278,7 +297,9 @@ static void add_instrumentation(void) {
 
     }
 
-    /* Detect off-flavor assembly (rare, happens in gdb). */
+    /* Detect off-flavor assembly (rare, happens in gdb). When this is
+       encountered, we set skip_csect until the opposite directive is
+       seen, and we do not instrument. */
 
     if (strstr(line, ".code")) {
 
@@ -287,12 +308,13 @@ static void add_instrumentation(void) {
 
     }
 
-    /* Detect syntax changes. */
+    /* Detect syntax changes, as could happen with hand-written assembly.
+       Skip Intel blocks, resume instrumentation when back to AT&T. */
 
     if (strstr(line, ".intel_syntax")) skip_intel = 1;
     if (strstr(line, ".att_syntax")) skip_intel = 0;
 
-    /* Detect and skip ad-hoc __asm__ blocks. */
+    /* Detect and skip ad-hoc __asm__ blocks, likewise skipping them. */
 
     if (line[0] == '#' || line[1] == '#') {
 
@@ -328,7 +350,9 @@ static void add_instrumentation(void) {
     if (skip_intel || skip_app || skip_csect || !instr_ok ||
         line[0] == '#' || line[0] == ' ') continue;
 
-    /* Conditional branch instruction (jnz, etc). */
+    /* Conditional branch instruction (jnz, etc). We append the instrumentation
+       right after the branch (to instrument the not-taken path) and at the
+       branch destination label (handled later on). */
 
     if (line[0] == '\t') {
 
@@ -345,7 +369,9 @@ static void add_instrumentation(void) {
 
     }
 
-    /* Label of some sort. */
+    /* Label of some sort. This may be a branch destination, but we need to
+       tread carefully and account for several different formatting
+       conventions. */
 
 #ifdef __APPLE__
 
@@ -387,27 +413,22 @@ static void add_instrumentation(void) {
              label is mentioned in the code in contexts other than call / jmp.
              That said, this complicates the code by requiring two-pass
              processing (messy with stdin), and results in a speed gain
-             typically under 10%. */
+             typically under 10%, because compilers are generally pretty good
+             about not generating spurious intra-function jumps.
 
-          if (!skip_next_label) {
+             We use deferred output chiefly to avoid disrupting
+             .Lfunc_begin0-style exception handling calculations (a problem on
+             MacOS X). */
 
-            fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
-                    R(MAP_SIZE));
-
-            ins_lines++;
-
-          } else skip_next_label = 0;
+          if (!skip_next_label) instrument_next = 1; else skip_next_label = 0;
 
         }
 
       } else {
 
-        /* Function label (always instrumented) */
+        /* Function label (always instrumented, deferred mode). */
 
-        fprintf(outf, use_64bit ? trampoline_fmt_64 : trampoline_fmt_32,
-                R(MAP_SIZE));
-
-        ins_lines++;
+        instrument_next = 1;
     
       }
 

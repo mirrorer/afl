@@ -2,8 +2,9 @@
 Sister projects
 ===============
 
-  This doc lists some of the projects that are inspired, derived from, or meant
-  to integrate with AFL. See README for the general instruction manual.
+  This doc lists some of the projects that are inspired by, derived from,
+  designed for, or meant to integrate with AFL. See README for the general
+  instruction manual.
 
 AFL Utils (rc0r)
 ----------------
@@ -12,11 +13,18 @@ AFL Utils (rc0r)
 
   https://github.com/rc0r/afl-utils
 
+Crashwalk (Ben Nagy)
+--------------------
+
+  AFL-aware tool to annotate and sort through crashing test cases.
+
+  https://github.com/bnagy/crashwalk
+
 AFL Fixup Shim (Ben Nagy)
 -------------------------
 
   Allows AFL_POST_LIBRARY postprocessors to be written in arbitrary languages
-  that don't have C bindings. Includes examples in Go.
+  that don't have C / .so bindings. Includes examples in Go.
 
   https://github.com/bnagy/aflfix
 

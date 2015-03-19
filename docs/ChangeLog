@@ -17,6 +17,16 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.57b:
+--------------
+
+  - Fixed a problem with exception handling on some versions of MacOS X.
+    Spotted by Samir Aguiar and Anders Wang Kristensen.
+
+  - Tweaked afl-gcc to use BIN_PATH instead of a fixed string in help
+    messages.
+
+--------------
 Version 1.56b:
 --------------
 
