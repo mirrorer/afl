@@ -17,6 +17,16 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.58b:
+--------------
+
+  - Added a workaround for abort() behavior in -lpthread programs in QEMU mode.
+    Spotted by Aidan Thornton.
+
+  - Made several documentation updates, including links to the static
+    instrumentation tool (sister_projects.txt).
+
+--------------
 Version 1.57b:
 --------------
 

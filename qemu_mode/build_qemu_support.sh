@@ -112,6 +112,7 @@ echo "[*] Applying patches..."
 patch -p0 <patches/elfload.diff || exit 1
 patch -p0 <patches/cpu-exec.diff || exit 1
 patch -p0 <patches/translate-all.diff || exit 1
+patch -p0 <patches/syscall.diff || exit 1
 
 echo "[+] Patching done."
 

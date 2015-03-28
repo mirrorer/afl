@@ -96,3 +96,22 @@ somehow need to fuzz an untrusted binary, put everything in a sandbox first.
 Beyond that, this is an early-stage mechanism, so fields reports - even just
 "yeah, it worked for me" - are very much welcome. You can always drop a mail to
 <afl-users@googlegroups.com>.
+
+6) Alternatives: static rewriting
+---------------------------------
+
+Statically rewriting binaries just once, instead of attempting to translate
+them at run time, can be a faster alternative - but it is fraught with peril,
+because it depends on being able to properly model program control flow without
+actually running it.
+
+There is a module attempting just this, contributed by Aleksandar Nikolich:
+
+  https://github.com/vrtadmin/moflow/tree/master/afl-dyninst
+  https://groups.google.com/forum/#!topic/afl-users/HlSQdbOTlpg
+
+At this point, the author reports the possibility of hiccups with stripped
+binaries. That said, if we can get it to be comparably reliable to QEMU, we may
+decide to switch to this mode!
+
+Once again, field reports are very welcome.

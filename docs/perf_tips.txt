@@ -76,7 +76,8 @@ Sometimes, you can speed things up simply by specifying /dev/null as the
 config file, or disabling some compile-time features that aren't really needed
 for the job (try ./configure --help). One of the notoriously resource-consuming
 things would be calling other utilities via exec*(), popen(), system(), or
-equivalent calls.
+equivalent calls. Some programs may intentionally call sleep(), usleep(), or
+nanosleep(), etc.
 
 Last but not least, if you are using ASAN and the performance is unacceptable,
 consider turning it off for now, and manually examining the generated corpus
