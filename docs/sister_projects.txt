@@ -33,7 +33,7 @@ Static binary-only instrumentation (Aleksandar Nikolich)
 
   Allows black-box binaries to be instrumented statically (i.e., by modifying
   the binary ahead of the time, rather than translating it on the run). Author
-  reports better performance compared to QEMU, but occassional translation
+  reports better performance compared to QEMU, but occasional translation
   errors with stripped binaries.
 
   https://github.com/vrtadmin/moflow/tree/master/afl-dyninst

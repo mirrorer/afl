@@ -384,7 +384,8 @@ Here are some of the most important caveats for AFL:
 
   - The compile-time instrumentation (afl-as.h) currently supports x86. If you
     really, honestly have to fuzz on non-x86 systems, the use of QEMU
-    instrumentation mode may be a viable approach.
+    instrumentation mode may be a viable approach. An upcoming LLVM-based mode
+    should offer an alternative soon.
 
   - There are some unfortunate trade-offs with ASAN and 64-bit binaries. This
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for
@@ -418,7 +419,7 @@ bug reports, or patches from:
   Jonathan Neuschfer                    Tyler Nighswander
   Ben Nagy                              Samir Aguiar
   Aidan Thornton                        Aleksandar Nikolich
-  Sam Hakim
+  Sam Hakim                             Laszlo Szekeres
 
 Thank you!
 

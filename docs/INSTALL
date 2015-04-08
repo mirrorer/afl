@@ -100,6 +100,9 @@ Alternatively, you can try an unofficial ARM patch that enables the compile-time
 features, but it is buggy and no longer maintained. Please refer to
 experimental/arm_support/README for hints.
 
+An upcoming LLVM instrumentation mode should offer a viable alternative with
+clang (see experimental/llvm_instrumentation for a sneak peek).
+
 5) Solaris on x86
 -----------------
 

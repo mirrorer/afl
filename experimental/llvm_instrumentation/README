@@ -1,0 +1,37 @@
+This code re-implements the AFL instrumentation using the native features
+available in LLVM, instead of relying on a custom wrapper around GNU as.
+It has been contributed by Laszlo Szekeres.
+
+It is less-tested than the "official" approach and currently supports only
+64-bit x86 targets, but offers improved performance by injecting the
+instrumentation on IR level. This helps in several ways:
+
+  - No trampoline that saves and restores registers is necessary,
+
+  - No function calls are needed, the original __afl_maybe_log is
+    always inlined,
+
+  - Setup code is only called once, it doesn't check in every basic
+    block if it has already been initialized.
+
+Another advantage should be that the code should be easy to make
+CPU-independent, although this requires afl-setup.s to be rewritten
+to something similar to the QEMU shim.
+
+In order to use this feature, you need to have clang installed on your
+system. For example, to install on Ubuntu, you can try:
+
+  sudo apt-get install clang-3.5
+
+To build the pass, edit Makefile and afl-clang.py, changing LLVM_CONFIG
+if necessary to point to the llvm-config binary on your system, then run
+'make'.
+
+Once this is done, you can instrument code by setting CC or CXX like so:
+
+ CC=/path/to/afl/experimental/llvm_instrumentation/afl-clang.py
+ CXX=/path/to/afl/experimental/llvm_instrumentation/afl-clang++.py
+
+...and then building the target program. Everything should work the same.
+
+Please let us know about any problems you bump into!
