@@ -47,7 +47,7 @@ echo "$BIN" | grep -qE '^(/var)?/tmp/'
 T2="$?"
 
 if [ "$T1" = "0" -o "$T2" = "0" ]; then
-  echo "Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
+  echo "[-] Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
   exit 1
 fi
 
@@ -56,12 +56,12 @@ if [ "$GDB" = "" ]; then
 fi
 
 if [ ! -f "$BIN" -o ! -x "$BIN" ]; then
-  echo "Error: binary '$2' not found or is not executable." 1>&2
+  echo "[-] Error: binary '$2' not found or is not executable." 1>&2
   exit 1
 fi
 
 if [ ! -d "$DIR/queue" ]; then
-  echo "Error: directory '$1' not found or not created by afl-fuzz." 1>&2
+  echo "[-] Error: directory '$1' not found or not created by afl-fuzz." 1>&2
   exit 1
 fi
 

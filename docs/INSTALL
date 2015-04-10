@@ -22,6 +22,10 @@ There are no special dependencies to speak of; you will need GNU make and a
 working compiler (gcc or clang). Some of the optional scripts bundled with the
 program may depend on bash, gdb, and similar basic tools.
 
+If you are using clang, please review llvm_mode/README.llvm; the LLVM
+integration mode can offer substantial performance gains compared to the
+traditional approach.
+
 You may have to change several settings to get optimal results (most notably,
 disable crash reporting utilities and switch to a different CPU governor), but
 afl-fuzz will guide you through that if necessary.
@@ -83,31 +87,26 @@ and definitely don't look POSIX-compliant. This means two things:
 User emulation mode of QEMU does not appear to be supported on MacOS X, so
 black-box instrumentation mode (-Q) will not work.
 
-4) Linux or *BSD on ARMv7
--------------------------
+4) Linux or *BSD on non-x86 systems
+-----------------------------------
 
-ARMv7 is not officially supported. Your best option may be using the QEMU
-instrumentation mode and ignoring the compile-time instrumentation capabilities
-(since they will definitely, positively not work as-is).
+Non-x86 systems are not officially supported, but you may be able to leverage
+one of two modes:
 
-To try out QEMU, remove the "xorb %al, %al" and "cmp -s .test-instr0" lines from
-Makefile, build the fuzzer, and then then follow the instructions in the
-qemu_mode/README.qemu file to compile the support for QEMU. If this succeeds,
-you will have to compile targets *without* using afl-gcc, and then always
-remember to invoke the fuzzer with -Q.
+  - The LLVM mode (see llvm_mode/README.llvm), which does not rely on
+    x86-specific assembly shims,
 
-Alternatively, you can try an unofficial ARM patch that enables the compile-time
-features, but it is buggy and no longer maintained. Please refer to
-experimental/arm_support/README for hints.
+  - The QEMU mode (see qemu_mode/README.qemu), which can be also used for
+    cross-platform binaries.
 
-An upcoming LLVM instrumentation mode should offer a viable alternative with
-clang (see experimental/llvm_instrumentation for a sneak peek).
+In both cases, you will need to set AFL_NOX86=1 before running make. Field
+reports welcome.
 
 5) Solaris on x86
 -----------------
 
 The fuzzer reportedly works on Solaris, but I have not tested this first-hand,
-and the user base is fairly small, so I don't get a lot of feedback.
+and the user base is fairly small, so I don't have a lot of feedback.
 
 To get the ball rolling, you will need to use GNU make and GCC or clang. I'm
 being told that the stock version of GCC that comes with the platform does not
@@ -136,10 +135,8 @@ instrumentation mode (-Q) will not work.
 6) Everything else
 ------------------
 
-More exotic CPU architectures are not supported and probably will not be. They
-offer no intrinsic benefits for fuzzing and there is negligible user interest,
-so I am prioritizing other work. You may be able to get QEMU mode to work by
-following the instructions in section #4.
+You're on your own. On POSIX-compliant systems, you may be able to compile and
+run the fuzzer; and the LLVM mode may offer a way to instrument non-x86 code.
 
 The fuzzer will not run on Windows. It will also not work under Cygwin. It
 could be ported to the latter platform fairly easily, but it's a pretty bad

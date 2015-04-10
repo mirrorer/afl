@@ -1,0 +1,67 @@
+============================================
+Fast LLVM-based instrumentation for afl-fuzz
+============================================
+
+  (See ../docs/README for the general instruction manual.)
+
+1) Introduction
+---------------
+
+The code in this directory allows you to instrument programs for AFL using
+true compiler-level instrumentation, instead of the more crude
+assembly-level rewriting approach taken by by afl-gcc afl-clang. This has
+several interesting properties:
+
+  - The compiler can make many optimizations that are hard to pull off when
+    manually inserting assembly. As a result, some slow, CPU-bound programs will
+    run up to around 2x faster.
+
+    The gains are less pronounced for fast binaries, where the speed is limited
+    chiefly by the cost of creating new processes. In such cases, the gain will
+    probably stay within 10%.
+
+  - The instrumentation is CPU-independent. At least in principle, you should
+    be able to rely on it to fuzz programs on non-x86 architectures (after
+    building afl-fuzz with AFL_NOX86=1).
+
+  - Because the features relies on the internals of LLVM, it is clang-specific
+    and will *not* work with GCC.
+
+Once this implementation is shown to be sufficiently robust, it will probably
+replace afl-clang. For now, it can be built separately and co-exists with the
+original code.
+
+The idea and much of the implementation comes from Laszlo Szekeres.
+
+2) How to use
+-------------
+
+In order to leverage this mechanism, you need to have clang installed on your
+system. You should also make sure that the llvm-config tool is in your path;
+if not, be sure to set LLVM_CONFIG in the environment beforehand.
+
+To build, type 'make'. This will generate binaries called afl-clang-fast and
+afl-clang-fast++ in the parent directory. Once this is done, you can instrument
+third-party code in a way similar to the standard operating mode of AFL, e.g.:
+
+  CC=/path/to/afl/afl-clang-fast ./configure [...options...]
+  make
+
+...or:
+
+  CXX=/path/to/afl/afl-clang-fast++ ./configure [...options...]
+  make
+
+The tool honors roughly the same environmental variables as afl-gcc (see
+../docs/env_variables.txt). This includes AFL_INST_RATIO, AFL_USE_ASAN,
+AFL_HARDEN, and AFL_DONT_OPTIMIZE.
+
+Note: if you want the LLVM helper to be installed on your system for all
+users, you need to build it before issuing 'make install' in the parent
+directory.
+
+3) Gotchas, feedback, bugs
+--------------------------
+
+This is an early-stage mechanism, so field reports are welcome. You can send
+bug reports to <afl-users@googlegroups.com>.

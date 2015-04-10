@@ -46,6 +46,14 @@ if [ ! -f "patches/afl-qemu-cpu-inl.h" -o ! -f "../config.h" ]; then
 
 fi
 
+if [ ! -f "../afl-showmap" ]; then
+
+  echo "[-] Error: ../afl-showmap not found - compile AFL first!"
+  exit 1
+
+fi
+
+
 for i in libtool wget python automake autoconf sha384sum bison iconv; do
 
   T=`which "$i" 2>/dev/null`

@@ -126,7 +126,22 @@ The QEMU wrapper used to instrument binary-only code supports several settings:
     emulation" variables (e.g., QEMU_STACK_SIZE), but there should be no
     reason to touch them.
 
-4) Settings for afl-cmin
+4) Settings for afl-clang-fast
+------------------------------
+
+The native LLVM instrumentation helper accepts a subset of the settings
+discussed in section #1, with the exception of:
+
+  - AFL_AS, since this toolchain does not directly invoke GNU as.
+
+  - TMPDIR and AFL_KEEP_ASSEMBLY, since no temporary assembly files are
+    created.
+
+Note that AFL_INST_RATIO will behave a bit differently than for afl-gcc,
+because functions are *not* instrumented unconditionally - so low values
+will have a more striking effect.
+
+5) Settings for afl-cmin
 ------------------------
 
 The corpus minimization script offers very little customization:
@@ -137,7 +152,7 @@ The corpus minimization script offers very little customization:
     minimization and normally deleted at exit. The files can be found in the
     <out_dir>/.traces/*.
 
-5) Third-party variables set by afl-fuzz & other tools
+6) Third-party variables set by afl-fuzz & other tools
 ------------------------------------------------------
 
 Several variables are not directly interpreted by afl-fuzz, but are set to

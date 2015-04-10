@@ -42,7 +42,7 @@ SYNC_DIR='/home/bob/sync_dir'
 SYNC_INTERVAL=$((30 * 60))
 
 if [ "$PWD" = "/tmp" -o "$PWD" = "/var/tmp" ]; then
-  echo "Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
+  echo "[-] Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
   exit 1
 fi
 

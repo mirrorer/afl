@@ -187,7 +187,7 @@ static const u8* main_payload_32 =
   "  orb  $1, (%edx, %edi, 1)\n"
 #else
   "  incb (%edx, %edi, 1)\n"
-#endif /** ^SKIP_COUNTS */
+#endif /* ^SKIP_COUNTS */
   "\n"
   "__afl_return:\n"
   "\n"

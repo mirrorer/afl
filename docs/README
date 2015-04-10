@@ -107,7 +107,9 @@ For C++ programs, you will want:
 
 $ CXX=/path/to/afl/afl-g++ ./configure
 
-The clang wrappers (afl-clang and afl-clang++) are used in the same way.
+The clang wrappers (afl-clang and afl-clang++) are used in the same way; clang
+users can also leverage a higher-performance instrumentation mode described in
+llvm_mode/README.llvm.
 
 When testing libraries, it is essential to either link the tested executable
 against a static version of the instrumented library, or to set the right
@@ -382,14 +384,13 @@ Here are some of the most important caveats for AFL:
     you can also write a postprocessor, as explained in
     experimental/post_library/.
 
-  - The compile-time instrumentation (afl-as.h) currently supports x86. If you
-    really, honestly have to fuzz on non-x86 systems, the use of QEMU
-    instrumentation mode may be a viable approach. An upcoming LLVM-based mode
-    should offer an alternative soon.
+  - The default instrumentation mode supports only x86. If you really, honestly
+    have to fuzz on non-x86 systems, you may have luck with the LLVM mode
+    (see llvm_mode/README.llvm), or with QEMU (see qemu_mode/README.qemu).
 
   - There are some unfortunate trade-offs with ASAN and 64-bit binaries. This
     isn't due to any specific fault of afl-fuzz; see notes_for_asan.txt for
-    more.
+    tips.
 
   - There is no direct support for fuzzing network services, background
     daemons, or interactive apps that require UI interaction to work. You may
@@ -420,6 +421,7 @@ bug reports, or patches from:
   Ben Nagy                              Samir Aguiar
   Aidan Thornton                        Aleksandar Nikolich
   Sam Hakim                             Laszlo Szekeres
+  David A. Wheeler                      Turo Lamminen
 
 Thank you!
 
@@ -433,4 +435,13 @@ There is also a mailing list for the project; to join, send a mail to
 <afl-users+subscribe@googlegroups.com>. Or, if you prefer to browse
 archives first, try:
 
-https://groups.google.com/group/afl-users
+  https://groups.google.com/group/afl-users
+
+PS. If you wish to submit raw code to be incorporated into the project, please
+be aware that the copyright on AFL is formally claimed by Google, and they do
+ask contributors to agree to a simple CLA first:
+
+  https://cla.developers.google.com/clas
+
+Sorry about the hassle. Of course, no CLA is required for feature requests or
+bug reports.

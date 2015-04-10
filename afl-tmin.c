@@ -243,6 +243,7 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
   u32 cksum;
 
   memset(trace_bits, 0, MAP_SIZE);
+  MEM_BARRIER();
 
   prog_in_fd = write_to_file(prog_in, mem, len);
 
@@ -309,6 +310,8 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
   it.it_value.tv_usec = 0;
 
   setitimer(ITIMER_REAL, &it, NULL);
+
+  MEM_BARRIER();
 
   /* Clean up bitmap, analyze exit condition, etc. */
 
@@ -394,9 +397,54 @@ static void minimize(char** argv) {
   u8* tmp_buf = ck_alloc_nozero(in_len);
   u32 orig_len = in_len, stage_o_len;
 
-  u32 del_len, del_pos, i, alpha_size, cur_pass = 0;
-  u32 syms_removed, alpha_del1, alpha_del2, alpha_d_total = 0;
-  u8  changed_any;
+  u32 del_len, set_len, del_pos, set_pos, i, alpha_size, cur_pass = 0;
+  u32 syms_removed, alpha_del0 = 0, alpha_del1, alpha_del2, alpha_d_total = 0;
+  u8  changed_any, prev_del;
+
+  /***********************
+   * BLOCK NORMALIZATION *
+   ***********************/
+
+  set_len    = next_p2(in_len / TMIN_SET_STEPS);
+  set_pos    = 0;
+
+  if (set_len < TMIN_SET_MIN_SIZE) set_len = TMIN_SET_MIN_SIZE;
+
+  ACTF(cBRI "Stage #0: " cNOR "One-time block normalization...");
+
+  while (set_pos < in_len) {
+
+    u8  res;
+    u32 use_len = MIN(set_len, in_len - set_pos);
+
+    for (i = 0; i < use_len; i++)
+      if (in_data[set_pos + i] != '0') break;
+
+    if (i != use_len) {
+
+      memcpy(tmp_buf, in_data, in_len);
+      memset(tmp_buf + set_pos, '0', use_len);
+  
+      res = run_target(argv, tmp_buf, in_len, 0);
+
+      if (res) {
+
+        memset(in_data + set_pos, '0', use_len);
+        changed_any = 1;
+        alpha_del0 += use_len;
+
+      }
+
+    }
+
+    set_pos += set_len;
+
+  }
+
+  alpha_d_total += alpha_del0;
+
+  OKF("Block normalization complete, %u byte%s replaced.", alpha_del0,
+      alpha_del0 == 1 ? "" : "s");
 
 next_pass:
 
@@ -415,7 +463,8 @@ next_pass:
 next_del_blksize:
 
   if (!del_len) del_len = 1;
-  del_pos = 0;
+  del_pos  = 0;
+  prev_del = 1;
 
   SAYF(cGRA "    Block length = %u, remaining size = %u\n" cNOR,
        del_len, in_len);
@@ -425,11 +474,26 @@ next_del_blksize:
     u8  res;
     s32 tail_len;
 
-    /* Head */
-    memcpy(tmp_buf, in_data, del_pos);
-
     tail_len = in_len - del_pos - del_len;
     if (tail_len < 0) tail_len = 0;
+
+    /* If we have processed at least one full block (initially, prev_del == 1),
+       and we did so without deleting the previous one, and we aren't at the
+       very end of the buffer (tail_len > 0), and the current block is the same
+       as the previous one... skip this step as a no-op. */
+
+    if (!prev_del && tail_len && !memcmp(in_data + del_pos - del_len,
+        in_data + del_pos, del_len)) {
+
+      del_pos += del_len;
+      continue;
+
+    }
+
+    prev_del = 0;
+
+    /* Head */
+    memcpy(tmp_buf, in_data, del_pos);
 
     /* Tail */
     memcpy(tmp_buf + del_pos, in_data + del_pos + del_len, tail_len);
@@ -439,7 +503,9 @@ next_del_blksize:
     if (res) {
 
       memcpy(in_data, tmp_buf, del_pos + tail_len);
-      in_len = del_pos + tail_len;
+      prev_del = 1;
+      in_len   = del_pos + tail_len;
+
       changed_any = 1;
 
     } else del_pos += del_len;
@@ -517,25 +583,24 @@ next_del_blksize:
 
   ACTF(cBRI "Stage #3: " cNOR "Character minimization...");
 
+  memcpy(tmp_buf, in_data, in_len);
+
   for (i = 0; i < in_len; i++) {
 
-    u8 res;
+    u8 res, orig = tmp_buf[i];
 
-    if (tmp_buf[i] == '0') continue;
-
-    memcpy(tmp_buf, in_data, in_len);
-
+    if (orig == '0') continue;
     tmp_buf[i] = '0';
 
     res = run_target(argv, tmp_buf, in_len, 0);
 
     if (res) {
 
-      memcpy(in_data, tmp_buf, in_len);
+      in_data[i] = '0';
       alpha_del2++;
       changed_any = 1;
 
-    }
+    } else tmp_buf[i] = orig;
 
   }
 

@@ -46,14 +46,14 @@ T2="$?"
 
 if [ "$T1" = "0" -o "$T2" = "0" ]; then
 
-  echo "Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
+  echo "[-] Error: this script shouldn't be used with shared /tmp directories." 1>&2
   exit 1
 
 fi
 
 if [ ! -f "$1/plot_data" ]; then
 
-  echo "[-] The input directory is not valid (missing 'plot_data')." 1>&2
+  echo "[-] Error: input directory is not valid (missing 'plot_data')." 1>&2
   exit 1
 
 fi
@@ -66,7 +66,7 @@ GNUPLOT=`which gnuplot 2>/dev/null`
 
 if [ "$GNUPLOT" = "" ]; then
 
-  echo "[-] Can't find 'gnuplot' in your \$PATH - do you have it installed?" 1>&2
+  echo "[-] Error: can't find 'gnuplot' in your \$PATH." 1>&2
   exit 1
 
 fi
@@ -75,7 +75,7 @@ mkdir "$2" 2>/dev/null
 
 if [ ! -d "$2" ]; then
 
-  echo "[-] Unable to create the output directory - pick another location." 1>&2
+  echo "[-] Error: unable to create the output directory - pick another location." 1>&2
   exit 1
 
 fi
@@ -134,7 +134,7 @@ _EOF_
 
 if [ ! -s "$2/exec_speed.png" ]; then
 
-  echo "[-] Oops, something went wrong! Perhaps you have an ancient or broken version of gnuplot?" 1>&2
+  echo "[-] Error: something went wrong! Perhaps you have an ancient version of gnuplot?" 1>&2
   exit 1
 
 fi

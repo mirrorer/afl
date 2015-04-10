@@ -41,6 +41,10 @@ In principle, if you set CPU_TARGET before calling ./build_qemu_support.sh,
 you should get a build capable of running non-native binaries (say, you
 can try CPU_TARGET=arm). I haven't played with this.
 
+Note: if you want the QEMU helper to be installed on your system for all
+users, you need to build it before issuing 'make install' in the parent
+directory.
+
 3) Notes on linking
 -------------------
 
@@ -93,25 +97,24 @@ Compared to fully-fledged virtualization, the user emulation mode is *NOT* a
 security boundary. The binaries can freely interact with the host OS. If you
 somehow need to fuzz an untrusted binary, put everything in a sandbox first.
 
-Beyond that, this is an early-stage mechanism, so fields reports - even just
-"yeah, it worked for me" - are very much welcome. You can always drop a mail to
-<afl-users@googlegroups.com>.
+Beyond that, this is an early-stage mechanism, so fields reports are welcome.
+You can send them to <afl-users@googlegroups.com>.
 
 6) Alternatives: static rewriting
 ---------------------------------
 
 Statically rewriting binaries just once, instead of attempting to translate
-them at run time, can be a faster alternative - but it is fraught with peril,
-because it depends on being able to properly model program control flow without
-actually running it.
+them at run time, can be a faster alternative to what is being attempted here.
+That said, static rewriting is fraught with peril, because it depends on being
+able to properly and fully model program control flow without actually running
+it.
 
-There is a module attempting just this, contributed by Aleksandar Nikolich:
+If you want to experiment with this mode of operation, there is a module
+contributed by Aleksandar Nikolich:
 
   https://github.com/vrtadmin/moflow/tree/master/afl-dyninst
   https://groups.google.com/forum/#!topic/afl-users/HlSQdbOTlpg
 
 At this point, the author reports the possibility of hiccups with stripped
 binaries. That said, if we can get it to be comparably reliable to QEMU, we may
-decide to switch to this mode!
-
-Once again, field reports are very welcome.
+decide to switch to this mode, but I had no time to play with it yet.

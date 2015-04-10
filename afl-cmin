@@ -142,7 +142,7 @@ echo "$PWD" | grep -qE '^(/var)?/tmp/'
 T5="$?"
 
 if [ "$T1" = "0" -o "$T2" = "0" -o "$T3" = "0" -o "$T4" = "0" -o "$T5" = "0" ]; then
-  echo "Error: do not use this script in /tmp or /var/tmp." 1>&2
+  echo "[-] Error: do not use this script in /tmp or /var/tmp." 1>&2
   exit 1
 fi
 
@@ -384,7 +384,7 @@ sort -k1,1 -s -u "$TRACE_DIR/.candidate_list" | \
   sed 's/^/BEST_FILE[/;s/ /]="/;s/$/"/' >"$TRACE_DIR/.candidate_script"
 
 if [ ! -s "$TRACE_DIR/.candidate_script" ]; then
-  echo "[-] ERROR: No traces obtained from test cases, check syntax!"
+  echo "[-] Error: no traces obtained from test cases, check syntax!"
   test "$AFL_KEEP_TRACES" = "" && rm -rf "$TRACE_DIR"
   exit 1
 fi

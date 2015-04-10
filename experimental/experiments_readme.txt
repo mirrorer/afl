@@ -1,6 +1,7 @@
 Here's a quick overview of the stuff you can find in this directory:
 
-  - arm_support          - a very experimental and unstable support for ARMv7.
+  - asan_cgroups         - a contributed script to simplify fuzzing ASAN
+                           binaries with robust memory limits on Linux.
 
   - bash_harness         - a simple shell harness used to find a bunch of
                            post-Shellshock bugs.
@@ -24,14 +25,12 @@ Here's a quick overview of the stuff you can find in this directory:
 
   - libpng_no_checksum   - a sample patch for removing CRC checks in libpng.
 
-  - llvm_instrumentation - AFL instrumentation implemented as an LLVM pass;
-                           will probably graduate once tested thoroughly.
- 
   - post_library         - an example of how to build postprocessors for AFL.
 
 Note that the minimize_corpus.sh tool has graduated from the experimental/
-directory and is now available as ../afl-cmin.
+directory and is now available as ../afl-cmin. The LLVM mode has likewise
+graduated to ../llvm_mode/*.
 
-Most of these are meant chiefly as examples that need to be tweaked for your
-specific needs. They come with some basic documentation, but are not really
-production-grade.
+Most of the tools in this directory are meant chiefly as examples that need to
+be tweaked for your specific needs. They come with some basic documentation,
+but are not necessarily production-grade.

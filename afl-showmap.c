@@ -218,6 +218,8 @@ static void run_target(char** argv) {
   if (!quiet_mode)
     SAYF("-- Program output begins --\n");
 
+  MEM_BARRIER();
+
   child_pid = fork();
 
   if (child_pid < 0) PFATAL("fork() failed");
@@ -283,6 +285,8 @@ static void run_target(char** argv) {
   it.it_value.tv_sec = 0;
   it.it_value.tv_usec = 0;
   setitimer(ITIMER_REAL, &it, NULL);
+
+  MEM_BARRIER();
 
   /* Clean up bitmap, analyze exit condition, etc. */
 

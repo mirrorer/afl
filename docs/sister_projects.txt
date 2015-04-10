@@ -92,3 +92,18 @@ AFL-style in-process fuzzer for llvm (Kostya Serebryany)
 
   https://github.com/llvm-mirror/llvm/tree/master/lib/Fuzzer
 
+Distfuzz-AFL (Martijn Bogaard)
+------------------------------
+
+  Simplifies the management of afl-fuzz instances on remote machines. The
+  author notes that the current implementation isn't secure and should not
+  be exposed on the Internet.
+
+  https://github.com/MartijnB/disfuzz-afl
+
+afl.rs (Keegan McAllister)
+--------------------------
+
+  Allows Rust features to be easily fuzzed with AFL (using the LLVM mode).
+
+  https://github.com/kmcallister/afl.rs
