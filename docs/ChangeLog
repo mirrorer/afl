@@ -17,6 +17,19 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.61b:
+--------------
+
+  - Fixed an obscure bug compiling OpenSSL with afl-clang-fast. Patch by
+    Laszlo Szekeres.
+
+  - Fixed a 'make install' bug on non-x86 systems, thanks to Tobias Ospelt.
+
+  - Fixed a problem with half-broken llvm-config on Odroid, thanks to
+    Tobias Ospelt. (There is another odd bug there that hasn't been fully
+    fixed - TBD).
+
+--------------
 Version 1.60b:
 --------------
 

@@ -35,30 +35,41 @@ u8* __afl_area_ptr;
 u16 __afl_prev_loc;
 
 
+/* Create some decoy memory as early as possible to get us through any
+   code that runs before main(). */
+
+static void __afl_pre_map(void) {
+
+  __afl_area_ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE,
+                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+  /* Whoops. */
+
+  if (__afl_area_ptr == (void *)-1) exit(1);
+
+}
+
+
 /* SHM setup. */
 
 static void __afl_map_shm(void) {
 
   u8 *id_str = getenv(SHM_ENV_VAR);
 
-  /* Either attach to the specified region, or create a decoy map so that
-     we do not crash. */
+  /* If we're running under AFL, attach to the appropriate region, get rid
+     of the early-stage map. */
 
   if (id_str) {
 
     u32 shm_id = atoi(id_str);
+
+    munmap(__afl_area_ptr, MAP_SIZE);
     __afl_area_ptr = shmat(shm_id, NULL, 0);
 
-  } else {
-
-    __afl_area_ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE,
-                          MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    /* Whooooops. */
+    if (__afl_area_ptr == (void *)-1) exit(1);
 
   }
-
-  /* Whoops. */
-
-  if (__afl_area_ptr == (void *)-1) exit(1);
 
 }
 
@@ -112,11 +123,24 @@ static void __afl_start_forkserver(void) {
 }
 
 
-/* Make sure that all this stuff happens early on. */
+/* Proper initialization routine. */
 
-__attribute__((constructor (0))) void __afl_init() {
-
+static void __afl_init() {
   __afl_map_shm();
   __afl_start_forkserver();
-
 }
+
+
+/* Now, the tricky part. We want to get __afl_area_ptr assigned as soon
+   as possible, so that custom assembly that calls C code from .init
+   doesn't cause segfaults (hello, OpenSSL). But at this stage, getenv()
+   will not work, so we just use the dummy handler. */
+
+__attribute__((section(".preinit_array"), used))
+  static void (*__afl_preinit_f)(void) = __afl_pre_map;
+
+/* With this out of the way, we can wait until just before main() to
+   do the whole shmat() and forkserver thing. */
+
+__attribute__((section(".init_array"), used))
+  static void (*__afl_init_f)(void) = __afl_init;

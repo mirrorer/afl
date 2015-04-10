@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.60b
+VERSION     = 1.61b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -105,7 +105,11 @@ clean:
 	rm -rf out_dir qemu_mode/qemu-2.2.0
 	cd llvm_mode && make clean
 
+ifndef AFL_NOX86
 install: all
+else
+install: nox86
+endif
 	mkdir -p -m 755 $${DESTDIR}$(BIN_PATH) $${DESTDIR}$(HELPER_PATH) $${DESTDIR}$(DOC_PATH) $${DESTDIR}$(MISC_PATH)
 	rm -f $${DESTDIR}$(BIN_PATH)/afl-plot.sh
 	install -m 755 afl-gcc afl-fuzz afl-showmap afl-plot afl-tmin afl-cmin afl-gotcpu afl-whatsup $${DESTDIR}$(BIN_PATH)

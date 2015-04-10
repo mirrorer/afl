@@ -149,7 +149,6 @@ bool AFLCoverage::runOnModule(Module &M) {
 
       /* Set prev_loc to cur_loc >> 1 */
 
-      // Update prev_loc
       StoreInst *Store =
           IRB.CreateStore(ConstantInt::get(Int16Ty, cur_loc >> 1), AFLPrevLoc);
       Store->setMetadata(M.getMDKindID("nosanitize"), MDNode::get(C, None));
