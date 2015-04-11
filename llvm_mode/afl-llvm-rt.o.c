@@ -67,7 +67,13 @@ static void __afl_map_shm(void) {
     __afl_area_ptr = shmat(shm_id, NULL, 0);
 
     /* Whooooops. */
+
     if (__afl_area_ptr == (void *)-1) exit(1);
+
+    /* Write something into the bitmap so that even with low AFL_INST_RATIO,
+       our parent doesn't give up on us. */
+
+    __afl_area_ptr[0] = 1;
 
   }
 

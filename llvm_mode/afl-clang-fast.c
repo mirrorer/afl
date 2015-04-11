@@ -97,7 +97,7 @@ static void find_obj(u8* argv0) {
 
 static void edit_params(u32 argc, char** argv) {
 
-  u8 fortify_set = 0, asan_set = 0;
+  u8 fortify_set = 0, asan_set = 0, x_set = 0;
   u8 *name;
 
   cc_params = ck_alloc((argc + 32) * sizeof(u8*));
@@ -125,6 +125,8 @@ static void edit_params(u32 argc, char** argv) {
 #if defined(__x86_64__)
     if (!strcmp(cur, "-m32")) FATAL("-m32 is not supported");
 #endif
+
+    if (!strcmp(cur, "-x")) x_set = 1;
 
     if (!strcmp(cur, "-c") || !strcmp(cur, "-S") || !strcmp(cur, "-E"))
       maybe_linking = 0;
@@ -177,8 +179,15 @@ static void edit_params(u32 argc, char** argv) {
 
   }
 
-  if (maybe_linking)
+  if (maybe_linking) {
+
+    if (x_set) {
+      cc_params[cc_par_cnt++] = "-x";
+      cc_params[cc_par_cnt++] = "none";
+    }
+
     cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt.o", obj_path);
+  }
 
   cc_params[cc_par_cnt] = NULL;
 

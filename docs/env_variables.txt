@@ -139,7 +139,7 @@ discussed in section #1, with the exception of:
 
 Note that AFL_INST_RATIO will behave a bit differently than for afl-gcc,
 because functions are *not* instrumented unconditionally - so low values
-will have a more striking effect.
+will have a more striking effect. For this tool, 0 is not a valid choice.
 
 5) Settings for afl-cmin
 ------------------------

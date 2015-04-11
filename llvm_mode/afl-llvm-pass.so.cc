@@ -162,7 +162,7 @@ bool AFLCoverage::runOnModule(Module &M) {
   if (!be_quiet) {
 
     if (!inst_blocks) WARNF("No instrumentation targets found.");
-    else OKF("Instrumented %u locations (%s-bit, ratio %u%%).",
+    else OKF("Instrumented %u locations (%s mode, ratio %u%%).",
              inst_blocks,
              getenv("AFL_HARDEN") ? "hardened" : "non-hardened",
              inst_ratio);

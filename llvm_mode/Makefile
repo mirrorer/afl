@@ -49,9 +49,9 @@ all: test_deps $(PROGS) test_build all_done
 
 test_deps:
 	@echo "[*] Checking for working 'llvm-config'..."
-	@which $(LLVM_CONFIG) &>/dev/null || ( echo "[-] Oops, can't find 'llvm-config'. Install clang or set \$$LLVM_CONFIG beforehand."; echo "    (Sometimes, the binary will be named llvm-config-3.5 or something like that.)"; exit 1 )
+	@which $(LLVM_CONFIG) >/dev/null 2>&1 || ( echo "[-] Oops, can't find 'llvm-config'. Install clang or set \$$LLVM_CONFIG beforehand."; echo "    (Sometimes, the binary will be named llvm-config-3.5 or something like that.)"; exit 1 )
 	@echo "[*] Checking for working '$(CC)'..."
-	@which $(CC) &>/dev/null || ( echo "[-] Oops, can't find '$(CC)'. Make sure that it's in your \$$PATH."; exit 1 )
+	@which $(CC) >/dev/null 2>&1 || ( echo "[-] Oops, can't find '$(CC)'. Make sure that it's in your \$$PATH."; exit 1 )
 	@echo "[*] Checking for '../afl-showmap'..."
 	@test -f ../afl-showmap || ( echo "[-] Oops, can't find '../afl-showmap'. Be sure to compile AFL first."; exit 1 )
 	@echo "[+] All set and ready to build."
