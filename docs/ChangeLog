@@ -17,6 +17,21 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.64b:
+--------------
+
+  - Further simplified afl-clang-fast runtime by reverting .init_array to
+    __attribute__((constructor(0)). This should improve compatibility with
+    non-ELF platforms.
+
+  - Fixed a problem with afl-clang-fast and -shared libraries. Simplified
+    the code by getting rid of .preinit_array and replacing it with a .comm
+    object. Problem reported by Charlie Eriksen.
+
+  - Removed unnecessary instrumentation density adjustment for the LLVM mode.
+    Reported by Jonathan Neuschafer.
+
+--------------
 Version 1.63b:
 --------------
 

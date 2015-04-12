@@ -95,11 +95,6 @@ bool AFLCoverage::runOnModule(Module &M) {
 
   }
 
-  if (getenv("AFL_USE_ASAN") || getenv("AFL_USE_MSAN")) {
-    inst_ratio /= 3;
-    if (!inst_ratio) inst_ratio = 1;
-  }
-
   /* Get globals for the SHM region and the previous location. */
 
   GlobalVariable *AFLMapPtr =

@@ -36,7 +36,6 @@
 static u8*  obj_path;               /* Path to runtime libraries         */
 static u8** cc_params;              /* Parameters passed to the real CC  */
 static u32  cc_par_cnt = 1;         /* Param count, including argv0      */
-static u8   maybe_linking = 1;      /* Probably linking?                 */
 
 
 /* Try to find the runtime libraries. If that fails, abort. */
@@ -97,7 +96,7 @@ static void find_obj(u8* argv0) {
 
 static void edit_params(u32 argc, char** argv) {
 
-  u8 fortify_set = 0, asan_set = 0, x_set = 0;
+  u8 fortify_set = 0, asan_set = 0, x_set = 0, maybe_linking = 1, is_shared = 0;
   u8 *name;
 
   cc_params = ck_alloc((argc + 32) * sizeof(u8*));
@@ -128,6 +127,8 @@ static void edit_params(u32 argc, char** argv) {
 
     if (!strcmp(cur, "-x")) x_set = 1;
 
+    if (!strcmp(cur, "-shared")) is_shared = 1;
+
     if (!strcmp(cur, "-c") || !strcmp(cur, "-S") || !strcmp(cur, "-E"))
       maybe_linking = 0;
 
@@ -149,25 +150,23 @@ static void edit_params(u32 argc, char** argv) {
 
   }
 
-  if (asan_set) {
+  if (!asan_set) {
 
-    /* Pass this on to afl-llvm-pass to adjust map density. */
+    if (getenv("AFL_USE_ASAN")) {
 
-    setenv("AFL_USE_ASAN", "1", 1);
+      cc_params[cc_par_cnt++] = "-fsanitize=address";
 
-  } else if (getenv("AFL_USE_ASAN")) {
+      if (getenv("AFL_USE_MSAN"))
+        FATAL("ASAN and MSAN are mutually exclusive");
 
-    cc_params[cc_par_cnt++] = "-fsanitize=address";
+    } else if (getenv("AFL_USE_MSAN")) {
 
-    if (getenv("AFL_USE_MSAN"))
-      FATAL("ASAN and MSAN are mutually exclusive");
+      cc_params[cc_par_cnt++] = "-fsanitize=memory";
 
-  } else if (getenv("AFL_USE_MSAN")) {
+      if (getenv("AFL_USE_ASAN"))
+        FATAL("ASAN and MSAN are mutually exclusive");
 
-    cc_params[cc_par_cnt++] = "-fsanitize=memory";
-
-    if (getenv("AFL_USE_ASAN"))
-      FATAL("ASAN and MSAN are mutually exclusive");
+    }
 
   }
 
@@ -186,7 +185,9 @@ static void edit_params(u32 argc, char** argv) {
       cc_params[cc_par_cnt++] = "none";
     }
 
-    cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt.o", obj_path);
+    cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt%s.o", obj_path,
+                                           is_shared ? "-shared" : "");
+
   }
 
   cc_params[cc_par_cnt] = NULL;

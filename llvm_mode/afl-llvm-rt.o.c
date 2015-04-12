@@ -29,25 +29,13 @@
 #include <unistd.h>
 
 
-/* Globals needed by the injected instrumentation. */
+/* Globals needed by the injected instrumentation. The __afl_area_initial region
+   is used for instrumentation output before __afl_map_shm() has a chance to run.
+   It will end up as .comm, so it shouldn't be too wasteful. */
 
-u8* __afl_area_ptr;
+u8  __afl_area_initial[MAP_SIZE];
+u8* __afl_area_ptr = __afl_area_initial;
 u16 __afl_prev_loc;
-
-
-/* Create some decoy memory as early as possible to get us through any
-   code that runs before main(). */
-
-static void __afl_pre_map(void) {
-
-  __afl_area_ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE,
-                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-
-  /* Whoops. */
-
-  if (__afl_area_ptr == (void *)-1) exit(1);
-
-}
 
 
 /* SHM setup. */
@@ -56,14 +44,14 @@ static void __afl_map_shm(void) {
 
   u8 *id_str = getenv(SHM_ENV_VAR);
 
-  /* If we're running under AFL, attach to the appropriate region, get rid
-     of the early-stage map. */
+  /* If we're running under AFL, attach to the appropriate region, replacing the
+     early-stage __afl_area_initial region that is needed to allow some really
+     hacky .init code to work correctly in projects such as OpenSSL. */
 
   if (id_str) {
 
     u32 shm_id = atoi(id_str);
 
-    munmap(__afl_area_ptr, MAP_SIZE);
     __afl_area_ptr = shmat(shm_id, NULL, 0);
 
     /* Whooooops. */
@@ -131,22 +119,8 @@ static void __afl_start_forkserver(void) {
 
 /* Proper initialization routine. */
 
-static void __afl_init() {
+__attribute__((constructor(0))) void __afl_init()  {
   __afl_map_shm();
   __afl_start_forkserver();
 }
 
-
-/* Now, the tricky part. We want to get __afl_area_ptr assigned as soon
-   as possible, so that custom assembly that calls C code from .init
-   doesn't cause segfaults (hello, OpenSSL). But at this stage, getenv()
-   will not work, so we just use the dummy handler. */
-
-__attribute__((section(".preinit_array"), used))
-  static void (*__afl_preinit_f)(void) = __afl_pre_map;
-
-/* With this out of the way, we can wait until just before main() to
-   do the whole shmat() and forkserver thing. */
-
-__attribute__((section(".init_array"), used))
-  static void (*__afl_init_f)(void) = __afl_init;
