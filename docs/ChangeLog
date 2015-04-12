@@ -17,6 +17,15 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.63b:
+--------------
+
+  - Updated cgroups_asan/ with a new version from Sam, made a couple changes
+    to streamline it and keep parallel afl instances in separate groups.
+
+  - Fixed typos, thanks to Jakub Wilk.
+
+--------------
 Version 1.62b:
 --------------
 
@@ -61,6 +70,8 @@ Version 1.60b:
     consistency.
 
   - Made assorted updates to docs.
+
+  - Added MEM_BARRIER() to afl-showmap and afl-tmin, just t be safe.
 
 --------------
 Version 1.59b:

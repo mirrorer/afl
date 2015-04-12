@@ -1,10 +1,13 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # american fuzzy lop - limit memory using cgroups
 # -----------------------------------------------
 #
 # Written by Samir Khakimov <samir.hakim@nyu.edu> and
 #            David A. Wheeler <dwheeler@ida.org>
+#
+# Edits to bring the script in line with afl-cmin and other companion scripts
+# by Michal Zalewski <lcamtuf@google.com>. All bugs are my fault.
 #
 # Copyright 2015 Institute for Defense Analyses.
 #
@@ -16,129 +19,139 @@
 #
 # This tool allows the amount of actual memory allocated to a program
 # to be limited on Linux systems using cgroups, instead of the traditional
-# setrlimit() API. This helps avoid the problems discussed in
+# setrlimit() API. This helps avoid the address space problems discussed in
 # docs/notes_for_asan.txt.
 #
-# Note that this is a contributed script and its coding conventions and
-# error reporting differs a bit from the ones used in tools such as afl-cmin.
+# Important: the limit covers *both* afl-fuzz and the fuzzed binary. In some
+# hopefully rare circumstances, afl-fuzz could be killed before the fuzzed
+# task.
 #
 
-usage() {
-  echo 'Limit memory that can be used without limiting what can be allocated.'
-  echo 'This is useful when fuzzing 64-bit binaries with ASAN.'
-  echo 'You need to run this as root; it will run command as user USERNAME.'
-  echo
-  echo 'Usage:'
-  printf '%s\n' " $0 [-u USERNAME] [-m MEMORY_LIMIT] [-h|--help] command..."
-  echo
-  echo 'Options:'
-  echo '-u USERNAME : Run command as USERNAME.  It is strongly recommended'
-  echo '              that you supply a username (to limit privileges).'
-  echo '              Default is $USER.'
-  echo '-m MEMORY_LIMIT: Limit the amount of used memory to MEMORY_LIMIT;'
-  echo '              This does NOT limit the amount of allocated memory.'
-  echo '              Default is 50M (50 Mebibytes)'
-  echo '-h,--help:    Help'
-  echo
-  echo 'Example:'
-  printf '%s\n' " $0 -u joe afl-fuzz -m none -i input -o output system_under_test"
-  echo 'Limitations:'
-  echo 'Any whitespace in 'command' is interpreted as a parameter separator,'
-  echo 'due to limitations in the syntax of "su".'
-}
+echo "cgroup tool for afl-fuzz by <samir.hakim@nyu.edu> and <dwheeler@ida.org>"
+echo
 
-NEW_USER=""
-MEMORY_LIMIT="50M"
+unset NEW_USER
+MEM_LIMIT="50"
 
-# Sanity checks.
+while getopts "+u:m:" opt; do
 
-if [ "$(uname -s)" != 'Linux' ] ; then
- echo "Need to be running on a Linux system" >&2
+  case "$opt" in
+
+    "u")
+         NEW_USER="$OPTARG"
+         ;;
+
+    "m")
+         MEM_LIMIT="$[OPTARG]"
+         ;;
+
+    "?")
+         exit 1
+         ;;
+
+   esac
+
+done
+
+if [ "$MEM_LIMIT" -lt "5" ]; then
+  echo "[-] Error: malformed or dangerously low value of -m." 1>&2
+  exit 1
+fi
+
+shift $((OPTIND-1))
+
+TARGET_BIN="$1"
+
+if [ "$TARGET_BIN" = "" -o "$NEW_USER" = "" ]; then
+
+  cat 1>&2 <<_EOF_
+Usage: $0 [ options ] -- /path/to/afl-fuzz [ ...afl options... ]
+
+Required parameters:
+
+  -u user   - run the fuzzer as a specific user after setting up limits
+
+Optional parameters:
+
+  -m megs   - set memory limit to a specified value ($MEM_LIMIT MB)
+
+This tool configures cgroups-based memory limits for a fuzzing job to simplify
+the task of fuzzing ASAN or MSAN binaries. You would normally want to use it in
+conjunction with '-m none' passed to the afl-fuzz binary itself, say:
+
+  $0 -u joe ./afl-fuzz -i input -o output -m none /path/to/target
+
+_EOF_
+
+  exit 1
+
+fi
+
+# Basic sanity checks
+
+if [ ! "`uname -s`" = "Linux" ]; then
+ echo "[-] Error: this tool does not support non-Linux systems." 1>&2
  exit 1
 fi
 
-if ! type cgcreate > /dev/null 2>&1 ; then
-  echo "Need to install cgroup tools!" >&2
-  if type apt-get >/dev/null 2>&1  ; then
-    echo "Try: apt-get install cgroup-bin" >&2
-  elif type yum >/dev/null 2>&1 ; then
-    echo "Try: yum install libcgroup-tools" >&2
+if [ ! "`id -u`" = "0" ]; then
+ echo "[-] Error: you need to run this script as root (sorry!)." 1>&2
+ exit 1
+fi
+
+if ! type cgcreate 2>/dev/null 1>&2; then
+
+  echo "[-] Error: you need to install cgroup tools first." 1>&2
+
+  if type apt-get 2>/dev/null 1>&2; then
+    echo "    (Perhaps 'apt-get install cgroup-bin' will work.)" 1>&2
+  elif type yum 2>/dev/null 1>&2; then
+    echo "    (Perhaps 'yum install libcgroup-tools' will work.)" 1>&2
   fi
-  usage
-  exit 2
+
+  exit 1
+
 fi
 
-# Process options.
-
-while [ $# > 0 ] ; do
-  case "$1" in
-    -u)
-      shift
-      NEW_USER="$1"
-      shift ;;
-    -m)
-      shift
-      MEMORY_LIMIT="$1"
-      shift ;;
-    -h|--help)
-      usage
-      exit 0 ;;
-    --) shift; break ;;
-    -*)
-      echo "Unknown option $1" >&2
-      echo "Use -h for help" >&2
-      exit 3 ;;
-    *) break ;;
-  esac
-done
-
-# Defaults
-# If username unspecified, use $USER
-
-if [ "$NEW_USER" = "" ] ; then
-  NEW_USER="$USER"
+if ! id -u "$NEW_USER" 2>/dev/null 1>&2; then
+  echo "[-] Error: user '$NEW_USER' does not seem to exist." 1>&2
+  exit 1
 fi
 
-if ! id -u "$NEW_USER" > /dev/null 2>&1 ; then
-  echo "$NEW_USER is invalid user" >&2
-  exit 4
+# Create a new cgroup path if necessary... We used PID-keyed groups to keep
+# parallel afl-fuzz tasks separate from each other.
+
+CID="afl-$NEW_USER-$$"
+
+CPATH="/sys/fs/cgroup/memory/$CID"
+
+if [ ! -d "$CPATH" ]; then
+
+  cgcreate -a "$NEW_USER" -g memory:"$CID" || exit 1
+
 fi
 
-# If no command provided, use "sh" as command
+# Set the appropriate limit...
 
-if [ $# = 0 ] ; then
-  set sh
-fi
+if [ -f "$CPATH/memory.memsw.limit_in_bytes" ]; then
 
-if [ "$NEW_USER" = "root" ] ; then
-  echo "Warning: executing command as root user" >&2
-fi
+  echo "${MEM_LIMIT}M" > "$CPATH/memory.limit_in_bytes" 2>/dev/null
+  echo "${MEM_LIMIT}M" > "$CPATH/memory.memsw.limit_in_bytes" || exit 1
+  echo "${MEM_LIMIT}M" > "$CPATH/memory.limit_in_bytes" || exit 1
 
-if [ ! -d "/sys/fs/cgroup/memory/$NEW_USER" ] ; then
-  cgcreate -a "$NEW_USER" -g memory:"$NEW_USER"
-  if [ $? != 0 ] ; then
-    echo "Could not create memory setting for user $NEW_USER" >&2
-    exit 5
-  fi
-fi
+elif grep -qE 'partition|file' /proc/swaps; then
 
-if [ -f "/sys/fs/cgroup/memory/$NEW_USER/memory.memsw.limit_in_bytes" ] ; then
-  printf '%s\n' "$MEMORY_LIMIT" > "/sys/fs/cgroup/memory/$NEW_USER/memory.memsw.limit_in_bytes"
+  echo "[-] Error: your system requires swap to be disabled first (swapoff -a)." 1>&2
+  exit 1
+
 else
-  # This system does not support memsw.limit_in_bytes;
-  # we must disable swapping for the memory limit to work.
-  swapoff -a
-  if [ $? != 0 ] ; then
-    echo "Could not disable swapping." >&2
-    exit 6
-  fi
+
+  echo "${MEM_LIMIT}M" > "$CPATH/memory.limit_in_bytes" || exit 1
+
 fi
 
-printf '%s\n' "$MEMORY_LIMIT" > "/sys/fs/cgroup/memory/$NEW_USER/memory.limit_in_bytes"
+# All right. At this point, we can just run the command.
 
-if [ $? != 0 ] ; then
-  echo "Could not set memory limit" >&2
-  exit 7
-fi
+cgexec -g "memory:$CID" su -c "$*" "$NEW_USER"
 
-cgexec -g "memory:$NEW_USER" su -c "$*" "$NEW_USER"
+cgdelete -g "memory:$CID"

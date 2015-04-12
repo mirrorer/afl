@@ -9,7 +9,7 @@ Fast LLVM-based instrumentation for afl-fuzz
 
 The code in this directory allows you to instrument programs for AFL using
 true compiler-level instrumentation, instead of the more crude
-assembly-level rewriting approach taken by by afl-gcc afl-clang. This has
+assembly-level rewriting approach taken by by afl-gcc and afl-clang. This has
 several interesting properties:
 
   - The compiler can make many optimizations that are hard to pull off when
@@ -40,9 +40,16 @@ In order to leverage this mechanism, you need to have clang installed on your
 system. You should also make sure that the llvm-config tool is in your path;
 if not, be sure to set LLVM_CONFIG in the environment beforehand.
 
-To build, type 'make'. This will generate binaries called afl-clang-fast and
-afl-clang-fast++ in the parent directory. Once this is done, you can instrument
-third-party code in a way similar to the standard operating mode of AFL, e.g.:
+Unfortunately, some systems come without llvm-config or the LLVM development
+headers. In such a case, you may have to do a full install on your own, or
+download pre-built binaries from:
+
+  http://llvm.org/releases/download.html
+
+To build the instrumentation, type 'make'. This will generate binaries called
+afl-clang-fast and afl-clang-fast++ in the parent directory. Once this is done,
+you can instrument third-party code in a way similar to the standard operating
+mode of AFL, e.g.:
 
   CC=/path/to/afl/afl-clang-fast ./configure [...options...]
   make
