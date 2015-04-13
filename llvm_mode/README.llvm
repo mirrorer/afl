@@ -9,7 +9,7 @@ Fast LLVM-based instrumentation for afl-fuzz
 
 The code in this directory allows you to instrument programs for AFL using
 true compiler-level instrumentation, instead of the more crude
-assembly-level rewriting approach taken by by afl-gcc and afl-clang. This has
+assembly-level rewriting approach taken by afl-gcc and afl-clang. This has
 several interesting properties:
 
   - The compiler can make many optimizations that are hard to pull off when

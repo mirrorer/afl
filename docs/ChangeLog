@@ -17,6 +17,14 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.65b:
+--------------
+
+  - Fixed a snafu with some leftover code in afl-clang-fast.
+
+  - Corrected even moar typos.
+
+--------------
 Version 1.64b:
 --------------
 
@@ -86,7 +94,7 @@ Version 1.60b:
 
   - Made assorted updates to docs.
 
-  - Added MEM_BARRIER() to afl-showmap and afl-tmin, just t be safe.
+  - Added MEM_BARRIER() to afl-showmap and afl-tmin, just to be safe.
 
 --------------
 Version 1.59b:
@@ -910,7 +918,7 @@ Version 0.88b:
 --------------
 
   - Added support for plotting, with design and implementation based on a
-    prototype design proposed by by Michael Rash. Huge thanks!
+    prototype design proposed by Michael Rash. Huge thanks!
 
   - Added afl-plot.sh, which allows you to, well, generate a nice plot using
     this data.

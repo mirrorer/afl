@@ -96,7 +96,7 @@ static void find_obj(u8* argv0) {
 
 static void edit_params(u32 argc, char** argv) {
 
-  u8 fortify_set = 0, asan_set = 0, x_set = 0, maybe_linking = 1, is_shared = 0;
+  u8 fortify_set = 0, asan_set = 0, x_set = 0, maybe_linking = 1;
   u8 *name;
 
   cc_params = ck_alloc((argc + 32) * sizeof(u8*));
@@ -126,8 +126,6 @@ static void edit_params(u32 argc, char** argv) {
 #endif
 
     if (!strcmp(cur, "-x")) x_set = 1;
-
-    if (!strcmp(cur, "-shared")) is_shared = 1;
 
     if (!strcmp(cur, "-c") || !strcmp(cur, "-S") || !strcmp(cur, "-E"))
       maybe_linking = 0;
@@ -185,8 +183,7 @@ static void edit_params(u32 argc, char** argv) {
       cc_params[cc_par_cnt++] = "none";
     }
 
-    cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt%s.o", obj_path,
-                                           is_shared ? "-shared" : "");
+    cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt.o", obj_path);
 
   }
 
