@@ -6859,8 +6859,7 @@ int main(int argc, char** argv) {
 
   char** use_argv;
 
-  SAYF(cCYA "afl-fuzz " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
-       ") by <lcamtuf@google.com>\n");
+  SAYF(cCYA "afl-fuzz " cBRI VERSION cRST " by <lcamtuf@google.com>\n");
 
   doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 

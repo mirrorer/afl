@@ -17,6 +17,19 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.66b:
+--------------
+
+  - Added CC / CXX support to llvm_mode Makefile. Requested by Charlie Eriksen.
+
+  - Fixed 'make clean' with gmake. Suggested by Oliver Schneider.
+
+  - Fixed 'make -j n clean all'. Suggested by Oliver Schneider.
+
+  - Removed build date and time from banners to give people deterministic
+    builds. Requested by Jakub Wilk.
+
+--------------
 Version 1.65b:
 --------------
 

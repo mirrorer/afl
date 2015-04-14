@@ -40,8 +40,8 @@ CLANG_LFL    = `$(LLVM_CONFIG) --ldflags` $(LDFLAGS)
 # this seems to be busted on some distros, so using the one in $PATH is
 # probably better.
 
-CC           = clang
-CXX          = clang++
+CC          ?= clang
+CXX         ?= clang++
 
 PROGS        = ../afl-clang-fast ../afl-llvm-pass.so ../afl-llvm-rt.o
 
@@ -49,9 +49,9 @@ all: test_deps $(PROGS) test_build all_done
 
 test_deps:
 	@echo "[*] Checking for working 'llvm-config'..."
-	@which $(LLVM_CONFIG) >/dev/null 2>&1 || ( echo "[-] Oops, can't find 'llvm-config'. Install clang or set \$$LLVM_CONFIG beforehand."; echo "    (Sometimes, the binary will be named llvm-config-3.5 or something like that.)"; exit 1 )
+	@which $(LLVM_CONFIG) >/dev/null 2>&1 || ( echo "[-] Oops, can't find 'llvm-config'. Install clang or set \$$LLVM_CONFIG or \$$PATH beforehand."; echo "    (Sometimes, the binary will be named llvm-config-3.5 or something like that.)"; exit 1 )
 	@echo "[*] Checking for working '$(CC)'..."
-	@which $(CC) >/dev/null 2>&1 || ( echo "[-] Oops, can't find '$(CC)'. Make sure that it's in your \$$PATH."; exit 1 )
+	@which $(CC) >/dev/null 2>&1 || ( echo "[-] Oops, can't find '$(CC)'. Make sure that it's in your \$$PATH (or set \$$CC and \$$CXX)."; exit 1 )
 	@echo "[*] Checking for '../afl-showmap'..."
 	@test -f ../afl-showmap || ( echo "[-] Oops, can't find '../afl-showmap'. Be sure to compile AFL first."; exit 1 )
 	@echo "[+] All set and ready to build."
@@ -77,6 +77,8 @@ test_build: $(PROGS)
 
 all_done: test_build
 	@echo "[+] All done! You can now use '../afl-clang-fast' to compile programs."
+
+.NOTPARALLEL: clean
 
 clean:
 	rm -f *.o *.so *~ a.out core core.[1-9][0-9]* test-instr .test-instr0 .test-instr1 

@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.65b
+VERSION     = 1.66b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -100,10 +100,12 @@ all_done: test_build
 	@echo "[+] All done! Be sure to review README - it's pretty short and useful."
 	@! tty <&1 >/dev/null || printf "\033[0;30mNOTE: If you can read this, your terminal probably uses white background.\nThis will make the UI hard to read. See docs/status_screen.txt for advice.\033[0m\n" 2>/dev/null
 
+.NOTPARALLEL: clean
+
 clean:
 	rm -f $(PROGS) as afl-g++ afl-clang afl-clang++ *.o *~ a.out core core.[1-9][0-9]* *.stackdump test .test test-instr .test-instr0 .test-instr1 qemu_mode/qemu-2.2.0.tar.bz2 afl-qemu-trace
 	rm -rf out_dir qemu_mode/qemu-2.2.0
-	cd llvm_mode && make clean
+	$(MAKE) -C llvm_mode clean
 
 ifndef AFL_NOX86
 install: all

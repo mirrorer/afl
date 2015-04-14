@@ -416,8 +416,7 @@ static void detect_file_args(char** argv) {
 
 static void show_banner(void) {
 
-  SAYF(cCYA "afl-showmap " cBRI VERSION cRST " (" __DATE__ " " __TIME__ 
-       ") by <lcamtuf@google.com>\n");
+  SAYF(cCYA "afl-showmap " cBRI VERSION cRST " by <lcamtuf@google.com>\n");
 
 }
 

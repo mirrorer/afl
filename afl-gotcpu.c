@@ -77,8 +77,7 @@ int main(int argc, char** argv) {
   s32 loop_repeats = 0, util_perc;
   u64 st_t, en_t, st_c, en_c, real_delta, slice_delta;
 
-  SAYF(cCYA "afl-gotcpu " cBRI VERSION cRST " (" __DATE__ " " __TIME__
-       ") by <lcamtuf@google.com>\n");
+  SAYF(cCYA "afl-gotcpu " cBRI VERSION cRST " by <lcamtuf@google.com>\n");
 
   /* Run a busy loop for CTEST_TARGET_MS. */
 
