@@ -40,8 +40,12 @@ CLANG_LFL    = `$(LLVM_CONFIG) --ldflags` $(LDFLAGS)
 # this seems to be busted on some distros, so using the one in $PATH is
 # probably better.
 
-CC          ?= clang
-CXX         ?= clang++
+ifeq "$(findstring clang, $(CC))" ""
+
+CC           = clang
+CXX          = clang++
+
+endif
 
 PROGS        = ../afl-clang-fast ../afl-llvm-pass.so ../afl-llvm-rt.o
 

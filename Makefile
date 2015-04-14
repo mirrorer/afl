@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 1.66b
+VERSION     = 1.67b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
