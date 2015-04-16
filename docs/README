@@ -422,6 +422,7 @@ bug reports, or patches from:
   Aidan Thornton                        Aleksandar Nikolich
   Sam Hakim                             Laszlo Szekeres
   David A. Wheeler                      Turo Lamminen
+  Andreas Stieger
 
 Thank you!
 
@@ -438,8 +439,9 @@ archives first, try:
   https://groups.google.com/group/afl-users
 
 PS. If you wish to submit raw code to be incorporated into the project, please
-be aware that the copyright on AFL is formally claimed by Google, and they do
-ask contributors to agree to a simple CLA first:
+be aware that the copyright on most of AFL is formally claimed by Google. While
+you do retain copyright on your contributions, they do ask people to agree
+to a simple CLA first:
 
   https://cla.developers.google.com/clas
 

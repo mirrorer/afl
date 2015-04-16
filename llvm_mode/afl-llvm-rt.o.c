@@ -72,7 +72,7 @@ static void __afl_map_shm(void) {
 
 static void __afl_start_forkserver(void) {
 
-  u8 tmp[4];
+  static u8 tmp[4];
 
   /* Phone home and tell the parent that we're OK. If parent isn't there,
      assume we're not running in forkserver mode and just execute program. */

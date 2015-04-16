@@ -17,10 +17,22 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.68b:
+--------------
+
+  - Fixed a minor PRNG glitch that would make the first seconds of a fuzzing
+    job deterministic. Thanks to Andreas Stieger.
+
+  - Made tmp[] static in the LLVM runtime to keep Valgrind happy (this had
+    no impact on anything else). Spotted by Richard Godbee.
+
+  - Clarified the footnote in README.
+
+--------------
 Version 1.67b:
 --------------
 
-  - One more correction to llvm_mode Makefile, spotted by Jakub Wilk.
+  - Made one more correction to llvm_mode Makefile, spotted by Jakub Wilk.
 
 --------------
 Version 1.66b:
