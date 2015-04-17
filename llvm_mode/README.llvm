@@ -72,3 +72,44 @@ directory.
 
 This is an early-stage mechanism, so field reports are welcome. You can send
 bug reports to <afl-users@googlegroups.com>.
+
+4) Bonus feature: deferred instrumentation
+------------------------------------------
+
+AFL tries to optimize performance by executing the targeted binary just once,
+stopping it just before main(), and then cloning this "master" process to get
+a steady supply of targets to fuzz.
+
+Although this approach eliminates much of the OS-, linker- and libc-level
+costs of executing the program, it does not always help with binaries that
+perform other time-consuming initialization steps before getting to the input
+file.
+
+In such cases, it would be beneficial to initialize the forkserver a bit later,
+once most of the initialization work is already done, and the binary is about
+to read the fuzzed input and parse it. You can do this in LLVM mode in a fairly
+simple way:
+
+1) First, locate a suitable location in the code for the deferred initialization
+   to take place. This needs to be done with *extreme* care to avoid breaking
+   the binary. In particular, the program will probably malfunction if the
+   initialization happens after:
+
+   - The creation of any vital threads or child processes - since the forkserver
+     can't clone them easily.
+
+   - The creation of temporary files, network sockets, offset-sensitive file
+     descriptors, and similar shared-state resources - but only provided that
+     they actually influence the behavior of the program later on.
+
+   - Any access to the fuzzed input or the metadata about its size.
+
+2) Next, insert the following global function declaration somewhere in the
+   source file:
+
+   void __afl_manual_init(void);
+
+   ...and add a call to this function in the desired location before recompiling
+   the project with afl-clang-fast (afl-gcc and afl-clang will *not* work).
+
+3) Finally, be sure to set AFL_DEFER_FORKSRV=1 before invoking afl-fuzz.

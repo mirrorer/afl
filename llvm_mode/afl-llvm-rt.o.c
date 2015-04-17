@@ -27,6 +27,7 @@
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <assert.h>
 
 
 /* Globals needed by the injected instrumentation. The __afl_area_initial region
@@ -36,7 +37,6 @@
 u8  __afl_area_initial[MAP_SIZE];
 u8* __afl_area_ptr = __afl_area_initial;
 u16 __afl_prev_loc;
-
 
 /* SHM setup. */
 
@@ -117,10 +117,30 @@ static void __afl_start_forkserver(void) {
 }
 
 
+/* This one can be called from user code when AFL_DEFER_FORKSRV is set. */
+
+void __afl_manual_init(void) {
+
+  static u8 init_done;
+
+  if (!init_done) {
+
+    __afl_map_shm();
+    __afl_start_forkserver();
+    init_done = 1;
+
+  }
+
+}
+
+
 /* Proper initialization routine. */
 
-__attribute__((constructor(0))) void __afl_init()  {
-  __afl_map_shm();
-  __afl_start_forkserver();
+__attribute__((constructor(0))) void __afl_auto_init(void) {
+
+  if (getenv("AFL_DEFER_FORKSRV")) return;
+  __afl_manual_init();
+
 }
+
 

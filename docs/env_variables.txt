@@ -110,6 +110,10 @@ checks or alter some of the more exotic semantics of the tool:
     may complain of high load prematurely, especially on systems with low core
     counts. To avoid the alarming red color, you can set AFL_NO_CPU_RED.
 
+  - In LLVM mode, AFL_DEFER_FORKSRV can be set to require the forkserver to
+    be initialized manually (see llvm_mode/README.llvm). This setting has no
+    effect for progrms not compiled with afl-clang-fast.
+
 3) Settings for afl-qemu-trace
 ------------------------------
 
