@@ -86,9 +86,9 @@ perform other time-consuming initialization steps before getting to the input
 file.
 
 In such cases, it would be beneficial to initialize the forkserver a bit later,
-once most of the initialization work is already done, and the binary is about
-to read the fuzzed input and parse it. You can do this in LLVM mode in a fairly
-simple way:
+once most of the initialization work is already done, but before the binary
+attempts to read the fuzzed input and parse it. You can do this in LLVM mode in
+a fairly simple way:
 
 1) First, locate a suitable location in the code for the deferred initialization
    to take place. This needs to be done with *extreme* care to avoid breaking
@@ -100,9 +100,13 @@ simple way:
 
    - The creation of temporary files, network sockets, offset-sensitive file
      descriptors, and similar shared-state resources - but only provided that
-     they actually influence the behavior of the program later on.
+     their state meaningfully influences the behavior of the program later on.
 
-   - Any access to the fuzzed input or the metadata about its size.
+   - Any access to the fuzzed input, including the metadata about its size.
+
+   Of course, things will also not work if the forkserver is never initialized
+   at all; in this case, afl-fuzz will complain about failed handshake and bail
+   out.
 
 2) Next, insert the following global function declaration somewhere in the
    source file:
@@ -113,3 +117,10 @@ simple way:
    the project with afl-clang-fast (afl-gcc and afl-clang will *not* work).
 
 3) Finally, be sure to set AFL_DEFER_FORKSRV=1 before invoking afl-fuzz.
+
+Again, this feature is easy to misuse; be careful and double-test that the
+coverage and the number of discovered paths is comparable between normal and
+deferred runs. That said, when you do it well, you can see gains up to 10x or
+so:
+
+  https://groups.google.com/forum/#!topic/afl-users/fNMJHl7Fhzs

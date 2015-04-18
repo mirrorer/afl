@@ -48,8 +48,9 @@ Keep in mind that if you are using csh as your shell, the syntax of some of the
 shell commands given in the README and other docs will be different. Beyond
 that, everything should work as advertised.
 
-The QEMU mode is currently supported only on Linux. I'll try to get BSD
-working at some point in the not-too-distant future.
+The QEMU mode is currently supported only on Linux. I think it's just a QEMU
+problem, I couldn't get user-mode emulation support working correctly on BSD
+at all.
 
 3) MacOS X on x86
 -----------------
@@ -90,17 +91,16 @@ black-box instrumentation mode (-Q) will not work.
 4) Linux or *BSD on non-x86 systems
 -----------------------------------
 
-Non-x86 systems are not officially supported, but you may be able to leverage
-one of two modes:
+Standard build will fail on non-x86 systems, but you should be able to
+leverage two other options:
 
   - The LLVM mode (see llvm_mode/README.llvm), which does not rely on
     x86-specific assembly shims,
 
   - The QEMU mode (see qemu_mode/README.qemu), which can be also used for
-    cross-platform binaries.
+    fuzzing cross-platform binaries.
 
-In both cases, you will need to set AFL_NOX86=1 before running make. Field
-reports welcome.
+In both cases, you will need to set AFL_NOX86=1 before running make.
 
 5) Solaris on x86
 -----------------

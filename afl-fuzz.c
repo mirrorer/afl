@@ -1892,8 +1892,9 @@ static void init_forkserver(char** argv) {
 
     SAYF("\n" cLRD "[-] " cRST
          "Hmm, looks like the target binary terminated before we could complete a\n"
-         "    handshake with the injected code. There are two probable explanations:\n\n"
+         "    handshake with the injected code. There are %s probable explanations:\n\n"
 
+         "%s"
          "    - The current memory limit (%s) is too restrictive, causing an OOM\n"
          "      fault in the dynamic linker. This can be fixed with the -m option. A\n"
          "      simple way to confirm the diagnosis may be:\n\n"
@@ -1909,6 +1910,10 @@ static void init_forkserver(char** argv) {
 
          "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
          "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n",
+         getenv("AFL_DEFER_FORKSRV") ? "three" : "two",
+         getenv("AFL_DEFER_FORKSRV") ?
+         "    - You are using AFL_DEFER_FORKSRV, but __afl_manual_init() is never\n"
+         "      reached before the program terminates.\n\n" : "",
          DMS(mem_limit << 20), mem_limit - 1);
 
   }
@@ -2371,7 +2376,7 @@ static void perform_dry_run(char** argv) {
              instructs afl-fuzz to tolerate but skip queue entries that time
              out. */
 
-          if (timeout_given == 2) {
+          if (timeout_given > 1) {
             WARNF("Test case results in a hang (skipping)");
             q->cal_failed = CAL_CHANCES;
             cal_failures++;
@@ -2923,6 +2928,43 @@ static u32 find_start_position(void) {
 }
 
 
+/* The same, but for timeouts. The idea is that when resuming sessions without
+   -t given, we don't want to keep auto-scaling the timeout over and over
+   again to prevent it from growing due to random flukes. */
+
+static void find_timeout(void) {
+
+  static u8 tmp[4096]; /* Ought to be enough for anybody. */
+
+  u8  *fn, *off;
+  s32 fd, i;
+  u32 ret;
+
+  if (!resuming_fuzz) return;
+
+  if (in_place_resume) fn = alloc_printf("%s/fuzzer_stats", out_dir);
+  else fn = alloc_printf("%s/../fuzzer_stats", in_dir);
+
+  fd = open(fn, O_RDONLY);
+  ck_free(fn);
+
+  if (fd < 0) return;
+
+  i = read(fd, tmp, sizeof(tmp) - 1); (void)i; /* Ignore errors */
+  close(fd);
+
+  off = strstr(tmp, "exec_timeout   : ");
+  if (!off) return;
+
+  ret = atoi(off + 17);
+  if (ret <= 4) return;
+
+  exec_tmout = ret;
+  timeout_given = 3;
+
+}
+
+
 /* Update stats file for unattended monitoring. */
 
 static void write_stats_file(double bitmap_cvg, double eps) {
@@ -2971,6 +3013,7 @@ static void write_stats_file(double bitmap_cvg, double eps) {
              "bitmap_cvg     : %0.02f%%\n"
              "unique_crashes : %llu\n"
              "unique_hangs   : %llu\n"
+             "exec_timeout   : %u\n"
              "afl_banner     : %s\n"
              "afl_version    : " VERSION "\n"
              "command_line   : %s\n",
@@ -2979,7 +3022,7 @@ static void write_stats_file(double bitmap_cvg, double eps) {
              queued_paths, queued_discovered, queued_imported, max_depth,
              current_entry, pending_favored, pending_not_fuzzed,
              queued_variable, bitmap_cvg, unique_crashes, unique_hangs,
-             use_banner, orig_cmdline); /* ignore errors */
+             exec_tmout, use_banner, orig_cmdline); /* ignore errors */
 
   fclose(f);
 
@@ -3875,6 +3918,10 @@ static void show_init_stats(void) {
          exec_tmout);
 
     timeout_given = 1;
+
+  } else if (timeout_given == 3) {
+
+    ACTF("Applying timeout settings from resumed session (%u ms).", exec_tmout);
 
   }
 
@@ -7063,6 +7110,8 @@ int main(int argc, char** argv) {
   pivot_inputs();
 
   if (extras_dir) load_extras(extras_dir);
+
+  if (!timeout_given) find_timeout();
 
   detect_file_args(argv + optind + 1);
 

@@ -6,12 +6,23 @@ Sister projects
   designed for, or meant to integrate with AFL. See README for the general
   instruction manual.
 
+-----------------
+General interest:
+-----------------
+
 AFL Utils (rc0r)
 ----------------
 
-  Simplifies the triage of discovered crashes.
+  Simplifies the triage of discovered crashes, start parallel instances, etc.
 
   https://github.com/rc0r/afl-utils
+
+afl-fuzzing-scripts (Tobias Ospelt)
+-----------------------------------
+
+  Simplifies starting up multiple parallel AFL jobs.
+
+  https://github.com/floyd-fuh/afl-fuzzing-scripts/
 
 Crashwalk (Ben Nagy)
 --------------------
@@ -20,13 +31,29 @@ Crashwalk (Ben Nagy)
 
   https://github.com/bnagy/crashwalk
 
-AFL Fixup Shim (Ben Nagy)
+Distfuzz-AFL (Martijn Bogaard)
+------------------------------
+
+  Simplifies the management of afl-fuzz instances on remote machines. The
+  author notes that the current implementation isn't secure and should not
+  be exposed on the Internet.
+
+  https://github.com/MartijnB/disfuzz-afl
+
+AFL fixup shim (Ben Nagy)
 -------------------------
 
   Allows AFL_POST_LIBRARY postprocessors to be written in arbitrary languages
   that don't have C / .so bindings. Includes examples in Go.
 
   https://github.com/bnagy/aflfix
+
+RecidiVM (Jakub Wilk)
+---------------------
+
+  Makes it easy to estimate memory usage limits when fuzzing with ASAN or MSAN.
+
+  http://jwilk.net/software/recidivm
 
 Static binary-only instrumentation (Aleksandar Nikolich)
 --------------------------------------------------------
@@ -38,21 +65,6 @@ Static binary-only instrumentation (Aleksandar Nikolich)
 
   https://github.com/vrtadmin/moflow/tree/master/afl-dyninst
 
-Python AFL (Jakub Wilk)
------------------------
-
-  Allows fuzz-testing of Python programs. Uses custom instrumentation and its
-  own forkserver.
-
-  https://bitbucket.org/jwilk/python-afl
-
-RecidiVM (Jakub Wilk)
----------------------
-
-  Makes it easy to estimate memory usage limits when fuzzing with ASAN or MSAN.
-
-  http://jwilk.net/software/recidivm
-
 AFL PIN (Parker Thompson)
 -------------------------
 
@@ -60,20 +72,6 @@ AFL PIN (Parker Thompson)
   faster-running QEMU).
 
   https://github.com/mothran/aflpin
-
-AFL JS (Han Choongwoo)
-----------------------
-
-  One-off optimizations to speed up the fuzzing of JavaScriptCore.
-
-  https://github.com/tunz/afl-fuzz-js
-
-AFL harness for fwknop (Michael Rash)
--------------------------------------
-
-  An example of a fairly involved integration with AFL.
-
-  https://github.com/mrash/fwknop/tree/master/test/afl
 
 AFL-style instrumentation in llvm (Kostya Serebryany)
 -----------------------------------------------------
@@ -92,14 +90,24 @@ AFL-style in-process fuzzer for llvm (Kostya Serebryany)
 
   https://github.com/llvm-mirror/llvm/tree/master/lib/Fuzzer
 
-Distfuzz-AFL (Martijn Bogaard)
-------------------------------
+Python AFL (Jakub Wilk)
+-----------------------
 
-  Simplifies the management of afl-fuzz instances on remote machines. The
-  author notes that the current implementation isn't secure and should not
-  be exposed on the Internet.
+  Allows fuzz-testing of Python programs. Uses custom instrumentation and its
+  own forkserver.
 
-  https://github.com/MartijnB/disfuzz-afl
+  https://bitbucket.org/jwilk/python-afl
+
+-------------------------------
+Narrow-purpose or experimental:
+-------------------------------
+
+AFL JS (Han Choongwoo)
+----------------------
+
+  One-off optimizations to speed up the fuzzing of JavaScriptCore.
+
+  https://github.com/tunz/afl-fuzz-js
 
 afl.rs (Keegan McAllister)
 --------------------------
@@ -107,3 +115,17 @@ afl.rs (Keegan McAllister)
   Allows Rust features to be easily fuzzed with AFL (using the LLVM mode).
 
   https://github.com/kmcallister/afl.rs
+
+AFL harness for fwknop (Michael Rash)
+-------------------------------------
+
+  An example of a fairly involved integration with AFL.
+
+  https://github.com/mrash/fwknop/tree/master/test/afl
+
+Fuzzer shell for SQLite (Richard Hipp)
+--------------------------------------
+
+  A simple SQL shell designed specifically for fuzzing the underlying library.
+
+  http://www.sqlite.org/src/artifact/9e7e273da2030371

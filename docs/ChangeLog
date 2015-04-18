@@ -17,6 +17,24 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.70b:
+--------------
+
+  - Modified resumption code to reuse the original timeout value when resuming
+    a session if -t is not given. This prevents timeout creep in continuous
+    fuzzing.
+
+  - Added improved error messages for failed handshake when AFL_DEFER_FORKSRV
+    is set.
+
+  - Made a slight improvement to llvm_mode/Makefile based on feedback from
+    Jakub Wilk.
+
+  - Refreshed several bits of documentation.
+
+  - Added a more prominent note about the MacOS X trade-offs to Makefile.
+
+--------------
 Version 1.69b:
 --------------
 

@@ -40,7 +40,7 @@ CLANG_LFL    = `$(LLVM_CONFIG) --ldflags` $(LDFLAGS)
 # this seems to be busted on some distros, so using the one in $PATH is
 # probably better.
 
-ifeq "$(findstring clang, $(CC))" ""
+ifeq "$(origin CC)" "default"
 
 CC           = clang
 CXX          = clang++

@@ -15,15 +15,17 @@ tools make fairly broad use of environmental variables:
 
   - Setting AFL_HARDEN automatically adds code hardening options when invoking
     the downstream compiler. This currently includes -D_FORTIFY_SOURCE=2 and
-    -fstack-protector-all. The option is useful for catching non-crashing
+    -fstack-protector-all. The setting is useful for catching non-crashing
     memory bugs at the expense of a very slight (sub-5%) performance loss.
 
-  - By default, the wrapper appends -O3 to optimize builds. In the exceedingly
-    unlikely case this causes problems, set AFL_DONT_OPTIMIZE.
+  - By default, the wrapper appends -O3 to optimize builds. Very rarely, this
+    will cause problems in programs built with -Werror, simply because -O3
+    enables more thorough code analysis and can spew out additional warnings.
+    To disable optimizations, set AFL_DONT_OPTIMIZE.
 
   - Setting AFL_USE_ASAN automatically enables ASAN, provided that your
-    compiler supports that. Note that fuzzing with ASAN is problematic - see
-    notes_for_asan.txt.
+    compiler supports that. Note that fuzzing with ASAN is mildly challenging
+    - see notes_for_asan.txt.
 
     (You can also enable MSAN via AFL_USE_MSAN; ASAN and MSAN come with the
     same gotchas; the modes are mutually exclusive.)
@@ -89,7 +91,7 @@ checks or alter some of the more exotic semantics of the tool:
   - When developing custom instrumentation on top of afl-fuzz, you can use
     AFL_SKIP_BIN_CHECK to inhibit the checks for non-instrumented binaries
     and shell scripts; and AFL_DUMB_FORKSRV in conjunction with the -n
-    setting to instruct afl-fuzz to still follow the fork server protocol,
+    setting to instruct afl-fuzz to still follow the fork server protocol
     without expecting any instrumentation data in return.
 
   - When running in the -M or -S mode, setting AFL_IMPORT_FIRST causes the
@@ -100,7 +102,7 @@ checks or alter some of the more exotic semantics of the tool:
 
     The benefit of AFL_IMPORT_FIRST is that it makes the "own finds" counter
     in the UI more accurately reflect the number of findings made by the
-    instance (that the remaining ones did not already have).
+    instance (that the remaining instances did not already have).
 
   - Setting AFL_POST_LIBRARY allows you to configure a postprocessor for
     mutated files - say, to fix up checksums. See experimental/post_library/
@@ -112,7 +114,7 @@ checks or alter some of the more exotic semantics of the tool:
 
   - In LLVM mode, AFL_DEFER_FORKSRV can be set to require the forkserver to
     be initialized manually (see llvm_mode/README.llvm). This setting has no
-    effect for progrms not compiled with afl-clang-fast.
+    effect for programs not compiled with afl-clang-fast.
 
 3) Settings for afl-qemu-trace
 ------------------------------

@@ -40,8 +40,8 @@ and can give you somewhat comparable results.
 ASAN allocates a huge region of virtual address space for bookkeeping purposes.
 Most of this is never actually accessed, so the OS never has to allocate any
 real pages of memory for the process, and the VM grabbed by ASAN is essentially
-"free" - but the mapping counts against the OS-enforced limit (RLIMIT_AS, aka
-ulimit -v).
+"free" - but the mapping counts against the standard OS-enforced limit
+(RLIMIT_AS, aka ulimit -v).
 
 On our end, afl-fuzz tries to protect you from processes that go off-rails
 and start consuming all the available memory in a vain attempt to parse a
@@ -71,7 +71,7 @@ There are also cgroups, but they are Linux-specific, not universally available
 even on Linux systems, and they require root permissions to set up; I'm a bit
 hesitant to make afl-fuzz require root permissions just for that. That said,
 if you are on Linux and want to use cgroups, check out the contributed script
-that ships in experimental/asan_cgroups/, and simply pass -m none to afl-fuzz.
+that ships in experimental/asan_cgroups/.
 
 In settings where cgroups aren't available, we have no nice, portable way to
 avoid counting the ASAN allocation toward the limit. On 32-bit systems, or for
