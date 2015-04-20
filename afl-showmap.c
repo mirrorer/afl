@@ -521,7 +521,6 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
   tmp = getenv("AFL_PATH");
 
-
   if (tmp) {
 
     cp = alloc_printf("%s/afl-qemu-trace", tmp);
@@ -553,9 +552,9 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
   } else ck_free(own_copy);
 
-  if (!access(AFL_PATH "/afl-qemu-trace", X_OK)) {
+  if (!access(BIN_PATH "/afl-qemu-trace", X_OK)) {
 
-    target_path = new_argv[0] = AFL_PATH "/afl-qemu-trace";
+    target_path = new_argv[0] = BIN_PATH "/afl-qemu-trace";
     return new_argv;
 
   }

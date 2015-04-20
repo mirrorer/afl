@@ -116,7 +116,7 @@ already-seen execution counts for each tuple.
 
 Changes within the range of a single bucket are ignored; transition from one
 bucket to another is flagged as an interesting change in program control flow,
-and are routed to the evolutionary process outlined in the section below.
+and is routed to the evolutionary process outlined in the section below.
 
 The hit count behavior provides a way to distinguish between potentially
 interesting control flow changes, such as a block of code being executed
@@ -182,7 +182,7 @@ input queue with afl-fuzz:
 The first entry for blind fuzzing ("S") corresponds to executing just a single
 round of testing; the second set of figures ("L") shows the fuzzer running in a
 loop for a number of execution cycles comparable with that of the instrumented
-runs, which required more time to fully process the queue.
+runs, which required more time to fully process the growing queue.
 
 Roughly similar results have been obtained in a separate experiment where the
 fuzzer was modified to compile out all the random fuzzing stages and leave just
@@ -412,7 +412,9 @@ simply stops at the first instrumented function to await commands from
 afl-fuzz.
 
 With fast targets, the fork server can offer considerable performance gains,
-usually between 1.5x and 2x.
+usually between 1.5x and 2x. It is also possible to use the fork server in
+manual mode, skipping over larger, user-selected chunks of initialization
+code. With some targets, this can produce 10x+ performance gain.
 
 11) Parallelization
 -------------------

@@ -3013,6 +3013,9 @@ static void write_stats_file(double bitmap_cvg, double eps) {
              "bitmap_cvg     : %0.02f%%\n"
              "unique_crashes : %llu\n"
              "unique_hangs   : %llu\n"
+             "last_path      : %llu\n"
+             "last_crash     : %llu\n"
+             "last_hang      : %llu\n"
              "exec_timeout   : %u\n"
              "afl_banner     : %s\n"
              "afl_version    : " VERSION "\n"
@@ -3022,7 +3025,9 @@ static void write_stats_file(double bitmap_cvg, double eps) {
              queued_paths, queued_discovered, queued_imported, max_depth,
              current_entry, pending_favored, pending_not_fuzzed,
              queued_variable, bitmap_cvg, unique_crashes, unique_hangs,
-             exec_tmout, use_banner, orig_cmdline); /* ignore errors */
+             last_path_time / 1000, last_crash_time / 1000,
+             last_hang_time / 1000, exec_tmout, use_banner, orig_cmdline);
+             /* ignore errors */
 
   fclose(f);
 
@@ -6844,9 +6849,9 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
 
   } else ck_free(own_copy);
 
-  if (!access(AFL_PATH "/afl-qemu-trace", X_OK)) {
+  if (!access(BIN_PATH "/afl-qemu-trace", X_OK)) {
 
-    target_path = new_argv[0] = ck_strdup(AFL_PATH "/afl-qemu-trace");
+    target_path = new_argv[0] = ck_strdup(BIN_PATH "/afl-qemu-trace");
     return new_argv;
 
   }

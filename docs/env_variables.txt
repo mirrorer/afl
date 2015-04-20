@@ -116,6 +116,8 @@ checks or alter some of the more exotic semantics of the tool:
     be initialized manually (see llvm_mode/README.llvm). This setting has no
     effect for programs not compiled with afl-clang-fast.
 
+  - In QEMU mode (-Q), AFL_PATH will be searched for afl-qemu-trace.
+
 3) Settings for afl-qemu-trace
 ------------------------------
 
@@ -152,13 +154,21 @@ will have a more striking effect. For this tool, 0 is not a valid choice.
 
 The corpus minimization script offers very little customization:
 
-  - Setting AFL_PATH offers a way to specify the location of afl-showmap.
+  - Setting AFL_PATH offers a way to specify the location of afl-showmap
+    and afl-qemu-trace (the latter only in -Q mode).
 
   - AFL_KEEP_TRACES makes the tool keep traces and other metadata used for
     minimization and normally deleted at exit. The files can be found in the
     <out_dir>/.traces/*.
 
-6) Third-party variables set by afl-fuzz & other tools
+6) Settings for afl-tmin
+------------------------
+
+Virtually nothing to play with:
+
+  - In QEMU mode (-Q), AFL_PATH will be searched for afl-qemu-trace.
+
+7) Third-party variables set by afl-fuzz & other tools
 ------------------------------------------------------
 
 Several variables are not directly interpreted by afl-fuzz, but are set to

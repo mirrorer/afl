@@ -17,6 +17,18 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.71b:
+--------------
+
+  - Fixed a bug with installed copies of AFL trying to use QEMU mode. Spotted
+    by G.M. Lime.
+
+  - Added last path / crash / hang times to fuzzer_stats, suggested by
+    Richard Hipp.
+
+  - Fixed a typo, thanks to Jakub Wilk.
+
+--------------
 Version 1.70b:
 --------------
 
