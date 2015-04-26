@@ -17,6 +17,15 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.72b:
+--------------
+
+  - Fixed a glitch in non-x86 install, spotted by Tobias Ospelt.
+
+  - Added a minor safeguard to llvm_mode Makefile following a report from
+    Kai Zhao.
+
+--------------
 Version 1.71b:
 --------------
 

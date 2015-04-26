@@ -73,7 +73,7 @@ of tight loops (otherwise, A ^ A would be obviously equal to B ^ B).
 
 The absence of simple saturating arithmetic opcodes on Intel CPUs means that
 the hit counters can sometimes wrap around to zero. Since this is a fairly
-unlikely and localized event, it's an acceptable performance trade-off.
+unlikely and localized event, it's seen as an acceptable performance trade-off.
 
 2) Detecting new behaviors
 --------------------------
@@ -93,8 +93,9 @@ program state while not having to perform any computationally intensive and
 fragile global comparisons of complex execution traces, and while avoiding the
 scourge of path explosion.
 
-To illustrate, consider that the second trace shown below would be considered
-substantially new because of the presence of new tuples (CA, AE):
+To illustrate the properties of the algorithm, consider that the second trace
+shown below would be considered substantially new because of the presence of
+new tuples (CA, AE):
 
   #1: A -> B -> C -> D -> E
   #2: A -> B -> C -> A -> E

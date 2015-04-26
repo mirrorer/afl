@@ -24,6 +24,13 @@ afl-fuzzing-scripts (Tobias Ospelt)
 
   https://github.com/floyd-fuh/afl-fuzzing-scripts/
 
+afl-crash-analyzer (Tobias Ospelt)
+----------------------------------
+
+  Makes it easier to navigate and annotate crashing test cases.
+
+  https://github.com/floyd-fuh/afl-crash-analyzer/
+
 Crashwalk (Ben Nagy)
 --------------------
 
@@ -98,6 +105,13 @@ Python AFL (Jakub Wilk)
 
   https://bitbucket.org/jwilk/python-afl
 
+Go-fuzz (Dmitry Vyukov)
+-----------------------
+
+  AFL-style guided fuzzing approach for Go targets:
+
+  https://github.com/dvyukov/go-fuzz
+
 -------------------------------
 Narrow-purpose or experimental:
 -------------------------------
@@ -129,3 +143,4 @@ Fuzzer shell for SQLite (Richard Hipp)
   A simple SQL shell designed specifically for fuzzing the underlying library.
 
   http://www.sqlite.org/src/artifact/9e7e273da2030371
+
