@@ -4646,7 +4646,7 @@ static u8 fuzz_one(char** argv) {
 
     /* Let's consult the effector map... */
 
-    if (!*(u16*)(eff_map + EFF_APOS(i))) {
+    if (!eff_map[EFF_APOS(i)] && !eff_map[EFF_APOS(i + 1)]) {
       stage_max--;
       continue;
     }
@@ -4682,7 +4682,8 @@ static u8 fuzz_one(char** argv) {
   for (i = 0; i < len - 3; i++) {
 
     /* Let's consult the effector map... */
-    if (!*(u32*)(eff_map + EFF_APOS(i))) {
+    if (!eff_map[EFF_APOS(i)] && !eff_map[EFF_APOS(i + 1)] &&
+        !eff_map[EFF_APOS(i + 2)] && !eff_map[EFF_APOS(i + 3)]) {
       stage_max--;
       continue;
     }
@@ -4804,7 +4805,7 @@ skip_bitflip:
 
     /* Let's consult the effector map... */
 
-    if (!*(u16*)(eff_map + EFF_APOS(i))) {
+    if (!eff_map[EFF_APOS(i)] && !eff_map[EFF_APOS(i + 1)]) {
       stage_max -= 4 * ARITH_MAX;
       continue;
     }
@@ -4895,7 +4896,8 @@ skip_bitflip:
 
     /* Let's consult the effector map... */
 
-    if (!*(u32*)(eff_map + EFF_APOS(i))) {
+    if (!eff_map[EFF_APOS(i)] && !eff_map[EFF_APOS(i + 1)] &&
+        !eff_map[EFF_APOS(i + 2)] && !eff_map[EFF_APOS(i + 3)]) {
       stage_max -= 4 * ARITH_MAX;
       continue;
     }
@@ -5040,7 +5042,7 @@ skip_arith:
 
     /* Let's consult the effector map... */
 
-    if (!*(u16*)(eff_map + EFF_APOS(i))) {
+    if (!eff_map[EFF_APOS(i)] && !eff_map[EFF_APOS(i + 1)]) {
       stage_max -= sizeof(interesting_16);
       continue;
     }
@@ -5113,7 +5115,8 @@ skip_arith:
 
     /* Let's consult the effector map... */
 
-    if (!*(u32*)(eff_map + EFF_APOS(i))) {
+    if (!eff_map[EFF_APOS(i)] && !eff_map[EFF_APOS(i + 1)] &&
+        !eff_map[EFF_APOS(i + 2)] && !eff_map[EFF_APOS(i + 3)]) {
       stage_max -= sizeof(interesting_32) >> 1;
       continue;
     }

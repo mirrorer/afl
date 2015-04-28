@@ -17,6 +17,15 @@ is 1.48b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.73b:
+--------------
+
+  - Fixed a pretty stupid bug in effector maps that could sometimes cause
+    AFL to fuzz slightly more than necessary; and in very rare circumstances,
+    could lead to SEGV if eff_map is aligned with page boundary and followed
+    by an unmapped page. Spotted by Jonathan Gray.
+
+--------------
 Version 1.72b:
 --------------
 
