@@ -13,8 +13,31 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 1.48b. If you're stuck on an earlier release, it's strongly advisable
+is 1.74b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 1.74b:
+--------------
+
+  - Added an example argv[] fuzzing wrapper in experimental/argv_fuzzing,
+    plus reworked the bash example to be faster.
+
+  - Clarified llvm_mode prerequisites for FreeBSD.
+
+  - Improved afl-tmin to use /tmp if cwd is not writeable.
+
+  - Removed redundant includes for sys/fcntl.h, which caused warnings with
+    some nitpicky versions of libc.
+
+  - Added a corpus of basic HTML tags that parsers are likely to pay attention
+    to (no attributes).
+
+  - Added EP_EnabledOnOptLevel0 to llvm_mode, so that the instrumentation is
+    inserted even when AFL_DONT_OPTIMIZE=1 is set.
+
+  - Switched to qemu_mode to use the newly-released QEMU 2.3.0, which contains
+    a couple of minor bugfixes.
 
 --------------
 Version 1.73b:

@@ -24,12 +24,12 @@ several interesting properties:
     be able to rely on it to fuzz programs on non-x86 architectures (after
     building afl-fuzz with AFL_NOX86=1).
 
-  - Because the features relies on the internals of LLVM, it is clang-specific
+  - Because the feature relies on the internals of LLVM, it is clang-specific
     and will *not* work with GCC.
 
-Once this implementation is shown to be sufficiently robust, it will probably
-replace afl-clang. For now, it can be built separately and co-exists with the
-original code.
+Once this implementation is shown to be sufficiently robust and portable, it
+will probably replace afl-clang. For now, it can be built separately and
+co-exists with the original code.
 
 The idea and much of the implementation comes from Laszlo Szekeres.
 
@@ -37,19 +37,26 @@ The idea and much of the implementation comes from Laszlo Szekeres.
 -------------
 
 In order to leverage this mechanism, you need to have clang installed on your
-system. You should also make sure that the llvm-config tool is in your path;
-if not, be sure to set LLVM_CONFIG in the environment beforehand.
+system. You should also make sure that the llvm-config tool is in your path
+(or pointed to via LLVM_CONFIG in the environment).
 
-Unfortunately, some systems come without llvm-config or the LLVM development
-headers. In such a case, you may have to do a full install on your own, or
-download pre-built binaries from:
+Unfortunately, some systems that do have clang come without llvm-config or the
+LLVM development headers; one example of this is FreeBSD. FreeBSD users will
+also run into problems with clang being built statically and not being able to
+load modules (you'll see "Service unavailable" when loading afl-llvm-pass.so).
+
+To solve all your problems, you can grab pre-built binaries for your OS from:
 
   http://llvm.org/releases/download.html
 
-To build the instrumentation, type 'make'. This will generate binaries called
-afl-clang-fast and afl-clang-fast++ in the parent directory. Once this is done,
-you can instrument third-party code in a way similar to the standard operating
-mode of AFL, e.g.:
+...and then put the bin/ directory from the tarball at the beginning of your
+$PATH when compiling the feature and building packages later on. You don't need
+to be root for that.
+
+To build the instrumentation itself, type 'make'. This will generate binaries
+called afl-clang-fast and afl-clang-fast++ in the parent directory. Oncet his
+is done, you can instrument third-party code in a way similar to the standard
+operating mode of AFL, e.g.:
 
   CC=/path/to/afl/afl-clang-fast ./configure [...options...]
   make
@@ -70,8 +77,8 @@ directory.
 3) Gotchas, feedback, bugs
 --------------------------
 
-This is an early-stage mechanism, so field reports are welcome. You can send
-bug reports to <afl-users@googlegroups.com>.
+This is an early-stage mechanism, so field reports are welcome. You can send bug
+reports to <afl-users@googlegroups.com>.
 
 4) Bonus feature: deferred instrumentation
 ------------------------------------------
@@ -102,11 +109,12 @@ a fairly simple way:
      descriptors, and similar shared-state resources - but only provided that
      their state meaningfully influences the behavior of the program later on.
 
-   - Any access to the fuzzed input, including the metadata about its size.
+   - Any access to the fuzzed input, including reading the metadata about its
+     size.
 
    Of course, things will also not work if the forkserver is never initialized
-   at all; in this case, afl-fuzz will complain about failed handshake and bail
-   out.
+   at all and the program is allowed to exit before that; in this case, afl-fuzz
+   will complain about failed handshake and bail out.
 
 2) Next, insert the following global function declaration somewhere in the
    source file:

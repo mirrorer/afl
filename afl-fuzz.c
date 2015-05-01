@@ -45,7 +45,6 @@
 #include <termios.h>
 #include <dlfcn.h>
 
-#include <sys/fcntl.h>
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/shm.h>

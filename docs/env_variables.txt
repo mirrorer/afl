@@ -63,7 +63,22 @@ tools make fairly broad use of environmental variables:
   - Setting AFL_QUIET will prevent afl-cc and afl-as banners from being
     displayed during compilation, in case you find them distracting.
 
-2) Settings for afl-fuzz
+2) Settings for afl-clang-fast
+------------------------------
+
+The native LLVM instrumentation helper accepts a subset of the settings
+discussed in section #1, with the exception of:
+
+  - AFL_AS, since this toolchain does not directly invoke GNU as.
+
+  - TMPDIR and AFL_KEEP_ASSEMBLY, since no temporary assembly files are
+    created.
+
+Note that AFL_INST_RATIO will behave a bit differently than for afl-gcc,
+because functions are *not* instrumented unconditionally - so low values
+will have a more striking effect. For this tool, 0 is not a valid choice.
+
+3) Settings for afl-fuzz
 ------------------------
 
 The main fuzzer binary accepts several options that disable a couple of sanity
@@ -85,8 +100,7 @@ checks or alter some of the more exotic semantics of the tool:
   - Setting AFL_NO_VAR_CHECK skips the detection of variable test cases,
     greatly speeding up session resumption and path discovery for complex
     multi-threaded apps (but depriving you of a potentially useful signal
-    in more orderly programs and making timeout calculations a bit less
-    accurate).
+    in more orderly programs).
 
   - When developing custom instrumentation on top of afl-fuzz, you can use
     AFL_SKIP_BIN_CHECK to inhibit the checks for non-instrumented binaries
@@ -102,7 +116,8 @@ checks or alter some of the more exotic semantics of the tool:
 
     The benefit of AFL_IMPORT_FIRST is that it makes the "own finds" counter
     in the UI more accurately reflect the number of findings made by the
-    instance (that the remaining instances did not already have).
+    instance (that the remaining instances did not already have). Beyond
+    counter aesthetics, not much else should change.
 
   - Setting AFL_POST_LIBRARY allows you to configure a postprocessor for
     mutated files - say, to fix up checksums. See experimental/post_library/
@@ -116,9 +131,12 @@ checks or alter some of the more exotic semantics of the tool:
     be initialized manually (see llvm_mode/README.llvm). This setting has no
     effect for programs not compiled with afl-clang-fast.
 
+    (Technically speaking, the setting is passed down to the binary itself,
+    and not handled in any special way by afl-fuzz.)
+
   - In QEMU mode (-Q), AFL_PATH will be searched for afl-qemu-trace.
 
-3) Settings for afl-qemu-trace
+4) Settings for afl-qemu-trace
 ------------------------------
 
 The QEMU wrapper used to instrument binary-only code supports several settings:
@@ -133,21 +151,6 @@ The QEMU wrapper used to instrument binary-only code supports several settings:
   - The underlying QEMU binary will recognize any standard "user space
     emulation" variables (e.g., QEMU_STACK_SIZE), but there should be no
     reason to touch them.
-
-4) Settings for afl-clang-fast
-------------------------------
-
-The native LLVM instrumentation helper accepts a subset of the settings
-discussed in section #1, with the exception of:
-
-  - AFL_AS, since this toolchain does not directly invoke GNU as.
-
-  - TMPDIR and AFL_KEEP_ASSEMBLY, since no temporary assembly files are
-    created.
-
-Note that AFL_INST_RATIO will behave a bit differently than for afl-gcc,
-because functions are *not* instrumented unconditionally - so low values
-will have a more striking effect. For this tool, 0 is not a valid choice.
 
 5) Settings for afl-cmin
 ------------------------
@@ -164,9 +167,9 @@ The corpus minimization script offers very little customization:
 6) Settings for afl-tmin
 ------------------------
 
-Virtually nothing to play with:
-
-  - In QEMU mode (-Q), AFL_PATH will be searched for afl-qemu-trace.
+Virtually nothing to play with. Well, in QEMU mode (-Q), AFL_PATH will be
+searched for afl-qemu-trace. In addition to this, TMPDIR may be used if a
+temporary file can't be created in the current working directory.
 
 7) Third-party variables set by afl-fuzz & other tools
 ------------------------------------------------------

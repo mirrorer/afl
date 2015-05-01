@@ -95,7 +95,7 @@ AFL-style in-process fuzzer for llvm (Kostya Serebryany)
   Provides an evolutionary instrumentation-guided fuzzing harness that allows
   some programs to be fuzzed without the fork / execve overhead.
 
-  https://github.com/llvm-mirror/llvm/tree/master/lib/Fuzzer
+  http://llvm.org/docs/LibFuzzer.html
 
 Python AFL (Jakub Wilk)
 -----------------------

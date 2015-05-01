@@ -37,7 +37,6 @@
 #include <dirent.h>
 #include <fcntl.h>
 
-#include <sys/fcntl.h>
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/shm.h>
@@ -458,7 +457,7 @@ next_pass:
   del_len = next_p2(in_len / TRIM_START_STEPS);
   stage_o_len = in_len;
 
-  ACTF(cBRI "Stage #1: " cNOR " Removing blocks of data...");
+  ACTF(cBRI "Stage #1: " cNOR "Removing blocks of data...");
 
 next_del_blksize:
 
@@ -650,8 +649,20 @@ static void set_up_environment(void) {
   dev_null_fd = open("/dev/null", O_RDWR);
   if (dev_null_fd < 0) PFATAL("Unable to open /dev/null");
 
-  if (!prog_in)
-    prog_in = alloc_printf(".afl-tmin-temp-%u", getpid());
+  if (!prog_in) {
+
+    u8* use_dir = ".";
+
+    if (!access(use_dir, R_OK | W_OK | X_OK)) {
+
+      use_dir = getenv("TMPDIR");
+      if (!use_dir) use_dir = "/tmp";
+
+      prog_in = alloc_printf("%s/.afl-tmin-temp-%u", use_dir, getpid());
+
+    }
+
+  }
 
   /* Set sane defaults... */
 

@@ -1,10 +1,13 @@
 Here's a quick overview of the stuff you can find in this directory:
 
+  - argv_fuzzing         - a simple wrapper to allow cmdline to be fuzzed
+                           (e.g., to test setuid programs).
+
   - asan_cgroups         - a contributed script to simplify fuzzing ASAN
                            binaries with robust memory limits on Linux.
 
-  - bash_harness         - a simple shell harness used to find a bunch of
-                           post-Shellshock bugs.
+  - bash_shellshock      - a simple hack used to find a bunch of
+                           post-Shellshock bugs in bash.
 
   - canvas_harness       - a test harness used to find browser bugs with a 
                            corpus generated using simple image parsing 

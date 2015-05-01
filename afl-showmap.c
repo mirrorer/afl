@@ -39,7 +39,6 @@
 #include <dirent.h>
 #include <fcntl.h>
 
-#include <sys/fcntl.h>
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/shm.h>

@@ -44,7 +44,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <sys/fcntl.h>
+
 #include <sys/wait.h>
 #include <sys/time.h>
 
