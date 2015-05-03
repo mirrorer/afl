@@ -54,7 +54,7 @@ $PATH when compiling the feature and building packages later on. You don't need
 to be root for that.
 
 To build the instrumentation itself, type 'make'. This will generate binaries
-called afl-clang-fast and afl-clang-fast++ in the parent directory. Oncet his
+called afl-clang-fast and afl-clang-fast++ in the parent directory. Once this
 is done, you can instrument third-party code in a way similar to the standard
 operating mode of AFL, e.g.:
 
@@ -122,7 +122,9 @@ a fairly simple way:
    void __afl_manual_init(void);
 
    ...and add a call to this function in the desired location before recompiling
-   the project with afl-clang-fast (afl-gcc and afl-clang will *not* work).
+   the project with afl-clang-fast (afl-gcc and afl-clang will *not* work). You
+   can put this in between #ifdef __AFL_HAVE_MANUAL_INIT to allow the code to
+   build correctly without afl-clang-fast.
 
 3) Finally, be sure to set AFL_DEFER_FORKSRV=1 before invoking afl-fuzz.
 

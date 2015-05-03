@@ -17,11 +17,28 @@ is 1.74b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.75b:
+--------------
+
+  - Improved argv_fuzzing to allow it to emit empty args. Spotted by Jakub
+    Wilk.
+
+  - afl-clang-fast now defines __AFL_HAVE_MANUAL_INIT. Suggested by Jakub Wilk.
+
+  - Fixed a libtool-related bug with afl-clang-fast that would make some
+    ./configure invocations generate incorrect output. Spotted by Jakub Wilk.
+
+  - Removed flock() on Solaris. This means no locking on this platform,
+    but so be it. Problem reported by Martin Carpenter.
+
+  - Fixed a typo. Reported by Jakub Wilk.
+
+--------------
 Version 1.74b:
 --------------
 
-  - Added an example argv[] fuzzing wrapper in experimental/argv_fuzzing,
-    plus reworked the bash example to be faster.
+  - Added an example argv[] fuzzing wrapper in experimental/argv_fuzzing.
+    Reworked the bash example to be faster, too.
 
   - Clarified llvm_mode prerequisites for FreeBSD.
 
@@ -36,7 +53,7 @@ Version 1.74b:
   - Added EP_EnabledOnOptLevel0 to llvm_mode, so that the instrumentation is
     inserted even when AFL_DONT_OPTIMIZE=1 is set.
 
-  - Switched to qemu_mode to use the newly-released QEMU 2.3.0, which contains
+  - Switched qemu_mode to use the newly-released QEMU 2.3.0, which contains
     a couple of minor bugfixes.
 
 --------------

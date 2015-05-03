@@ -3211,6 +3211,8 @@ static void maybe_delete_out_dir(void) {
   out_dir_fd = open(out_dir, O_RDONLY);
   if (out_dir_fd < 0) PFATAL("Unable to open '%s'", out_dir);
 
+#ifndef __sun
+
   if (flock(out_dir_fd, LOCK_EX | LOCK_NB) && errno == EWOULDBLOCK) {
 
     SAYF("\n" cLRD "[-] " cRST
@@ -3222,6 +3224,8 @@ static void maybe_delete_out_dir(void) {
     FATAL("Directory '%s' is in use", out_dir);
 
   }
+
+#endif /* !__sun */
 
   f = fopen(fn, "r");
 
@@ -6342,8 +6346,12 @@ static void setup_dirs_fds(void) {
 
     out_dir_fd = open(out_dir, O_RDONLY);
 
+#ifndef __sun
+
     if (out_dir_fd < 0 || flock(out_dir_fd, LOCK_EX | LOCK_NB))
       PFATAL("Unable to flock() output directory.");
+
+#endif /* !__sun */
 
   }
 

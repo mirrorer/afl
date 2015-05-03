@@ -22,7 +22,9 @@
    main().
 
    This will cause the program to read NUL-delimited input from stdin and
-   put it in argv[]. Two subsequent NULs terminate the array.
+   put it in argv[]. Two subsequent NULs terminate the array. Empty
+   params are encoded as a lone 0x02. Lone 0x02 can't be generated, but
+   that shouldn't matter in real life.
 
    If you would like to always preserve argv[0], use this instead:
    AFL_INIT_SET0("prog_name");
@@ -57,7 +59,10 @@ static char** afl_init_argv(int* argc) {
 
   while (*ptr) {
 
-    ret[rc++] = ptr;
+    ret[rc] = ptr;
+    if (ret[rc][0] == 0x02 && !ret[rc][1]) ret[rc]++;
+    rc++;
+
     while (*ptr) ptr++;
     ptr++;
 

@@ -38,8 +38,6 @@
 
 using namespace llvm;
 
-//#define DEBUG_TYPE "afl"
-
 namespace {
 
   class AFLCoverage : public ModulePass {

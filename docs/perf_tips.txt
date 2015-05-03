@@ -83,8 +83,9 @@ Sometimes, you can speed things up simply by specifying /dev/null as the
 config file, or disabling some compile-time features that aren't really needed
 for the job (try ./configure --help). One of the notoriously resource-consuming
 things would be calling other utilities via exec*(), popen(), system(), or
-equivalent calls. Some programs may intentionally call sleep(), usleep(), or
-nanosleep(), etc.
+equivalent calls; for example, tar can invoke external decompression tools.
+Some programs may also intentionally call sleep(), usleep(), or nanosleep();
+vim is a good example of that.
 
 In programs that are slow due to unavoidable initialization overhead, you may
 want to try the LLVM deferred forkserver mode (see llvm_mode/README.llvm),

@@ -6,9 +6,55 @@ Sister projects
   designed for, or meant to integrate with AFL. See README for the general
   instruction manual.
 
------------------
-General interest:
------------------
+----------------------------
+Support for other languages:
+----------------------------
+
+Python AFL (Jakub Wilk)
+-----------------------
+
+  Allows fuzz-testing of Python programs. Uses custom instrumentation and its
+  own forkserver.
+
+  https://bitbucket.org/jwilk/python-afl
+
+Go-fuzz (Dmitry Vyukov)
+-----------------------
+
+  AFL-style guided fuzzing approach for Go targets:
+
+  https://github.com/dvyukov/go-fuzz
+
+afl.rs (Keegan McAllister)
+--------------------------
+
+  Allows Rust features to be easily fuzzed with AFL (using the LLVM mode).
+
+  https://github.com/kmcallister/afl.rs
+
+AFL for GCJ Java and other GCC frontends (-)
+--------------------------------------------
+
+  GCC Java programs are actually supported out of the box - simply rename
+  afl-gcc to afl-gcj. Unfortunately, by default, unhandled exceptions in GCJ do
+  not result in abort() being called, so you will need to manually add a
+  top-level exception handler that exits with SIGABRT or something equivalent.
+
+  Other GCC-supported languages should be fairly easy to get working, but may
+  face similar problems. See https://gcc.gnu.org/frontends.html for a list of
+  options.
+
+AFL-style in-process fuzzer for LLVM (Kostya Serebryany)
+--------------------------------------------------------
+
+  Provides an evolutionary instrumentation-guided fuzzing harness that allows
+  some programs to be fuzzed without the fork / execve overhead.
+
+  http://llvm.org/docs/LibFuzzer.html
+
+----------------------------------------
+Crash triage and other helper utilities:
+----------------------------------------
 
 AFL Utils (rc0r)
 ----------------
@@ -62,6 +108,10 @@ RecidiVM (Jakub Wilk)
 
   http://jwilk.net/software/recidivm
 
+-------------------------------
+Narrow-purpose or experimental:
+-------------------------------
+
 Static binary-only instrumentation (Aleksandar Nikolich)
 --------------------------------------------------------
 
@@ -89,46 +139,13 @@ AFL-style instrumentation in llvm (Kostya Serebryany)
 
   https://code.google.com/p/address-sanitizer/wiki/AsanCoverage#Coverage_counters
 
-AFL-style in-process fuzzer for llvm (Kostya Serebryany)
---------------------------------------------------------
-
-  Provides an evolutionary instrumentation-guided fuzzing harness that allows
-  some programs to be fuzzed without the fork / execve overhead.
-
-  http://llvm.org/docs/LibFuzzer.html
-
-Python AFL (Jakub Wilk)
------------------------
-
-  Allows fuzz-testing of Python programs. Uses custom instrumentation and its
-  own forkserver.
-
-  https://bitbucket.org/jwilk/python-afl
-
-Go-fuzz (Dmitry Vyukov)
------------------------
-
-  AFL-style guided fuzzing approach for Go targets:
-
-  https://github.com/dvyukov/go-fuzz
-
--------------------------------
-Narrow-purpose or experimental:
--------------------------------
-
 AFL JS (Han Choongwoo)
 ----------------------
 
-  One-off optimizations to speed up the fuzzing of JavaScriptCore.
+  One-off optimizations to speed up the fuzzing of JavaScriptCore (now likely
+  superseded by LLVM deferred forkserver init - see llvm_mode/README.llvm).
 
   https://github.com/tunz/afl-fuzz-js
-
-afl.rs (Keegan McAllister)
---------------------------
-
-  Allows Rust features to be easily fuzzed with AFL (using the LLVM mode).
-
-  https://github.com/kmcallister/afl.rs
 
 AFL harness for fwknop (Michael Rash)
 -------------------------------------

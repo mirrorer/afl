@@ -127,8 +127,8 @@ static void edit_params(u32 argc, char** argv) {
 
     if (!strcmp(cur, "-x")) x_set = 1;
 
-    if (!strcmp(cur, "-c") || !strcmp(cur, "-S") || !strcmp(cur, "-E"))
-      maybe_linking = 0;
+    if (!strcmp(cur, "-c") || !strcmp(cur, "-S") || !strcmp(cur, "-E") ||
+        !strcmp(cur, "-v")) maybe_linking = 0;
 
     if (!strcmp(cur, "-fsanitize=address") ||
         !strcmp(cur, "-fsanitize=memory")) asan_set = 1;
@@ -175,6 +175,8 @@ static void edit_params(u32 argc, char** argv) {
     cc_params[cc_par_cnt++] = "-funroll-loops";
 
   }
+
+  cc_params[cc_par_cnt++] = "-D__AFL_HAVE_MANUAL_INIT=1";
 
   if (maybe_linking) {
 
