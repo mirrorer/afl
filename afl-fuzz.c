@@ -1353,6 +1353,133 @@ static int compare_extras_use_d(const void* p1, const void* p2) {
 }
 
 
+/* Read extras from a file, sort by size. */
+
+static void load_extras_file(u8* fname) {
+
+  FILE* f;
+  u32 min_len = MAX_DICT_FILE, max_len = 0;
+  u8  buf[MAX_LINE];
+  u8  *lptr;
+  u32 cur_line = 0;
+
+  f = fopen(fname, "r");
+
+  if (!f) PFATAL("Unable to open '%s'", fname);
+
+  while ((lptr = fgets(buf, MAX_LINE, f))) {
+
+    u8 *rptr, *wptr;
+    u32 klen = 0;
+
+    cur_line++;
+
+    /* Trim on left and right. */
+
+    while (isspace(*lptr)) lptr++;
+
+    rptr = lptr + strlen(lptr) - 1;
+    while (rptr >= lptr && isspace(*rptr)) rptr--;
+    rptr++;
+    *rptr = 0;
+
+    /* Skip empty lines and comments. */
+
+    if (!*lptr || *lptr == '#') continue;
+
+    /* All other lines must end with '"', which we can consume. */
+
+    rptr--;
+
+    if (rptr < lptr || *rptr != '"')
+      FATAL("Malformed name=\"value\" pair in line %u.", cur_line);
+
+    *rptr = 0;
+
+    /* Skip alphanumerics and dashes (label). */
+
+    while (isalnum(*lptr) || *lptr == '_') lptr++;
+
+    /* Skip whitespace and = signs. */
+
+    while (isspace(*lptr) || *lptr == '=') lptr++;
+
+    /* Consume opening '"'. */
+
+    if (*lptr != '"')
+      FATAL("Malformed name=\"keyword\" pair in line %u.", cur_line);
+
+    lptr++;
+
+    if (!*lptr) FATAL("Empty keyword in line %u.", cur_line);
+
+    /* Okay, let's allocate memory and copy data between "...", handling
+       \xNN escaping, \\, and \". */
+
+    extras = ck_realloc_block(extras, (extras_cnt + 1) *
+               sizeof(struct extra_data));
+
+    wptr = extras[extras_cnt].data = ck_alloc(rptr - lptr);
+
+    while (*lptr) {
+
+      char* hexdigits = "0123456789abcdef";
+
+      switch (*lptr) {
+
+        case 1 ... 31:
+        case 128 ... 255:
+          FATAL("Non-printable characters in line %u.", cur_line);
+
+        case '\\':
+
+          lptr++;
+
+          if (*lptr == '\\' || *lptr == '"') {
+            *(wptr++) = *(lptr++);
+            klen++;
+            break;
+          }
+
+          if (*lptr != 'x' || !isxdigit(lptr[1]) || !isxdigit(lptr[2]))
+            FATAL("Invalid escaping (not \\xNN) in line %u.", cur_line);
+
+          *(wptr++) =
+            ((strchr(hexdigits, tolower(lptr[1])) - hexdigits) << 4) |
+            (strchr(hexdigits, tolower(lptr[2])) - hexdigits);
+
+          lptr += 3;
+          klen++;
+
+          break;
+
+        default:
+
+          *(wptr++) = *(lptr++);
+          klen++;
+
+      }
+
+    }
+
+    extras[extras_cnt].len = klen;
+
+    if (extras[extras_cnt].len > MAX_DICT_FILE)
+      FATAL("Keyword too big in line %u (%s, limit is %s)", cur_line,
+            DMS(klen), DMS(MAX_DICT_FILE));
+
+    if (min_len > klen) min_len = klen;
+    if (max_len < klen) max_len = klen;
+
+    extras_cnt++;
+
+  }
+
+  fclose(f);
+
+}
+
+
 /* Read extras from the extras directory and sort them by size. */
 
 static void load_extras(u8* dir) {
@@ -1365,7 +1492,16 @@ static void load_extras(u8* dir) {
 
   d = opendir(dir);
 
-  if (!d) PFATAL("Unable to open '%s'", dir);
+  if (!d) {
+
+    if (errno == ENOTDIR) {
+      load_extras_file(dir);
+      goto check_and_sort;
+    }
+
+    PFATAL("Unable to open '%s'", dir);
+
+  }
 
   while ((de = readdir(d))) {
 
@@ -1411,6 +1547,9 @@ static void load_extras(u8* dir) {
   }
 
   closedir(d);
+
+check_and_sort:
+
   if (!extras_cnt) FATAL("No usable files in '%s'", dir);
 
   qsort(extras, extras_cnt, sizeof(struct extra_data), compare_extras_len);
@@ -1427,6 +1566,8 @@ static void load_extras(u8* dir) {
           MAX_DET_EXTRAS);
 
 }
+
+
 
 
 /* Helper function for maybe_add_auto() */

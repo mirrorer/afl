@@ -296,6 +296,11 @@ existing syntax tokens in the input corpus by watching the instrumentation
 very closely during deterministic byte flips. This works for some types of
 parsers and grammars, but isn't nearly as good as the -x mode.
 
+PPS. Due to popular demand, it is now also possible to specify a file dictionary
+via -x. The file must follow the name="value" format, one token per line.
+Alphanumeric names are ignored, along with empty lines of lines that start with #.
+Non-printable and control characters must be escaped within values using \xNN.
+
 10) Crash triage
 ----------------
 

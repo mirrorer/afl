@@ -211,7 +211,7 @@ wrap_things_up:
 
 static void add_instrumentation(void) {
 
-  static u8 line[MAX_AS_LINE];
+  static u8 line[MAX_LINE];
 
   FILE* inf;
   FILE* outf;
@@ -242,7 +242,7 @@ static void add_instrumentation(void) {
 
   if (!outf) PFATAL("fdopen() failed");  
 
-  while (fgets(line, MAX_AS_LINE, inf)) {
+  while (fgets(line, MAX_LINE, inf)) {
 
     /* In some cases, we want to defer writing the instrumentation trampoline
        until after all the labels, macros, comments, etc. If we're in this

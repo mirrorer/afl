@@ -250,9 +250,10 @@
 
 #define RESEED_RNG          10000
 
-/* Maximum line length passed from GCC to 'as': */
+/* Maximum line length passed from GCC to 'as' and used for parsing
+   configuration files: */
 
-#define MAX_AS_LINE         8192
+#define MAX_LINE            8192
 
 /* Environment variable used to pass SHM ID to the called program. */
 
