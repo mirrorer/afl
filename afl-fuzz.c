@@ -1719,7 +1719,6 @@ static void init_forkserver(char** argv) {
 
     }
 
-
     /* Set up control and status pipes, close the unneeded original fds. */
 
     if (dup2(ctl_pipe[0], FORKSRV_FD) < 0) PFATAL("dup2() failed");
@@ -4232,6 +4231,192 @@ static u32 calculate_score(struct queue_entry* q) {
 }
 
 
+/* Helper function to see if a particular change (xor_val = old ^ new) could
+   be a product of deterministic bit flips with the lengths and stepovers
+   attempted by afl-fuzz. This is used to avoid dupes in some of the
+   deterministic fuzzing operations that follow bit flips. We also
+   return 1 if xor_val is zero, which implies that the old and attempted new
+   values are identical and the exec would be a waste of time. */
+
+static u8 could_be_bitflip(u32 xor_val) {
+
+  u32 sh = 0;
+
+  if (!xor_val) return 1;
+
+  /* Shift left until first bit set. */
+
+  while (!(xor_val & 1)) { sh++; xor_val >>= 1; }
+
+  /* 1-, 2-, and 4-bit patterns are OK anywhere. */
+
+  if (xor_val == 1 || xor_val == 3 || xor_val == 15) return 1;
+
+  /* 8-, 16-, and 32-bit patterns are OK only if shift factor is
+     divisible by 8, since that's the stepover for these ops. */
+
+  if (sh & 7) return 0;
+
+  if (xor_val == 0xff || xor_val == 0xffff || xor_val == 0xffffffff)
+    return 1;
+
+  return 0;
+
+}
+
+
+/* Helper function to see if a particular value is reachable through
+   arithmetic operations. Used for similar purposes. */
+
+static u8 could_be_arith(u32 old_val, u32 new_val, u8 blen) {
+
+  u32 i, ov = 0, nv = 0, diffs = 0;
+
+  if (old_val == new_val) return 1;
+
+  /* See if one-byte adjustments to any byte could produce this result. */
+
+  for (i = 0; i < blen; i++) {
+
+    u8 a = old_val >> (8 * i),
+       b = new_val >> (8 * i);
+
+    if (a != b) { diffs++; ov = a; nv = b; }
+
+  }
+
+  /* If only one byte differs and the values are within range, return 1. */
+
+  if (diffs == 1) {
+
+    if ((u8)(ov - nv) <= ARITH_MAX ||
+        (u8)(nv - ov) <= ARITH_MAX) return 1;
+
+  }
+
+  if (blen == 1) return 0;
+
+  /* See if two-byte adjustments to any byte would produce this result. */
+
+  diffs = 0;
+
+  for (i = 0; i < blen / 2; i++) {
+
+    u16 a = old_val >> (16 * i),
+        b = new_val >> (16 * i);
+
+    if (a != b) { diffs++; ov = a; nv = b; }
+
+  }
+
+  /* If only one word differs and the values are within range, return 1. */
+
+  if (diffs == 1) {
+
+    if ((u16)(ov - nv) <= ARITH_MAX ||
+        (u16)(nv - ov) <= ARITH_MAX) return 1;
+
+    ov = SWAP16(ov); nv = SWAP16(nv);
+
+    if ((u16)(ov - nv) <= ARITH_MAX ||
+        (u16)(nv - ov) <= ARITH_MAX) return 1;
+
+  }
+
+  /* Finally, let's do the same thing for dwords. */
+
+  if (blen == 4) {
+
+    if ((u32)(old_val - new_val) <= ARITH_MAX ||
+        (u32)(new_val - old_val) <= ARITH_MAX) return 1;
+
+    new_val = SWAP32(new_val);
+    old_val = SWAP32(old_val);
+
+    if ((u32)(old_val - new_val) <= ARITH_MAX ||
+        (u32)(new_val - old_val) <= ARITH_MAX) return 1;
+
+  }
+
+  return 0;
+
+}
+
+
+/* Last but not least, a similar helper to see if insertion of an 
+   interesting integer is redundant given the insertions done for
+   shorter blen. The last param (check_le) is set if the caller
+   already executed LE insertion for current blen and wants to see
+   if BE variant passed in new_val is unique. */
+
+static u8 could_be_interest(u32 old_val, u32 new_val, u8 blen, u8 check_le) {
+
+  u32 i, j;
+
+  if (old_val == new_val) return 1;
+
+  /* See if one-byte insertions from interesting_8 over old_val could
+     produce new_val. */
+
+  for (i = 0; i < blen; i++) {
+
+    for (j = 0; j < sizeof(interesting_8); j++) {
+
+      u32 tval = (old_val & ~(0xff << (i * 8))) |
+                 (((u8)interesting_8[j]) << (i * 8));
+
+      if (new_val == tval) return 1;
+
+    }
+
+  }
+
+  /* Bail out unless we're also asked to examine two-byte LE insertions
+     as a preparation for BE attempts. */
+
+  if (blen == 2 && !check_le) return 0;
+
+  /* See if two-byte insertions over old_val could give us new_val. */
+
+  for (i = 0; i < blen - 1; i++) {
+
+    for (j = 0; j < sizeof(interesting_16) / 2; j++) {
+
+      u32 tval = (old_val & ~(0xffff << (i * 8))) |
+                 (((u16)interesting_16[j]) << (i * 8));
+
+      if (new_val == tval) return 1;
+
+      /* Continue here only if blen > 2. */
+
+      if (blen > 2) {
+
+        tval = (old_val & ~(0xffff << (i * 8))) |
+               (SWAP16(interesting_16[j]) << (i * 8));
+
+        if (new_val == tval) return 1;
+
+      }
+
+    }
+
+  }
+
+  if (blen == 4 && check_le) {
+
+    /* See if four-byte insertions could produce the same result
+       (LE only). */
+
+    for (j = 0; j < sizeof(interesting_32) / 4; j++)
+      if (new_val == (u32)interesting_32[j]) return 1;
+
+  }
+
+  return 0;
+
+}
+
+
 /* Take the current entry from the queue, fuzz it for a while. This
    function is a tad too long... returns 0 if fuzzed successfully, 1 if
    skipped or bailed out. */
@@ -4435,7 +4620,7 @@ static u8 fuzz_one(char** argv) {
 
       */
 
-    if ((stage_cur & 7) == 7) {
+    if (!dumb_mode && (stage_cur & 7) == 7) {
 
       u32 cksum = hash32(trace_bits, MAP_SIZE, HASH_CONST);
 
@@ -4741,22 +4926,10 @@ skip_bitflip:
 
       u8 r = orig ^ (orig + j);
 
-      /* Don't bother with arithmetics that produce results equivalent
-         to previously-attempted bitflips. To evaluate this, we look at
-         XOR of the values before and after the arithmetic operation, and
-         compare them to XOR results that can be produced by bitflips.
+      /* Do arithmetic operations only if the result couldn't be a product
+         of a bitflip. */
 
-         Single bitflips can yield 1, 2, 4, 8, 16, 32, 64, 128,
-         Two-in-a-row can yield 1*, 3, 6, 12, 24, 48, 96, 128*, 192,
-         Four in a row: 1*, 3*, 7, 15, 30, 60, 120, 128*, 192*, 224, 240,
-         Full-byte flip (with a 1-byte stepover) takes care of 255.
-
-       */
-
-      if (r > 4 && r != 8  && r != 16 && r != 32 && r != 64 && r != 128 &&
-          r != 6 && r != 12 && r != 24 && r != 48 && r != 96 && r != 192 &&
-          r != 7 && r != 15 && r != 30 && r != 60 && r != 120 && r != 224 &&
-          r != 240 && r != 255) {
+      if (!could_be_bitflip(r)) {
 
         stage_cur_val = j;
         out_buf[i] = orig + j;
@@ -4766,11 +4939,9 @@ skip_bitflip:
 
       } else stage_max--;
 
-      r = orig ^ (orig - j);
+      r =  orig ^ (orig - j);
 
-      if (r > 4 && r != 8 && r != 16 && r != 32 && r != 64 && r != 128 &&
-          r != 6 && r != 12 && r != 24 && r != 48 && r != 96 && r != 192 &&
-          r != 15 && r != 30 && r != 60 && r != 120 && r != 240 && r != 255) {
+      if (!could_be_bitflip(r)) {
 
         stage_cur_val = -j;
         out_buf[i] = orig - j;
@@ -4817,17 +4988,19 @@ skip_bitflip:
 
     for (j = 1; j <= ARITH_MAX; j++) {
 
+      u16 r1 = orig ^ (orig + j),
+          r2 = orig ^ (orig - j),
+          r3 = orig ^ SWAP16(SWAP16(orig) + j),
+          r4 = orig ^ SWAP16(SWAP16(orig) - j);
+
       /* Try little endian addition and subtraction first. Do it only
          if the operation would affect more than one byte (hence the 
-         & 0xff overflow checks).
-
-         Since we're looking only at multi-byte operations, the
-         overlap with bitflips will be relatively modest and we don't
-         test for it here. */
+         & 0xff overflow checks) and if it couldn't be a product of
+         a bitflip. */
 
       stage_val_type = STAGE_VAL_LE; 
 
-      if ((orig & 0xff) + j > 0xff) {
+      if ((orig & 0xff) + j > 0xff && !could_be_bitflip(r1)) {
 
         stage_cur_val = j;
         *(u16*)(out_buf + i) = orig + j;
@@ -4837,7 +5010,7 @@ skip_bitflip:
  
       } else stage_max--;
 
-      if ((orig & 0xff) < j) {
+      if ((orig & 0xff) < j && !could_be_bitflip(r2)) {
 
         stage_cur_val = -j;
         *(u16*)(out_buf + i) = orig - j;
@@ -4851,7 +5024,8 @@ skip_bitflip:
 
       stage_val_type = STAGE_VAL_BE;
 
-      if ((orig >> 8) + j > 0xff) {
+
+      if ((orig >> 8) + j > 0xff && !could_be_bitflip(r3)) {
 
         stage_cur_val = j;
         *(u16*)(out_buf + i) = SWAP16(SWAP16(orig) + j);
@@ -4861,7 +5035,7 @@ skip_bitflip:
 
       } else stage_max--;
 
-      if ((orig >> 8) < j) {
+      if ((orig >> 8) < j && !could_be_bitflip(r4)) {
 
         stage_cur_val = -j;
         *(u16*)(out_buf + i) = SWAP16(SWAP16(orig) - j);
@@ -4909,12 +5083,17 @@ skip_bitflip:
 
     for (j = 1; j <= ARITH_MAX; j++) {
 
+      u32 r1 = orig ^ (orig + j),
+          r2 = orig ^ (orig - j),
+          r3 = orig ^ SWAP32(SWAP32(orig) + j),
+          r4 = orig ^ SWAP32(SWAP32(orig) - j);
+
       /* Little endian first. Same deal as with 16-bit: we only want to
          try if the operation would have effect on more than two bytes. */
 
       stage_val_type = STAGE_VAL_LE; 
 
-      if ((orig & 0xffff) + j > 0xffff) {
+      if ((orig & 0xffff) + j > 0xffff && !could_be_bitflip(r1)) {
 
         stage_cur_val = j;
         *(u32*)(out_buf + i) = orig + j;
@@ -4924,7 +5103,7 @@ skip_bitflip:
 
       } else stage_max--;
 
-      if ((orig & 0xffff) < j) {
+      if ((orig & 0xffff) < j && !could_be_bitflip(r2)) {
 
         stage_cur_val = -j;
         *(u32*)(out_buf + i) = orig - j;
@@ -4937,8 +5116,8 @@ skip_bitflip:
       /* Big endian next. */
 
       stage_val_type = STAGE_VAL_BE;
- 
-      if ((SWAP32(orig) & 0xffff) + j > 0xffff) {
+
+      if ((SWAP32(orig) & 0xffff) + j > 0xffff && !could_be_bitflip(r3)) {
 
         stage_cur_val = j;
         *(u32*)(out_buf + i) = SWAP32(SWAP32(orig) + j);
@@ -4948,7 +5127,7 @@ skip_bitflip:
 
       } else stage_max--;
 
-      if ((SWAP32(orig) & 0xffff) < j) {
+      if ((SWAP32(orig) & 0xffff) < j && !could_be_bitflip(r4)) {
 
         stage_cur_val = -j;
         *(u32*)(out_buf + i) = SWAP32(SWAP32(orig) - j);
@@ -5001,12 +5180,10 @@ skip_arith:
 
     for (j = 0; j < sizeof(interesting_8); j++) {
 
-      /* Skip if the new and original values are the same, or are within
-         +/- ARITH_MAX (in the latter case, we already tried this number
-         during the arith steps). */
+      /* Skip if the value could be a product of bitflips or arithmetics. */
 
-      if (((u8)(interesting_8[j] - orig)) <= ARITH_MAX ||
-          ((u8)(orig - interesting_8[j])) <= ARITH_MAX) {
+      if (could_be_bitflip(orig ^ (u8)interesting_8[j]) ||
+          could_be_arith(orig, (u8)interesting_8[j], 1)) {
         stage_max--;
         continue;
       }
@@ -5054,18 +5231,14 @@ skip_arith:
 
     for (j = 0; j < sizeof(interesting_16) / 2; j++) {
 
-      u8 i_msb = ((u16)interesting_16[j]) >> 8,
-         o_msb = orig >> 8;
-
       stage_cur_val = interesting_16[j];
 
-      /* Skip if values are the same or if both the orig value and
-         the current candidate have the same MSB value and are a
-         small integer - in which case, we covered this op while
-         working on interesting_8. */
+      /* Skip if this could be a product of a bitflip, arithmetics,
+         or single-byte interesting value insertion. */
 
-      if (interesting_16[j] != orig && 
-          (i_msb != o_msb || (o_msb != 0 && o_msb != 0xff))) {
+      if (!could_be_bitflip(orig ^ (u16)interesting_16[j]) &&
+          !could_be_arith(orig, (u16)interesting_16[j], 2) &&
+          !could_be_interest(orig, (u16)interesting_16[j], 2, 0)) {
 
         stage_val_type = STAGE_VAL_LE;
 
@@ -5076,11 +5249,10 @@ skip_arith:
 
       } else stage_max--;
 
-      o_msb = orig;
-
-      if (SWAP16(interesting_16[j]) != interesting_16[j] && 
-          SWAP16(interesting_16[j]) != orig &&
-          (i_msb != o_msb || (o_msb != 0 && o_msb != 0xff))) {
+      if ((u16)interesting_16[j] != SWAP16(interesting_16[j]) &&
+          !could_be_bitflip(orig ^ SWAP16(interesting_16[j])) &&
+          !could_be_arith(orig, SWAP16(interesting_16[j]), 2) &&
+          !could_be_interest(orig, SWAP16(interesting_16[j]), 2, 1)) {
 
         stage_val_type = STAGE_VAL_BE;
 
@@ -5128,13 +5300,14 @@ skip_arith:
 
     for (j = 0; j < sizeof(interesting_32) / 4; j++) {
 
-      u16 i_msb = ((u32)interesting_32[j]) >> 16,
-          o_msb = orig >> 16;
-
       stage_cur_val = interesting_32[j];
 
-      if (interesting_32[j] != orig &&
-          (i_msb != o_msb || (o_msb != 0 && o_msb != 0xffff))) {
+      /* Skip if this could be a product of a bitflip, arithmetics,
+         or word interesting value insertion. */
+
+      if (!could_be_bitflip(orig ^ (u32)interesting_32[j]) &&
+          !could_be_arith(orig, interesting_32[j], 4) &&
+          !could_be_interest(orig, interesting_32[j], 4, 0)) {
 
         stage_val_type = STAGE_VAL_LE;
 
@@ -5145,11 +5318,10 @@ skip_arith:
 
       } else stage_max--;
 
-      o_msb = SWAP32(orig) >> 16;
-
-      if (SWAP32(interesting_32[j]) != interesting_32[j] && 
-          SWAP32(interesting_32[j]) != orig &&
-          (i_msb != o_msb || (o_msb != 0 && o_msb != 0xffff))) {
+      if ((u32)interesting_32[j] != SWAP32(interesting_32[j]) &&
+          !could_be_bitflip(orig ^ SWAP32(interesting_32[j])) &&
+          !could_be_arith(orig, SWAP32(interesting_32[j]), 4) &&
+          !could_be_interest(orig, SWAP32(interesting_32[j]), 4, 1)) {
 
         stage_val_type = STAGE_VAL_BE;
 
@@ -5382,7 +5554,7 @@ havoc_stage:
 
   for (stage_cur = 0; stage_cur < stage_max; stage_cur++) {
 
-    u32 use_stacking = 1 << UR(HAVOC_STACK_POW2 + 1);
+    u32 use_stacking = 1 << (1 + UR(HAVOC_STACK_POW2));
 
     stage_cur_val = use_stacking;
  

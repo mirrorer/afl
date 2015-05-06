@@ -169,6 +169,12 @@ from within your synchronization or health checking scripts (see afl-whatsup).
 
 It is perhaps worth noting that all of the following is permitted:
 
+  - Running afl-fuzz with conjunction with other guided tools that can extend
+    coverage (e.g., via concolic execution). Third-party tools simply need to
+    follow the protocol described above for pulling new test cases from
+    out_dir/<fuzzer_id>/queue/* and writing their own finds to sequentially
+    numbered id:nnnnnn files in out_dir/<ext_tool_id>/queue/*.
+
   - Running some of the synchronized fuzzers with different (but related)
     target binaries. For example, simultaneously stress-testing several
     different JPEG parsers (say, IJG jpeg and libjpeg-turbo) while sharing
