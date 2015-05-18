@@ -17,10 +17,23 @@ is 1.76b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.78b:
+--------------
+
+  - Added a dictionary for PDF, contributed by Ben Nagy.
+
+  - Added several references to afl-cov, a new tool by Michael Rash.
+
+  - Fixed a problem with crash reporter detection on MacOS X, as reported by
+    Louis Dassy.
+
+--------------
 Version 1.77b:
 --------------
 
   - Extended the -x option to support single-file dictionaries.
+
+  - Replaced factory-packaged dictionaries with file-based variants.
 
   - Removed newlines from HTML keywords in testcases/_extras/html/.
 

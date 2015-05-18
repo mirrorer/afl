@@ -1,31 +1,61 @@
-This directory contains two sets of data:
+===============================
+AFL test cases and dictionaries
+===============================
 
-  - A collection of standalone, small starting files for a variety of common
-    data formats, including images, archives, and so on. You can use them
-    directly with the -i option when running afl-fuzz.
+  (See ../docs/README for the general instruction manual.)
 
-  - A smaller set of fuzzing dictionaries, provided in _extras/ subdirectory and
-    to be used with the -x option, as discussed in the README.
+1) Starting test cases
+----------------------
 
-The first data set probably requires no special discussion. The other provides
-good examples of syntax tokens both for binary files (e.g., PNG, TIFF) and for
-text-based formats (XML, SQL).
+The archives/, images/, multimedia/, and others/ subdirectories contain small,
+standalone files that can be used to seed afl-fuzz when testing parsers for a
+variety of common data formats.
 
-Somewhat predictably, when the syntax tokens are around 1-2 bytes long (as is
-the case for GIF and JPEG), the benefits of fuzzing with a dictionary are
-fairly modest and the ultimate coverage does not differ much. For data formats
-that rely on longer atomically checked tokens (e.g., 4-byte PNG section
-headers), the gains are are much more profound.
+There is probably not much to be said about these files, except that they were
+optimized for size and stripped of any non-essential fluff. Some directories
+contain several examples that exercise various features of the underlying format.
+For example, there is a PNG file with and without a color profile.
 
-Oh, by the way: contributions to both data sets are very welcome. For the
-initial samples, my current "most wanted" list includes:
+Additional test cases are always welcome; the current "most wanted" list
+includes:
 
-  - PDF,
   - JBIG,
   - Ogg Vorbis,
   - Ogg Theora,
   - MP3,
   - AAC,
   - WebM,
-  - Small JPEG with ICC (LCMS),
-  - Small font (Freetype).
+  - Small JPEG with a color profile,
+  - Small fonts.
+
+2) Dictionaries
+---------------
+
+The _extras/ subdirectory contains a set of dictionaries that can be used in
+conjunction with the -x option to allow the fuzzer to effortlessly explore the
+grammar of some of the more verbose data formats or languages. The basic
+principle behind the operation of fuzzer dictionaries is outlined in section 9
+of the "main" README for the project.
+
+Custom dictionaries can be added at will. They should consist of a
+reasonably-sized set of rudimentary syntax units that the fuzzer will then try
+to clobber together in various ways. Snippets between 2 and 16 bytes are usually
+the sweet spot.
+
+Custom dictionaries can be created in two ways:
+
+  - By creating a new directory and placing each token in a separate file, in
+    which case, there is no need to escape or otherwise format the data.
+
+  - By creating a flat text file where tokens are listed one per line in the
+    format of name="value". The alphanumeric name is ignored and can be omitted,
+    although it is a convenient way to document the meaning of a particular
+    token. The value must appear in quotes, with hex escaping (\xNN) applied to
+    all non-printable, high-bit, or otherwise problematic characters (\\ and \"
+    shorthands are recognized, too).
+
+The fuzzer auto-selects the appropriate mode depending on whether the -x
+parameter is a file or a directory.
+
+Good examples of dictionaries can be found in _extras/xml.dict and
+_extras/png.dict.

@@ -276,14 +276,9 @@ magic headers, or other special tokens associated with the targeted data type
 
   http://lcamtuf.blogspot.com/2015/01/afl-fuzz-making-up-grammar-with.html
 
-To use this feature, place the tokens in a new directory, one per file; and then
-point the fuzzer to that directory via the -x option in the command line. One
-good example can be found in testcases/_extras/xml/; another useful reference
-point would be testcases/_extras/png/.
-
-Note that the tokens should be *extremely* short and correspond to the basic
-syntax units that the fuzzer will then clobber together in various ways;
-snippets between 2 and 16 bytes are the sweet spot in almost all cases.
+To use this feature, you first need to create a dictionary in one of the two
+formats discussed in testcases/README.testcases; and then point the fuzzer to
+it via the -x option in the command line.
 
 There is no way to provide more structured descriptions of the underlying
 syntax, but the fuzzer will likely figure out some of this based on the
@@ -295,11 +290,6 @@ PS. Even when no explicit dictionary is given, afl-fuzz will try to extract
 existing syntax tokens in the input corpus by watching the instrumentation
 very closely during deterministic byte flips. This works for some types of
 parsers and grammars, but isn't nearly as good as the -x mode.
-
-PPS. Due to popular demand, it is now also possible to specify a file dictionary
-via -x. The file must follow the name="value" format, one token per line.
-Alphanumeric names are ignored, along with empty lines of lines that start with #.
-Non-printable and control characters must be escaped within values using \xNN.
 
 10) Crash triage
 ----------------
@@ -397,6 +387,9 @@ Here are some of the most important caveats for AFL:
     need to make simple code changes to make them behave in a more traditional
     way.
 
+  - AFL doesn't output human-readable coverage data. If you want to monitor
+    coverage, use afl-cov from Michael Rash: https://github.com/mrash/afl-cov
+
 Beyond this, see INSTALL for platform-specific tips.
 
 13) Special thanks
@@ -425,6 +418,7 @@ bug reports, or patches from:
   Sam Hakim                             Laszlo Szekeres
   David A. Wheeler                      Turo Lamminen
   Andreas Stieger                       Richard Godbee
+  Louis Dassy
 
 Thank you!
 

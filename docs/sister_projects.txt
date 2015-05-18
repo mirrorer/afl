@@ -84,6 +84,13 @@ Crashwalk (Ben Nagy)
 
   https://github.com/bnagy/crashwalk
 
+afl-cov (Michael Rash)
+----------------------
+
+  Produces human-readable coverage data based on the output queue of afl-fuzz.
+
+  https://github.com/mrash/afl-cov
+
 Distfuzz-AFL (Martijn Bogaard)
 ------------------------------
 

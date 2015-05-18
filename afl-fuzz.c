@@ -1355,10 +1355,9 @@ static int compare_extras_use_d(const void* p1, const void* p2) {
 
 /* Read extras from a file, sort by size. */
 
-static void load_extras_file(u8* fname) {
+static void load_extras_file(u8* fname, u32* min_len, u32* max_len) {
 
   FILE* f;
-  u32 min_len = MAX_DICT_FILE, max_len = 0;
   u8  buf[MAX_LINE];
   u8  *lptr;
   u32 cur_line = 0;
@@ -1468,8 +1467,8 @@ static void load_extras_file(u8* fname) {
       FATAL("Keyword too big in line %u (%s, limit is %s)", cur_line,
             DMS(klen), DMS(MAX_DICT_FILE));
 
-    if (min_len > klen) min_len = klen;
-    if (max_len < klen) max_len = klen;
+    if (*min_len > klen) *min_len = klen;
+    if (*max_len < klen) *max_len = klen;
 
     extras_cnt++;
 
@@ -1495,7 +1494,7 @@ static void load_extras(u8* dir) {
   if (!d) {
 
     if (errno == ENOTDIR) {
-      load_extras_file(dir);
+      load_extras_file(dir, &min_len, &max_len);
       goto check_and_sort;
     }
 
@@ -6783,7 +6782,7 @@ static void check_crash_handling(void) {
      until I get a box to test the code. So, for now, we check for crash
      reporting the awful way. */
   
-  if (system("launchctl bslist 2>/dev/null | grep -q '\\.ReportCrash$'")) return;
+  if (system("launchctl list 2>/dev/null | grep -q '\\.ReportCrash$'")) return;
 
   SAYF("\n" cLRD "[-] " cRST
        "Whoops, your system is configured to forward crash notifications to an\n"
