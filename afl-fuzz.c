@@ -1355,7 +1355,8 @@ static int compare_extras_use_d(const void* p1, const void* p2) {
 
 /* Read extras from a file, sort by size. */
 
-static void load_extras_file(u8* fname, u32* min_len, u32* max_len) {
+static void load_extras_file(u8* fname, u32* min_len, u32* max_len,
+                             u32 dict_level) {
 
   FILE* f;
   u8  buf[MAX_LINE];
@@ -1398,6 +1399,16 @@ static void load_extras_file(u8* fname, u32* min_len, u32* max_len) {
     /* Skip alphanumerics and dashes (label). */
 
     while (isalnum(*lptr) || *lptr == '_') lptr++;
+
+    /* If @number follows, parse that. */
+
+    if (*lptr == '@') {
+
+      lptr++;
+      if (atoi(lptr) > dict_level) continue;
+      while (isdigit(*lptr)) lptr++;
+
+    }
 
     /* Skip whitespace and = signs. */
 
@@ -1485,22 +1496,34 @@ static void load_extras(u8* dir) {
 
   DIR* d;
   struct dirent* de;
-  u32 min_len = MAX_DICT_FILE, max_len = 0;
+  u32 min_len = MAX_DICT_FILE, max_len = 0, dict_level = 0;
+  u8* x;
 
-  ACTF("Loading extra dictionary from '%s'...", dir);
+  /* If the name ends with @, extract level and continue. */
+
+  if ((x = strchr(dir, '@'))) {
+
+    *x = 0;
+    dict_level = atoi(x + 1);
+
+  }
+
+  ACTF("Loading extra dictionary from '%s' (level %u)...", dir, dict_level);
 
   d = opendir(dir);
 
   if (!d) {
 
     if (errno == ENOTDIR) {
-      load_extras_file(dir, &min_len, &max_len);
+      load_extras_file(dir, &min_len, &max_len, dict_level);
       goto check_and_sort;
     }
 
     PFATAL("Unable to open '%s'", dir);
 
   }
+
+  if (x) FATAL("Dictinary levels not supported for directories.");
 
   while ((de = readdir(d))) {
 

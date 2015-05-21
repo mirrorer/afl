@@ -52,6 +52,19 @@ AFL-style in-process fuzzer for LLVM (Kostya Serebryany)
 
   http://llvm.org/docs/LibFuzzer.html
 
+----------------
+Network fuzzing:
+----------------
+
+Preeny (Yan Shoshitaishvili)
+----------------------------
+
+  Provides a fairly simple way to convince dynamically linked network-centric
+  programs to read from a file or not fork. Not AFL-specific, but described as
+  useful by many users. Some assembly required.
+
+  https://github.com/zardus/preeny
+
 ----------------------------------------
 Crash triage and other helper utilities:
 ----------------------------------------

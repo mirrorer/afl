@@ -17,6 +17,16 @@ is 1.76b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.79b:
+--------------
+
+  - Added support for dictionary levels, see testcases/README.testcases.
+
+  - Reworked the SQL dictionary to use levels.
+
+  - Added a note about Preeny.
+
+--------------
 Version 1.78b:
 --------------
 

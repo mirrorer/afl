@@ -385,7 +385,8 @@ Here are some of the most important caveats for AFL:
   - There is no direct support for fuzzing network services, background
     daemons, or interactive apps that require UI interaction to work. You may
     need to make simple code changes to make them behave in a more traditional
-    way.
+    way. Preeny may offer a relatively simple option, too - see:
+    https://github.com/zardus/preeny
 
   - AFL doesn't output human-readable coverage data. If you want to monitor
     coverage, use afl-cov from Michael Rash: https://github.com/mrash/afl-cov
