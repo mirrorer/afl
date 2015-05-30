@@ -102,6 +102,11 @@ checks or alter some of the more exotic semantics of the tool:
     multi-threaded apps (but depriving you of a potentially useful signal
     in more orderly programs).
 
+  - AFL_EXIT_WHEN_DONE causes afl-fuzz to terminate when all existing paths
+    have been fuzzed and there were no new finds for a while. This would be
+    normally indicated by the cycle counter in the UI turning green. May be
+    convenient for some types of automated jobs.
+
   - When developing custom instrumentation on top of afl-fuzz, you can use
     AFL_SKIP_BIN_CHECK to inhibit the checks for non-instrumented binaries
     and shell scripts; and AFL_DUMB_FORKSRV in conjunction with the -n

@@ -3717,7 +3717,13 @@ static void show_stats(void) {
     if (cycles_wo_finds < 3) strcpy(tmp, cYEL); else
 
     /* No finds for a long time and no test cases to try. */
-    if (cycles_wo_finds > 20 && !pending_not_fuzzed) strcpy(tmp, cLGN);
+
+    if (cycles_wo_finds > 20 && !pending_not_fuzzed) {
+
+      strcpy(tmp, cLGN);
+      if (getenv("AFL_EXIT_WHEN_DONE")) stop_soon = 1;
+
+    }
 
     /* Default: cautiously OK to stop? */
     else strcpy(tmp, cLBL);
