@@ -138,30 +138,33 @@ so:
 5) Bonus feature #2: persistent mode
 ------------------------------------
 
-Some libraries provide APIs whose state can be reset in between processing
-different input files. When such a reset is performed (and utmost care is
-taken to avoid memory leaks and similar issues), a single long-lived process
-can be reused for multiple test cases, eliminating the need for repeated forks.
+Some libraries provide APIs that are stateless, or whose state can be reset in
+between processing different input files. When such a reset is performed, a
+single long-lived process can be reused to try out multiple test cases,
+eliminating the need for repeated fork() calls and the associated OS overhead:
 
-With certain fast targets, such an approach can offer dramatic (5-10x)
+  http://lcamtuf.blogspot.com/2015/06/new-in-afl-persistent-mode.html
+
+With certain fast targets, such an approach can offer dramatic (5x+)
 performance gains. The LLVM mode allows you to build such persistent targets
 using the template provided in ../experimental/persistent_demo/.
 
-Because there are task switches still involved, the mode isn't as fast as
-"pure" in-process fuzzing offered, say, by LLVM's LibFuzzer; but it is a lot
-faster than the normal fork() model, and compared to in-process fuzzing,
-should be a lot more robust.
-
 To leverage this functionality, you need to set AFL_PERSISTENT before
-invoking afl-fuzz, and the target binary needs to use a simple pattern
+invoking afl-fuzz, and the target binary needs to incorporate a simple pattern
 documented in the aforementioned example file. It also needs to be compiled with
 afl-clang-fast; other compiler wrappers will not work.
 
 Note that as with the previous mode, the feature is easy to misuse; if you
 do not reset the critical state fully, you may end up with false positives or
-waste a whole lot of CPU power doing nothing useful at all.
+waste a whole lot of CPU power doing nothing useful at all. Be particularly
+wary of memory leaks.
 
-When running in this mode, it's normal to see some low number of warnings about
-variable execution paths; this is inherent to how the input loop works. Set
-AFL_NO_VAR_CHECK if you want to suppress the detection of variable paths in
-the UI.
+When running in this mode, the execution paths will inherently vary a bit
+depending on whether the input loop is being entered for the first time or
+executed again. To avoid spurious warnings, AFL_PERSISTENT implies
+AFL_NO_VAR_CHECK and hides the "variable path" warnings in the UI.
+
+PS. Because there are task switches still involved, the mode isn't as fast as
+"pure" in-process fuzzing offered, say, by LLVM's LibFuzzer; but it is a lot
+faster than the normal fork() model, and compared to in-process fuzzing,
+should be a lot more robust.

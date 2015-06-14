@@ -1957,7 +1957,7 @@ static void init_forkserver(char** argv) {
   if (child_timed_out)
     FATAL("Timeout while initializing fork server (adjusting -t may help)");
 
-  if (waitpid(forksrv_pid, &status, WUNTRACED) <= 0)
+  if (waitpid(forksrv_pid, &status, 0) <= 0)
     PFATAL("waitpid() failed");
 
   if (WIFSIGNALED(status)) {
@@ -2090,6 +2090,8 @@ static void init_forkserver(char** argv) {
 static u8 run_target(char** argv) {
 
   static struct itimerval it;
+  static u32 prev_timed_out = 0;
+
   int status = 0;
   u32 tb4;
 
@@ -2189,7 +2191,7 @@ static u8 run_target(char** argv) {
     /* In non-dumb mode, we have the fork server up and running, so simply
        tell it to have at it, and then read back PID. */
 
-    if ((res = write(fsrv_ctl_fd, &status, 4)) != 4) {
+    if ((res = write(fsrv_ctl_fd, &prev_timed_out, 4)) != 4) {
 
       if (stop_soon) return 0;
       RPFATAL(res, "Unable to request new process from fork server (OOM?)");
@@ -2218,7 +2220,7 @@ static u8 run_target(char** argv) {
 
   if (dumb_mode == 1 || no_forkserver) {
 
-    if (waitpid(child_pid, &status, WUNTRACED) <= 0) PFATAL("waitpid() failed");
+    if (waitpid(child_pid, &status, 0) <= 0) PFATAL("waitpid() failed");
 
   } else {
 
@@ -2254,6 +2256,8 @@ static u8 run_target(char** argv) {
 #else
   classify_counts((u32*)trace_bits);
 #endif /* ^__x86_64__ */
+
+  prev_timed_out = child_timed_out;
 
   /* Report outcome to caller. */
 
@@ -6405,14 +6409,14 @@ static void handle_skipreq(int sig) {
 
 static void handle_timeout(int sig) {
 
-  child_timed_out = 1; 
-
   if (child_pid > 0) {
 
+    child_timed_out = 1; 
     kill(child_pid, SIGKILL);
 
   } else if (child_pid == -1 && forksrv_pid > 0) {
 
+    child_timed_out = 1; 
     kill(forksrv_pid, SIGKILL);
 
   }
@@ -7443,9 +7447,11 @@ int main(int argc, char** argv) {
 
   }
 
-  if (getenv("AFL_NO_FORKSRV"))   no_forkserver    = 1;
-  if (getenv("AFL_NO_CPU_RED"))   no_cpu_meter_red = 1;
-  if (getenv("AFL_NO_VAR_CHECK")) no_var_check     = 1;
+  if (getenv("AFL_NO_FORKSRV")) no_forkserver    = 1;
+  if (getenv("AFL_NO_CPU_RED")) no_cpu_meter_red = 1;
+
+  if (getenv("AFL_NO_VAR_CHECK") || getenv("AFL_PERSISTENT"))
+    no_var_check = 1;
 
   if (dumb_mode == 2 && no_forkserver)
     FATAL("AFL_DUMB_FORKSRV and AFL_NO_FORKSRV are mutually exclusive");

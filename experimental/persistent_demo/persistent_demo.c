@@ -42,7 +42,8 @@ unsigned int persist_cnt;
 
 int main(int argc, char** argv) {
 
-  char buf[100]; /* Example-only buffer */
+  char buf[100]; /* Example-only buffer, you'd replace it with other global or
+                    local variables appropriate for your use case. */
 
 try_again:
 
@@ -55,7 +56,10 @@ try_again:
 
   /* STEP 2: Read input data. When reading from stdin, no special preparation
              is required. When reading from a named file, you need to close the
-             old descriptor and reopen the file first! */
+             old descriptor and reopen the file first!
+
+             Beware of reading from buffered FILE* objects such as stdin. Use
+             raw file descriptors or call fopen() / fdopen() in every pass. */
 
   read(0, buf, 100);
 
@@ -79,9 +83,10 @@ try_again:
   /*** END PLACEHOLDER CODE ***/
 
   /* STEP 4: To signal successful completion of a run, we need to deliver
-             SIGSTOP to our own process, when loop to the very beginning.
-             Do this only if AFL_PERSISTENT is set and take note of
-             PERSIST_MAX. */
+             SIGSTOP to our own process, then loop to the very beginning
+             once we're resumed by the supervisor process. We do this only
+             if AFL_PERSISTENT is set to retain normal behavior when the
+             program is executed directly; and take note of PERSIST_MAX. */
 
   if (getenv("AFL_PERSISTENT") && persist_cnt++ < PERSIST_MAX) {
 
@@ -90,7 +95,7 @@ try_again:
 
   }
 
-  /* If AFL_PERSISTENT not set of PERSIST_MAX exceeded, exit normally. */
+  /* If AFL_PERSISTENT not set or PERSIST_MAX exceeded, exit normally. */
 
   return 0;
 

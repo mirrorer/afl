@@ -278,7 +278,7 @@ static void run_target(char** argv) {
 
   setitimer(ITIMER_REAL, &it, NULL);
 
-  if (waitpid(child_pid, &status, WUNTRACED) <= 0) FATAL("waitpid() failed");
+  if (waitpid(child_pid, &status, 0) <= 0) FATAL("waitpid() failed");
 
   child_pid = 0;
   it.it_value.tv_sec = 0;

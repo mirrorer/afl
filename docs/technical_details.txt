@@ -413,9 +413,17 @@ simply stops at the first instrumented function to await commands from
 afl-fuzz.
 
 With fast targets, the fork server can offer considerable performance gains,
-usually between 1.5x and 2x. It is also possible to use the fork server in
-manual mode, skipping over larger, user-selected chunks of initialization
-code. With some targets, this can produce 10x+ performance gain.
+usually between 1.5x and 2x. It is also possible to:
+
+  - Use the fork server in manual ("deferred") mode, skipping over larger,
+    user-selected chunks of initialization code. With some targets, this can
+    produce 10x+ performance gains.
+
+  - Enable "persistent" mode, where a single process is used to try out
+    multiple inputs, greatly limiting the overhead of repetitive fork()
+    calls. As with the previous mode, this requires custom modifications,
+    but can improve the performance of fast targets by a factor of 5 or more
+    - approximating the benefits of in-process fuzzing jobs.
 
 11) Parallelization
 -------------------

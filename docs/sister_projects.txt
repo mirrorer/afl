@@ -115,6 +115,13 @@ Distfuzz-AFL (Martijn Bogaard)
 
   https://github.com/MartijnB/disfuzz-afl
 
+afl-launch (Ben Nagy)
+---------------------
+
+  Another AFL launcher utility with a simple CLI.
+
+  https://github.com/bnagy/afl-launch
+
 AFL fixup shim (Ben Nagy)
 -------------------------
 

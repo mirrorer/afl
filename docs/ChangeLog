@@ -17,6 +17,17 @@ is 1.76b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.82b:
+--------------
+
+  - Fixed a harmless but annoying race condition in persistent mode - signal
+    delivery is a bit more finicky than I thought.
+
+  - Updated the documentation to explain persistent mode a bit better.
+
+  - Tweaked AFL_PERSISTENT to force AFL_NO_VAR_CHECK.
+
+--------------
 Version 1.81b:
 --------------
 

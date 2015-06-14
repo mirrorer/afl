@@ -302,7 +302,7 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
 
   setitimer(ITIMER_REAL, &it, NULL);
 
-  if (waitpid(child_pid, &status, WUNTRACED) <= 0) FATAL("waitpid() failed");
+  if (waitpid(child_pid, &status, 0) <= 0) FATAL("waitpid() failed");
 
   child_pid = 0;
   it.it_value.tv_sec = 0;
