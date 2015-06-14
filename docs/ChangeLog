@@ -17,6 +17,19 @@ is 1.76b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.81b:
+--------------
+
+  - Added persistent mode for in-process fuzzing. See llvm_mode/README.llvm.
+    Inspired by Kostya Serebryany and Christian Holler.
+
+  - Changed the in-place resume code to preserve crashes/README.txt. Suggested
+    by Ben Nagy.
+
+  - Included a potential fix for LLVM mode issues on MacOS X, based on the
+    investigation done by teor2345.
+
+--------------
 Version 1.80b:
 --------------
 

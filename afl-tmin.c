@@ -684,6 +684,8 @@ static void set_up_environment(void) {
   setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
                          "msan_track_origins=0", 0);
 
+  unsetenv("AFL_PERSISTENT");
+
 }
 
 

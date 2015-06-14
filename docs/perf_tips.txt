@@ -57,6 +57,10 @@ When fuzzing slow targets, you can gain 2x performance improvement by using
 the LLVM-based instrumentation mode described in llvm_mode/README.llvm. Note
 that this mode requires the use of clang and will not work with GCC.
 
+The LLVM mode also offers a "persistent", in-process fuzzing mode that can
+work well for certain types of self-contained libraries, and for fast targets,
+can offer performance gains up to 5-10x.
+
 4) Have a closer look at the binary
 -----------------------------------
 

@@ -3487,9 +3487,13 @@ static void maybe_delete_out_dir(void) {
 
   /* All right, let's do <out_dir>/crashes/id:* and <out_dir>/hangs/id:*. */
 
-  fn = alloc_printf("%s/crashes/README.txt", out_dir);
-  unlink(fn); /* Ignore errors */
-  ck_free(fn);
+  if (!in_place_resume) {
+
+    fn = alloc_printf("%s/crashes/README.txt", out_dir);
+    unlink(fn); /* Ignore errors */
+    ck_free(fn);
+
+  }
 
   fn = alloc_printf("%s/crashes", out_dir);
 

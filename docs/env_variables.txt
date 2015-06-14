@@ -139,6 +139,9 @@ checks or alter some of the more exotic semantics of the tool:
     (Technically speaking, the setting is passed down to the binary itself,
     and not handled in any special way by afl-fuzz.)
 
+  - In LLVM mode, AFL_PERSISTENT can be set to fuzz in persistent mode. See
+    llvm_mode/README.llvm for additional information on what this means.
+
   - In QEMU mode (-Q), AFL_PATH will be searched for afl-qemu-trace.
 
 4) Settings for afl-qemu-trace

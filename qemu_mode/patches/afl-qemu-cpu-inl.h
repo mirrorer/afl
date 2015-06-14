@@ -211,7 +211,7 @@ static void afl_forkserver(CPUArchState *env) {
 
     /* Get and relay exit status to parent. */
 
-    if (waitpid(child_pid, &status, WUNTRACED) < 0) exit(6);
+    if (waitpid(child_pid, &status, 0) < 0) exit(6);
     if (write(FORKSRV_FD + 1, &status, 4) != 4) exit(7);
 
   }

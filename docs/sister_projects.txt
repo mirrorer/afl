@@ -48,7 +48,9 @@ AFL-style in-process fuzzer for LLVM (Kostya Serebryany)
 --------------------------------------------------------
 
   Provides an evolutionary instrumentation-guided fuzzing harness that allows
-  some programs to be fuzzed without the fork / execve overhead.
+  some programs to be fuzzed without the fork / execve overhead. (Similar
+  functionality is now available as the "persistent" feature described in
+  ../llvm_mode/README.llvm.)
 
   http://llvm.org/docs/LibFuzzer.html
 

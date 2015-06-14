@@ -295,7 +295,7 @@ static const u8* main_payload_32 =
   "  call  write\n"
   "  addl  $12, %esp\n"
   "\n"
-  "  pushl $2             /* WUNTRACED */\n"
+  "  pushl $0             /* no flags  */\n"
   "  pushl $__afl_temp    /* status    */\n"
   "  pushl __afl_fork_pid /* PID       */\n"
   "  call  waitpid\n"
@@ -574,7 +574,7 @@ static const u8* main_payload_64 =
   "  movq $" STRINGIFY((FORKSRV_FD + 1)) ", %rdi             /* file desc */\n"
   CALL_L64("write")
   "\n"
-  "  movq $2, %rdx                   /* WUNTRACED */\n"
+  "  movq $0, %rdx                   /* no flags  */\n"
   "  leaq __afl_temp(%rip), %rsi     /* status    */\n"
   "  movq __afl_fork_pid(%rip), %rdi /* PID       */\n"
   CALL_L64("waitpid")
