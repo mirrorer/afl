@@ -17,6 +17,16 @@ is 1.76b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.83b:
+--------------
+
+  - Fixed a problem with xargs -d on non-Linux systems in afl-cmin. Spotted by
+    teor2345 and Ben Nagy.
+
+  - Fixed an implicit declaration in LLVM mode on MacOS X. Reported by 
+    Kai Zhao.
+
+--------------
 Version 1.82b:
 --------------
 
