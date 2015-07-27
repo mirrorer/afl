@@ -321,8 +321,8 @@ Less likely causes may include running out of disk space, SHM handles, or other
 globally limited resources.
 
 The paths where variable behavior is detected are marked with with a matching
-entry in the <out_dir>/.state/variable_behavior/ directory, so you can look
-them up easily.
+entry in the <out_dir>/queue/.state/variable_behavior/ directory, so you can
+look them up easily.
 
 If you can't suppress variable behavior and don't want to see these warnings,
 simply set AFL_NO_VAR_CHECK=1 in the environment before running afl-fuzz. This

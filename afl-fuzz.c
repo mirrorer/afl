@@ -3168,6 +3168,7 @@ static void write_stats_file(double bitmap_cvg, double eps) {
              "execs_done     : %llu\n"
              "execs_per_sec  : %0.02f\n"
              "paths_total    : %u\n"
+             "paths_favored  : %u\n"
              "paths_found    : %u\n"
              "paths_imported : %u\n"
              "max_depth      : %u\n"
@@ -3187,8 +3188,8 @@ static void write_stats_file(double bitmap_cvg, double eps) {
              "command_line   : %s\n",
              start_time / 1000, get_cur_time() / 1000, getpid(),
              queue_cycle ? (queue_cycle - 1) : 0, total_execs, eps,
-             queued_paths, queued_discovered, queued_imported, max_depth,
-             current_entry, pending_favored, pending_not_fuzzed,
+             queued_paths, queued_favored, queued_discovered, queued_imported,
+             max_depth, current_entry, pending_favored, pending_not_fuzzed,
              queued_variable, bitmap_cvg, unique_crashes, unique_hangs,
              last_path_time / 1000, last_crash_time / 1000,
              last_hang_time / 1000, exec_tmout, use_banner, orig_cmdline);
@@ -3509,9 +3510,19 @@ static void maybe_delete_out_dir(void) {
     time_t cur_t = time(0);
     struct tm* t = localtime(&cur_t);
 
+#ifndef SIMPLE_FILES
+
     u8* nfn = alloc_printf("%s.%04u-%02u-%02u-%02u:%02u:%02u", fn,
                            t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
                            t->tm_hour, t->tm_min, t->tm_sec);
+
+#else
+
+    u8* nfn = alloc_printf("%s_%04u%02u%02u%02u%02u%02u", fn,
+                           t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                           t->tm_hour, t->tm_min, t->tm_sec);
+
+#endif /* ^!SIMPLE_FILES */
 
     rename(fn, nfn); /* Ignore errors. */
     ck_free(nfn);
@@ -3530,9 +3541,19 @@ static void maybe_delete_out_dir(void) {
     time_t cur_t = time(0);
     struct tm* t = localtime(&cur_t);
 
+#ifndef SIMPLE_FILES
+
     u8* nfn = alloc_printf("%s.%04u-%02u-%02u-%02u:%02u:%02u", fn,
                            t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
                            t->tm_hour, t->tm_min, t->tm_sec);
+
+#else
+
+    u8* nfn = alloc_printf("%s_%04u%02u%02u%02u%02u%02u", fn,
+                           t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                           t->tm_hour, t->tm_min, t->tm_sec);
+
+#endif /* ^!SIMPLE_FILES */
 
     rename(fn, nfn); /* Ignore errors. */
     ck_free(nfn);
@@ -7322,8 +7343,8 @@ int main(int argc, char** argv) {
 
           if (timeout_given) FATAL("Multiple -t options not supported");
 
-          if (sscanf(optarg, "%u%c", &exec_tmout, &suffix) < 1)
-            FATAL("Bad syntax used for -t");
+          if (sscanf(optarg, "%u%c", &exec_tmout, &suffix) < 1 ||
+              optarg[0] == '-') FATAL("Bad syntax used for -t");
 
           if (exec_tmout < 5) FATAL("Dangerously low value of -t");
 
@@ -7347,8 +7368,8 @@ int main(int argc, char** argv) {
 
           }
 
-          if (sscanf(optarg, "%llu%c", &mem_limit, &suffix) < 1)
-            FATAL("Bad syntax used for -m");
+          if (sscanf(optarg, "%llu%c", &mem_limit, &suffix) < 1 ||
+              optarg[0] == '-') FATAL("Bad syntax used for -m");
 
           switch (suffix) {
 

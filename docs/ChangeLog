@@ -17,6 +17,22 @@ is 1.76b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.84b:
+--------------
+
+  - Made SIMPLE_FILES behave as expected when naming backup directories for
+    crashes and hangs.
+
+  - Added the total number of favored paths to fuzzer_stats. Requested by
+    Ben Nagy.
+
+  - Made afl-tmin, afl-fuzz, and afl-cmin reject negative values passed to
+    -t and -m, since they generally won't work as expected.
+
+  - Made a fix for no lahf / sahf support on older versions of FreeBSD.
+    Patch contributed by Alex Moneger.
+
+--------------
 Version 1.83b:
 --------------
 

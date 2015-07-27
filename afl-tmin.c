@@ -963,8 +963,8 @@ int main(int argc, char** argv) {
 
           }
 
-          if (sscanf(optarg, "%llu%c", &mem_limit, &suffix) < 1)
-            FATAL("Bad syntax used for -m");
+          if (sscanf(optarg, "%llu%c", &mem_limit, &suffix) < 1 ||
+              optarg[0] == '-') FATAL("Bad syntax used for -m");
 
           switch (suffix) {
 
@@ -992,7 +992,10 @@ int main(int argc, char** argv) {
         timeout_given = 1;
 
         exec_tmout = atoi(optarg);
-        if (exec_tmout < 10) FATAL("Dangerously low value of -t");
+
+        if (exec_tmout < 10 || optarg[0] == '-')
+          FATAL("Dangerously low value of -t");
+
         break;
 
       case 'Q':

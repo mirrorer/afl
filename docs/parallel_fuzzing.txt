@@ -104,6 +104,13 @@ Martijn Bogaard at:
 
   https://github.com/MartijnB/disfuzz-afl
 
+Another client-server implementation from Richo Healey is:
+
+  https://github.com/richo/roving
+
+Note that these third-party tools on machines that are exposed to the Internet
+or other untrusted environments.
+
 When developing custom test case sync code, there are several optimizations
 to keep in mind:
 

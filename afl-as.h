@@ -388,11 +388,11 @@ static const u8* main_payload_64 =
   "\n"
   "__afl_maybe_log:\n"
   "\n"
-#ifdef  __OpenBSD__
+#if defined(__OpenBSD__)  || (defined(__FreeBSD__) && (__FreeBSD__ < 9))
   "  .byte 0x9f /* lahf */\n"
 #else
   "  lahf\n"
-#endif /* ^__OpenBSD__ */
+#endif /* ^__OpenBSD__, etc */
   "  seto  %al\n"
   "\n"
   "  /* Check if SHM region is already mapped. */\n"
@@ -420,11 +420,11 @@ static const u8* main_payload_64 =
   "__afl_return:\n"
   "\n"
   "  addb $127, %al\n"
-#ifdef  __OpenBSD__
+#if defined(__OpenBSD__)  || (defined(__FreeBSD__) && (__FreeBSD__ < 9))
   "  .byte 0x9e /* sahf */\n"
 #else
   "  sahf\n"
-#endif /* ^__OpenBSD__ */
+#endif /* ^__OpenBSD__, etc */
   "  ret\n"
   "\n"
   ".align 8\n"

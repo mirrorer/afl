@@ -94,6 +94,10 @@ and definitely don't look POSIX-compliant. This means two things:
 User emulation mode of QEMU does not appear to be supported on MacOS X, so
 black-box instrumentation mode (-Q) will not work.
 
+The llvm_mode requires a fully-operational installation of clang. The one that
+comes with Xcode is missing some of the essential headers and helper tools.
+See llvm_mode/README.llvm for advice on how to build the compiler from scratch.
+
 4) Linux or *BSD on non-x86 systems
 -----------------------------------
 

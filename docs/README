@@ -388,6 +388,9 @@ Here are some of the most important caveats for AFL:
     way. Preeny may offer a relatively simple option, too - see:
     https://github.com/zardus/preeny
 
+    Some useful tips for modifying network-based services can be also found at:
+    https://www.fastly.com/blog/how-to-fuzz-server-american-fuzzy-lop
+
   - AFL doesn't output human-readable coverage data. If you want to monitor
     coverage, use afl-cov from Michael Rash: https://github.com/mrash/afl-cov
 
@@ -420,6 +423,10 @@ bug reports, or patches from:
   David A. Wheeler                      Turo Lamminen
   Andreas Stieger                       Richard Godbee
   Louis Dassy                           teor2345
+  Alex Moneger                          Dmitry Vyukov
+  Keegan McAllister                     Kostya Serebryany
+  Rico Healey                           Martijn Bogaard
+  rc0r
 
 Thank you!
 

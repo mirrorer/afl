@@ -54,6 +54,14 @@ AFL-style in-process fuzzer for LLVM (Kostya Serebryany)
 
   http://llvm.org/docs/LibFuzzer.html
 
+AFL fixup shim (Ben Nagy)
+-------------------------
+
+  Allows AFL_POST_LIBRARY postprocessors to be written in arbitrary languages
+  that don't have C / .so bindings. Includes examples in Go.
+
+  https://github.com/bnagy/aflfix
+
 ----------------
 Network fuzzing:
 ----------------
@@ -67,9 +75,34 @@ Preeny (Yan Shoshitaishvili)
 
   https://github.com/zardus/preeny
 
-----------------------------------------
-Crash triage and other helper utilities:
-----------------------------------------
+-------------------------------------------
+Distributed fuzzing and related automation:
+-------------------------------------------
+
+roving (Rico Healey)
+--------------------
+
+  A client-server architecture for effortlessly orchestrating AFL runs across
+  a fleet of machines. You don't want to use this on systems that face the
+  Internet or live in other untrusted environments.
+
+  https://github.com/richo/roving
+
+Distfuzz-AFL (Martijn Bogaard)
+------------------------------
+
+  Simplifies the management of afl-fuzz instances on remote machines. The
+  author notes that the current implementation isn't secure and should not
+  be exposed on the Internet.
+
+  https://github.com/MartijnB/disfuzz-afl
+
+afl-launch (Ben Nagy)
+---------------------
+
+  Batch AFL launcher utility with a simple CLI.
+
+  https://github.com/bnagy/afl-launch
 
 AFL Utils (rc0r)
 ----------------
@@ -84,6 +117,10 @@ afl-fuzzing-scripts (Tobias Ospelt)
   Simplifies starting up multiple parallel AFL jobs.
 
   https://github.com/floyd-fuh/afl-fuzzing-scripts/
+
+-------------------------------------
+Crash triage, coverage analysis, etc:
+-------------------------------------
 
 afl-crash-analyzer (Tobias Ospelt)
 ----------------------------------
@@ -105,30 +142,6 @@ afl-cov (Michael Rash)
   Produces human-readable coverage data based on the output queue of afl-fuzz.
 
   https://github.com/mrash/afl-cov
-
-Distfuzz-AFL (Martijn Bogaard)
-------------------------------
-
-  Simplifies the management of afl-fuzz instances on remote machines. The
-  author notes that the current implementation isn't secure and should not
-  be exposed on the Internet.
-
-  https://github.com/MartijnB/disfuzz-afl
-
-afl-launch (Ben Nagy)
----------------------
-
-  Another AFL launcher utility with a simple CLI.
-
-  https://github.com/bnagy/afl-launch
-
-AFL fixup shim (Ben Nagy)
--------------------------
-
-  Allows AFL_POST_LIBRARY postprocessors to be written in arbitrary languages
-  that don't have C / .so bindings. Includes examples in Go.
-
-  https://github.com/bnagy/aflfix
 
 RecidiVM (Jakub Wilk)
 ---------------------
@@ -182,6 +195,15 @@ AFL harness for fwknop (Michael Rash)
   An example of a fairly involved integration with AFL.
 
   https://github.com/mrash/fwknop/tree/master/test/afl
+
+Building harnesses for DNS servers (Jonathan Foote, Ron Bowes)
+--------------------------------------------------------------
+
+  Two articles outlining the general principles and showing some example code.
+
+  https://www.fastly.com/blog/how-to-fuzz-server-american-fuzzy-lop
+  https://goo.gl/j9EgFf
+
 
 Fuzzer shell for SQLite (Richard Hipp)
 --------------------------------------
