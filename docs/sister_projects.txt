@@ -79,8 +79,8 @@ Preeny (Yan Shoshitaishvili)
 Distributed fuzzing and related automation:
 -------------------------------------------
 
-roving (Rico Healey)
---------------------
+roving (Richo Healey)
+---------------------
 
   A client-server architecture for effortlessly orchestrating AFL runs across
   a fleet of machines. You don't want to use this on systems that face the
