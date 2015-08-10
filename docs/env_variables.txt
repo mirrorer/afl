@@ -107,6 +107,11 @@ checks or alter some of the more exotic semantics of the tool:
     normally indicated by the cycle counter in the UI turning green. May be
     convenient for some types of automated jobs.
 
+  - AFL_SKIP_CRASHES causes AFL to tolerate crashing files in the input
+    queue. This can help with rare situations where a program crashes only
+    intermittently, but it's not really recommended under normal operating
+    conditions.
+
   - When developing custom instrumentation on top of afl-fuzz, you can use
     AFL_SKIP_BIN_CHECK to inhibit the checks for non-instrumented binaries
     and shell scripts; and AFL_DUMB_FORKSRV in conjunction with the -n

@@ -17,6 +17,18 @@ is 1.76b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.86b:
+--------------
+
+  - Added support for AFL_SKIP_CRASHES, which is a very hackish solution to
+    the problem of resuming sessions with intermittently crashing inputs.
+
+  - Removed the hard-fail terminal size check, replaced with a dynamic
+    warning shown in place of the UI. Based on feedback from Christian Holler.
+
+  - Fixed a minor typo in show_stats. Spotted by Dingbao Xie.
+
+--------------
 Version 1.85b:
 --------------
 

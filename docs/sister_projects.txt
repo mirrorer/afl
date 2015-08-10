@@ -21,7 +21,7 @@ Python AFL (Jakub Wilk)
 Go-fuzz (Dmitry Vyukov)
 -----------------------
 
-  AFL-style guided fuzzing approach for Go targets:
+  AFL-inspired guided fuzzing approach for Go targets:
 
   https://github.com/dvyukov/go-fuzz
 
@@ -153,6 +153,13 @@ RecidiVM (Jakub Wilk)
 -------------------------------
 Narrow-purpose or experimental:
 -------------------------------
+
+Pause and resume scripts (Ben Nagy)
+-----------------------------------
+
+  Simple automation to suspend and resume groups of fuzzing jobs.
+
+  https://gist.github.com/bnagy/8f0eb29eb125653f73fd
 
 Static binary-only instrumentation (Aleksandar Nikolich)
 --------------------------------------------------------
