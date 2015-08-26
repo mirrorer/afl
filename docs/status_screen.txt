@@ -190,7 +190,7 @@ now. It tells you about the current stage, which can be any of:
     "interesting" 8-, 16-, and 32-bit values to try. The stepover is 8 bits.
 
   - extras - deterministic injection of dictionary terms. This can be shown as
-    "user" or "auto", depending on whether the fuzzer is using an user-supplied
+    "user" or "auto", depending on whether the fuzzer is using a user-supplied
     dictionary (-x) or an auto-created one. You will also see "over" or "insert",
     depending on whether the dictionary words overwrite existing data or are
     inserted by offsetting the remaining data to accommodate their length.
@@ -320,9 +320,9 @@ explanations for variable behavior of the tested program:
 Less likely causes may include running out of disk space, SHM handles, or other
 globally limited resources.
 
-The paths where variable behavior is detected are marked with with a matching
-entry in the <out_dir>/queue/.state/variable_behavior/ directory, so you can
-look them up easily.
+The paths where variable behavior is detected are marked with a matching entry
+in the <out_dir>/queue/.state/variable_behavior/ directory, so you can look
+them up easily.
 
 If you can't suppress variable behavior and don't want to see these warnings,
 simply set AFL_NO_VAR_CHECK=1 in the environment before running afl-fuzz. This

@@ -13,6 +13,8 @@ american fuzzy lop
   To compare notes with other users or get notified about major new features,
   send a mail to <afl-users+subscribe@googlegroups.com>.
 
+  ** See QuickStartGuide.txt if you don't have time to read this file. **
+
 1) Challenges of guided fuzzing
 -------------------------------
 
@@ -21,34 +23,32 @@ security issues in real-world software; it is responsible for the vast
 majority of remote code execution and privilege escalation bugs found to date
 in security-critical software.
 
-Unfortunately, fuzzing also offers fairly shallow coverage, because many of the
-mutations needed to reach new code paths are exceedingly unlikely to be hit 
-purely by chance.
+Unfortunately, fuzzing is also relatively shallow; blind, random mutations
+make it very unlikely to reach certain code paths in the tested code, leaving
+some vulnerabilities firmly outside the reach of this technique.
 
-There have been numerous attempts to solve this problem by augmenting the
-process with additional information about the behavior of the tested code,
-ranging from simple corpus distillation, to flow analysis (aka "concolic"
-execution), to pure symbolic execution, to static analysis.
+There have been numerous attempts to solve this problem. One of the early
+approaches - pioneered by Tavis Ormandy - is corpus distillation. The method
+relies on coverage signals to select a subset of interesting seeds from a
+massive, high-quality corpus of candidate files, and then fuzz them by
+traditional means. The approach works exceptionally well, but requires such
+a corpus to be readily available. In addition, block coverage measurements
+provide only a very simplistic understanding of program state, and are less
+useful for guiding the fuzzing effort in the long haul.
 
-The first method on that list has been demonstrated to work well, but depends
-on the availability of a massive, high-quality corpus of valid input data. On
-top of this, coverage measurements provide only a fairly simplistic view of
-program state, making them less suited for guiding the fuzzing process later on.
-
-The remaining techniques are extremely promising in experimental settings, but
-frequently suffer from reliability problems or irreducible complexity. Most of
-the high-value targets have enough internal states and possible execution paths
-to make such tools fall apart and perform strictly worse than their traditional
-counterparts, at least until fine-tuned with utmost care.
+Other, more sophisticated research has focused on techniques such as program
+flow analysis ("concolic execution"), symbolic execution, or static analysis.
+All these methods are extremely promising in experimental settings, but tend
+to suffer from reliability and performance problems in practical uses - and
+currently do not offer a viable alternative to "dumb" fuzzing techniques.
 
 2) The afl-fuzz approach
 ------------------------
 
 American Fuzzy Lop is a brute-force fuzzer coupled with an exceedingly simple
-but rock-solid instrumentation-guided genetic algorithm. It uses an enhanced
-form of edge coverage to easily detect subtle, local-scale changes to program
-control flow, without being bogged down by complex comparisons between multiple
-long-winded execution paths.
+but rock-solid instrumentation-guided genetic algorithm. It uses a modified
+form of edge coverage to effortlessly pick up subtle, local-scale changes to
+program control flow.
 
 Simplifying a bit, the overall algorithm can be summed up as:
 
@@ -72,19 +72,14 @@ The discovered test cases are also periodically culled to eliminate ones that
 have been obsoleted by newer, higher-coverage finds, and undergo several other
 instrumentation-driven effort minimization steps.
 
-The strategies mentioned in step 4 are fairly straightforward, but go well
-beyond the functionality of tools such as zzuf and honggfuzz and lead to
-additional finds; this is discussed in more detail in technical_notes.txt.
-
 As a side result of the fuzzing process, the tool creates a small,
 self-contained corpus of interesting test cases. These are extremely useful
 for seeding other, labor- or resource-intensive testing regimes - for example,
 for stress-testing browsers, office applications, graphics suites, or
 closed-source tools.
 
-The fuzzer is thoroughly tested to deliver coverage far superior to blind
-fuzzing or coverage-only tools without the need to dial in any settings or
-adjust any knobs.
+The fuzzer is thoroughly tested to deliver out-of-the-box performance far
+superior to blind fuzzing or coverage-only tools.
 
 3) Instrumenting programs for use with AFL
 ------------------------------------------
@@ -103,17 +98,18 @@ specifics of the build process, but a nearly-universal approach would be:
 $ CC=/path/to/afl/afl-gcc ./configure
 $ make clean all
 
-For C++ programs, you will want:
-
-$ CXX=/path/to/afl/afl-g++ ./configure
+For C++ programs, one would also want to set CXX=/path/to/afl/afl-g++.
 
 The clang wrappers (afl-clang and afl-clang++) are used in the same way; clang
 users can also leverage a higher-performance instrumentation mode described in
 llvm_mode/README.llvm.
 
-When testing libraries, it is essential to either link the tested executable
-against a static version of the instrumented library, or to set the right
-LD_LIBRARY_PATH. Usually, the simplest option is just:
+When testing libraries, you need to find or write a simple program that
+reads data from stdin or from a file and passes it to the tested library.
+In such a case, it is essential to link this executable either against a 
+static version of the instrumented library, or to make sure that the correct
+.so file is loaded at runtime (usually by setting LD_LIBRARY_PATH). The
+simplest option is just a static build, e.g.:
 
 $ CC=/path/to/afl/afl-gcc ./configure --disable-shared
 
@@ -121,7 +117,8 @@ Setting AFL_HARDEN=1 when calling 'make' will cause the CC wrapper to
 automatically enable code hardening options that make it easier to detect
 simple memory bugs. The cost of this is a <5% performance drop.
 
-Oh: when using ASAN, see the notes_for_asan.txt file for important caveats.
+When compiling programs with ASAN, see the notes_for_asan.txt file for
+important caveats.
 
 4) Instrumenting binary-only apps
 ---------------------------------
@@ -176,10 +173,11 @@ For programs that accept input directly from stdin, the usual syntax may be:
 
 $ ./afl-fuzz -i testcase_dir -o findings_dir /path/to/program [...params...]
 
-For programs that take input from a file, use '@@' to mark the location where
-the input file name should go. The fuzzer will substitute this for you:
+For programs that take input from a file, use '@@' to mark the location in
+the target program's command line where the input file name should go. The
+fuzzer will substitute this for you, say:
 
-$ ./afl-fuzz -i testcase_dir -o findings_dir /path/to/program -r @@
+$ ./afl-fuzz -i testcase_dir -o findings_dir /path/to/program @@
 
 You can also use the -f option to have the mutated data written to a specific
 file. This is useful if the program expects a particular file extension or so.
@@ -427,7 +425,7 @@ bug reports, or patches from:
   Keegan McAllister                     Kostya Serebryany
   Richo Healey                          Martijn Bogaard
   rc0r                                  Jonathan Foote
-  Christian Holler
+  Christian Holler                      Dominique Pelle
 
 Thank you!
 

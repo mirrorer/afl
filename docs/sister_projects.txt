@@ -211,7 +211,6 @@ Building harnesses for DNS servers (Jonathan Foote, Ron Bowes)
   https://www.fastly.com/blog/how-to-fuzz-server-american-fuzzy-lop
   https://goo.gl/j9EgFf
 
-
 Fuzzer shell for SQLite (Richard Hipp)
 --------------------------------------
 

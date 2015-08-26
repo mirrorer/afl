@@ -13,8 +13,8 @@ This platform is expected to work well. Compile the program with:
 
 $ make
 
-You can starting using the fuzzer without installation, but it is also possible
-to install it with:
+You can start using the fuzzer without installation, but it is also possible to
+install it with:
 
 # make install
 
