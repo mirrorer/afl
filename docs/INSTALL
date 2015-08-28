@@ -156,4 +156,7 @@ VirtualBox or so to run a hardware-accelerated Linux VM; it will run around
 me know.
 
 Although Android on x86 should theoretically work, the stock kernel has SHM
-support compiled out, so you will need to address this issue first.
+support compiled out, so you will need to address this issue first. It's
+possible that all you need is this:
+
+  https://github.com/pelya/android-shmem

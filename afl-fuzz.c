@@ -3697,6 +3697,11 @@ static void show_stats(void) {
  
   }
 
+  /* Honor AFL_EXIT_WHEN_DONE. */
+
+  if (!dumb_mode && cycles_wo_finds > 20 && !pending_not_fuzzed &&
+      getenv("AFL_EXIT_WHEN_DONE")) stop_soon = 1;
+
   /* If we're not on TTY, bail out. */
 
   if (not_on_tty) return;
@@ -3769,13 +3774,7 @@ static void show_stats(void) {
     if (cycles_wo_finds < 3) strcpy(tmp, cYEL); else
 
     /* No finds for a long time and no test cases to try. */
-
-    if (cycles_wo_finds > 20 && !pending_not_fuzzed) {
-
-      strcpy(tmp, cLGN);
-      if (getenv("AFL_EXIT_WHEN_DONE")) stop_soon = 1;
-
-    }
+    if (cycles_wo_finds > 20 && !pending_not_fuzzed) strcpy(tmp, cLGN);
 
     /* Default: cautiously OK to stop? */
     else strcpy(tmp, cLBL);

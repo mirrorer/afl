@@ -8,7 +8,7 @@ Notes for using ASAN with afl-fuzz
 1) Short version
 ----------------
 
-ASAN on 64-bit systems uses a lot of memory in a way that can't be easily
+ASAN on 64-bit systems requests a lot of memory in a way that can't be easily
 distinguished from a misbehaving program bent on crashing your system.
 
 Because of this, fuzzing with ASAN is recommended only in four scenarios:
@@ -18,7 +18,7 @@ Because of this, fuzzing with ASAN is recommended only in four scenarios:
 
   - On 64-bit systems only if you can do one of the following:
 
-    - Compile the binary in 32-bit mode (gcc -m32 or so),
+    - Compile the binary in 32-bit mode (gcc -m32),
 
     - Precisely gauge memory needs using http://jwilk.net/software/recidivm .
 

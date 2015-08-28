@@ -37,7 +37,7 @@ it off. You can still find its original documentation at:
   https://code.google.com/p/bunny-the-fuzzer/wiki/BunnyDoc
 
 There has been a fair amount of independent work, too. Most notably, a few
-weeks  earlier that year, Jared DeMott had a Defcon presentation about a
+weeks earlier that year, Jared DeMott had a Defcon presentation about a
 coverage-driven fuzzer that relied on coverage as a fitness function.
 
 Jared's approach was by no means identical to what afl-fuzz does, but it was in

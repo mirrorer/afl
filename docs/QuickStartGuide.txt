@@ -10,7 +10,8 @@ how to hit the ground running:
 2) Find or write a reasonably fast and simple program that takes data from
    a file or stdin, processes it in a test-worthy way, then exits cleanly.
    If testing a network service, modify it to run in the foreground and read
-   from stdin.
+   from stdin. When fuzzing a format that uses checksums, comment out the
+   checksum verification code, too.
 
    The program must crash properly when a fault is encountered. Watch out for
    custom SIGSEGV or SIGABRT handlers and background processes.
