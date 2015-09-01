@@ -80,7 +80,7 @@ test_deps:
 
 test_build: $(PROGS)
 	@echo "[*] Testing the CC wrapper and instrumentation output..."
-	unset AFL_USE_ASAN AFL_USE_MSAN AFL_DEFER_FORKSRV; AFL_QUIET=1 AFL_INST_RATIO=100 AFL_PATH=. AFL_CC=$(CC) ../afl-clang-fast $(CFLAGS) ../test-instr.c -o test-instr $(LDFLAGS)
+	unset AFL_USE_ASAN AFL_USE_MSAN; AFL_QUIET=1 AFL_INST_RATIO=100 AFL_PATH=. AFL_CC=$(CC) ../afl-clang-fast $(CFLAGS) ../test-instr.c -o test-instr $(LDFLAGS)
 	echo 0 | ../afl-showmap -m none -q -o .test-instr0 ./test-instr
 	echo 1 | ../afl-showmap -m none -q -o .test-instr1 ./test-instr
 	@rm -f test-instr

@@ -337,8 +337,6 @@ static void set_up_environment(void) {
   setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
                          "msan_track_origins=0", 0);
 
-  unsetenv("AFL_PERSISTENT");
-
 }
 
 
@@ -444,7 +442,8 @@ static void usage(u8* argv0) {
        "  -q            - sink program's output and don't show messages\n"
        "  -e            - show edge coverage only, ignore hit counts\n\n"
 
-       "For additional tips, please consult %s/README.\n\n",
+       "This tool displays raw tuple data captured by AFL instrumentation.\n"
+       "For additional help, consult %s/README.\n\n",
 
        argv0, MEM_LIMIT, doc_path);
 

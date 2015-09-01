@@ -99,7 +99,7 @@ static void edit_params(u32 argc, char** argv) {
   u8 fortify_set = 0, asan_set = 0, x_set = 0, maybe_linking = 1;
   u8 *name;
 
-  cc_params = ck_alloc((argc + 32) * sizeof(u8*));
+  cc_params = ck_alloc((argc + 64) * sizeof(u8*));
 
   name = strrchr(argv[0], '/');
   if (!name) name = argv[0]; else name++;
@@ -176,7 +176,15 @@ static void edit_params(u32 argc, char** argv) {
 
   }
 
-  cc_params[cc_par_cnt++] = "-D__AFL_HAVE_MANUAL_INIT=1";
+  cc_params[cc_par_cnt++] = "-D__AFL_HAVE_MANUAL_CONTROL=1";
+
+  cc_params[cc_par_cnt++] = "-D__AFL_LOOP(_A)="
+    "({ static char _B[] __attribute__((used)) = \"" PERSIST_SIG "\"; "
+    "int __afl_persistent_loop(unsigned int); __afl_persistent_loop(_A); })";
+
+  cc_params[cc_par_cnt++] = "-D__AFL_INIT()="
+    "do { static char _A[] __attribute__((used)) = \"" DEFER_SIG "\"; "
+    "void __afl_manual_init(void); __afl_manual_init(); } while (0)";
 
   if (maybe_linking) {
 

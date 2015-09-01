@@ -2072,9 +2072,9 @@ static void init_forkserver(char** argv) {
 
          "    - Less likely, there is a horrible bug in the fuzzer. If other options\n"
          "      fail, poke <lcamtuf@coredump.cx> for troubleshooting tips.\n",
-         getenv("AFL_DEFER_FORKSRV") ? "three" : "two",
-         getenv("AFL_DEFER_FORKSRV") ?
-         "    - You are using AFL_DEFER_FORKSRV, but __afl_manual_init() is never\n"
+         getenv(DEFER_ENV_VAR) ? "three" : "two",
+         getenv(DEFER_ENV_VAR) ?
+         "    - You are using deferred forkserver, but __AFL_INIT() is never\n"
          "      reached before the program terminates.\n\n" : "",
          DMS(mem_limit << 20), mem_limit - 1);
 
@@ -6605,6 +6605,23 @@ static void check_binary(u8* fname) {
   if (memmem(f_data, f_len, "libasan.so", 10) ||
       memmem(f_data, f_len, "__msan_init", 11)) uses_asan = 1;
 
+  /* Detect persistent & deferred init signatures in the binary. */
+
+  if (memmem(f_data, f_len, PERSIST_SIG, strlen(PERSIST_SIG) + 1)) {
+
+    OKF("Persistent-mode binary detected.");
+    setenv(PERSIST_ENV_VAR, "1", 1);
+    no_var_check = 1;
+
+  }
+
+  if (memmem(f_data, f_len, DEFER_SIG, strlen(DEFER_SIG) + 1)) {
+
+    OKF("Deferred forkserver binary detected.");
+    setenv(DEFER_ENV_VAR, "1", 1);
+
+  }
+
   if (munmap(f_data, f_len)) PFATAL("unmap() failed");
 
 }
@@ -6877,7 +6894,8 @@ static void check_crash_handling(void) {
        "    launchctl unload -w ${SL}/LaunchAgents/${PL}.plist\n"
        "    sudo launchctl unload -w ${SL}/LaunchDaemons/${PL}.Root.plist\n");
 
-  FATAL("Crash reporter detected");
+  if (!getenv("AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES"))
+    FATAL("Crash reporter detected");
 
 #else
 
@@ -6904,7 +6922,8 @@ static void check_crash_handling(void) {
 
          "    echo core >/proc/sys/kernel/core_pattern\n");
 
-    FATAL("Pipe at the beginning of 'core_pattern'");
+    if (!getenv("AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES"))
+      FATAL("Pipe at the beginning of 'core_pattern'");
 
   }
  
@@ -7491,11 +7510,9 @@ int main(int argc, char** argv) {
 
   }
 
-  if (getenv("AFL_NO_FORKSRV")) no_forkserver    = 1;
-  if (getenv("AFL_NO_CPU_RED")) no_cpu_meter_red = 1;
-
-  if (getenv("AFL_NO_VAR_CHECK") || getenv("AFL_PERSISTENT"))
-    no_var_check = 1;
+  if (getenv("AFL_NO_FORKSRV"))   no_forkserver    = 1;
+  if (getenv("AFL_NO_CPU_RED"))   no_cpu_meter_red = 1;
+  if (getenv("AFL_NO_VAR_CHECK")) no_var_check     = 1;
 
   if (dumb_mode == 2 && no_forkserver)
     FATAL("AFL_DUMB_FORKSRV and AFL_NO_FORKSRV are mutually exclusive");

@@ -18,8 +18,7 @@
    across runs.
 
    To make this work, the library and this shim need to be compiled in LLVM
-   mode using afl-clang-fast (other compiler wrappers will *not* work); and
-   afl-fuzz must be called with AFL_PERSISTENT set.
+   mode using afl-clang-fast (other compiler wrappers will *not* work).
 
  */
 
@@ -29,14 +28,6 @@
 #include <signal.h>
 #include <string.h>
 
-/* This constant specifies the number of inputs to process before restarting.
-   This is optional, but helps limit the impact of memory leaks and similar
-   hiccups. */
-
-#define PERSIST_MAX 1000
-
-unsigned int persist_cnt;
-
 
 /* Main entry point. */
 
@@ -45,57 +36,52 @@ int main(int argc, char** argv) {
   char buf[100]; /* Example-only buffer, you'd replace it with other global or
                     local variables appropriate for your use case. */
 
-try_again:
+  /* The number passed to __AFL_LOOP() controls the maximum number of
+     iterations before the loop exits and the program is allowed to
+     terminate normally. This limits the impact of accidental memory leaks
+     and similar hiccups. */
 
-  /*** PLACEHOLDER CODE ***/
+  while (__AFL_LOOP(1000)) {
 
-  /* STEP 1: Fully re-initialize all critical variables. In our example, this
-             involves zeroing buf[], our input buffer. */
+    /*** PLACEHOLDER CODE ***/
 
-  memset(buf, 0, 100);
+    /* STEP 1: Fully re-initialize all critical variables. In our example, this
+               involves zeroing buf[], our input buffer. */
 
-  /* STEP 2: Read input data. When reading from stdin, no special preparation
-             is required. When reading from a named file, you need to close the
-             old descriptor and reopen the file first!
+    memset(buf, 0, 100);
 
-             Beware of reading from buffered FILE* objects such as stdin. Use
-             raw file descriptors or call fopen() / fdopen() in every pass. */
+    /* STEP 2: Read input data. When reading from stdin, no special preparation
+               is required. When reading from a named file, you need to close
+               the old descriptor and reopen the file first!
 
-  read(0, buf, 100);
+               Beware of reading from buffered FILE* objects such as stdin. Use
+               raw file descriptors or call fopen() / fdopen() in every pass. */
 
-  /* STEP 3: This is where we'd call the tested library on the read data. Here,
-             we just have some trivial inline code that faults on 'foo!'. */
+    read(0, buf, 100);
 
-  if (buf[0] == 'f') {
-    printf("one\n");
-    if (buf[1] == 'o') {
-      printf("two\n");
-      if (buf[2] == 'o') {
-        printf("three\n");
-        if (buf[3] == '!') {
-          printf("four\n");
-          abort();
+    /* STEP 3: This is where we'd call the tested library on the read data.
+               We just have some trivial inline code that faults on 'foo!'. */
+
+    if (buf[0] == 'f') {
+      printf("one\n");
+      if (buf[1] == 'o') {
+        printf("two\n");
+        if (buf[2] == 'o') {
+          printf("three\n");
+          if (buf[3] == '!') {
+            printf("four\n");
+            abort();
+          }
         }
       }
     }
-  }
 
-  /*** END PLACEHOLDER CODE ***/
-
-  /* STEP 4: To signal successful completion of a run, we need to deliver
-             SIGSTOP to our own process, then loop to the very beginning
-             once we're resumed by the supervisor process. We do this only
-             if AFL_PERSISTENT is set to retain normal behavior when the
-             program is executed directly; and take note of PERSIST_MAX. */
-
-  if (getenv("AFL_PERSISTENT") && persist_cnt++ < PERSIST_MAX) {
-
-    raise(SIGSTOP);
-    goto try_again;
+    /*** END PLACEHOLDER CODE ***/
 
   }
 
-  /* If AFL_PERSISTENT not set or PERSIST_MAX exceeded, exit normally. */
+  /* Once the loop is exited, terminate normally - AFL will restat the process
+     from scratch. */
 
   return 0;
 
