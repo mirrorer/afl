@@ -106,6 +106,8 @@ a location after:
   - The creation of any vital threads or child processes - since the forkserver
     can't clone them easily.
 
+  - The initialization of timers via setitimer() or equivalent calls.
+
   - The creation of temporary files, network sockets, offset-sensitive file
     descriptors, and similar shared-state resources - but only provided that
     their state meaningfully influences the behavior of the program later on.
@@ -150,13 +152,13 @@ of iterations before AFL will restart the process from scratch. This minimizes
 the impact of memory leaks and similar glitches; 1000 is a good starting point.
 
 A more detailed template is shown in ../experimental/persistent_demo/.
-Similarly to the previous mode, the feature works only with afl-clang-gast;
+Similarly to the previous mode, the feature works only with afl-clang-fast;
 #ifdef guards can be used to suppress it when using other compilers.
 
 Note that as with the previous mode, the feature is easy to misuse; if you
 do not reset the critical state fully, you may end up with false positives or
 waste a whole lot of CPU power doing nothing useful at all. Be particularly
-wary of memory leaks.
+wary of memory leaks and the state of file descriptors.
 
 When running in this mode, the execution paths will inherently vary a bit
 depending on whether the input loop is being entered for the first time or

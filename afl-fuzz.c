@@ -6609,7 +6609,7 @@ static void check_binary(u8* fname) {
 
   if (memmem(f_data, f_len, PERSIST_SIG, strlen(PERSIST_SIG) + 1)) {
 
-    OKF("Persistent-mode binary detected.");
+    OKF(cPIN "Persistent mode binary detected.");
     setenv(PERSIST_ENV_VAR, "1", 1);
     no_var_check = 1;
 
@@ -6617,7 +6617,7 @@ static void check_binary(u8* fname) {
 
   if (memmem(f_data, f_len, DEFER_SIG, strlen(DEFER_SIG) + 1)) {
 
-    OKF("Deferred forkserver binary detected.");
+    OKF(cPIN "Deferred forkserver binary detected.");
     setenv(DEFER_ENV_VAR, "1", 1);
 
   }

@@ -101,8 +101,8 @@ $ make clean all
 For C++ programs, you'd would also want to set CXX=/path/to/afl/afl-g++.
 
 The clang wrappers (afl-clang and afl-clang++) can be used in the same way;
-clang users may opt to leverage a higher-performance instrumentation mode, too.
-This is described in llvm_mode/README.llvm.
+clang users may also opt to leverage a higher-performance instrumentation mode,
+as described in llvm_mode/README.llvm.
 
 When testing libraries, you need to find or write a simple program that reads
 data from stdin or from a file and passes it to the tested library. In such a

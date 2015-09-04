@@ -17,6 +17,18 @@ is 1.76b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.90b:
+--------------
+
+  - Fixed a minor typo spotted by Kai Zhao; and made several other minor updates
+    to docs.
+
+  - Updated the project URL for python-afl. Requested by Jakub Wilk.
+
+  - Fixed a potential problem with deferred mode signatures getting optimized
+    out by the linker (with --gc-sections).
+
+--------------
 Version 1.89b:
 --------------
 

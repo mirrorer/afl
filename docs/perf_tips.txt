@@ -14,10 +14,10 @@ also make the fuzzing process dramatically less efficient in several other
 ways.
 
 To illustrate, let's say that you're randomly flipping bits in a file, one bit
-at a time. If you flip bit #47, you will hit a security bug; flipping any
-other bit just results in an invalid document.
+at a time. Let's assume that if you flip bit #47, you will hit a security bug;
+flipping any other bit just results in an invalid document.
 
-If your starting test case is 100 bytes long, you will have a 71% chance of
+Now, if your starting test case is 100 bytes long, you will have a 71% chance of
 triggering the bug within the first 1,000 execs - not bad! But if the test case
 is 1 kB long, the probability that we will randomly hit the right pattern in
 the same timeframe goes down to 11%. And if it has 10 kB of non-essential
@@ -59,10 +59,13 @@ that this mode requires the use of clang and will not work with GCC.
 
 The LLVM mode also offers a "persistent", in-process fuzzing mode that can
 work well for certain types of self-contained libraries, and for fast targets,
-can offer performance gains up to 5-10x.
+can offer performance gains up to 5-10x; and a "deferred fork server" mode
+that can offer huge benefits for programs with high startup overhead. Both
+modes require you to edit the source code of the fuzzed program, but the
+changes often amount to just strategically placing a single line or two.
 
-4) Have a closer look at the binary
------------------------------------
+4) Profile and optimize the binary
+----------------------------------
 
 Check for any parameters or settings that obviously improve performance. For
 example, the djpeg utility that comes with IJG jpeg and libjpeg-turbo can be
@@ -81,19 +84,21 @@ With some laid-back parsers, enabling "strict" mode (i.e., bailing out after
 first error) may result in smaller files and improved run time without
 sacrificing coverage; for example, for sqlite, you may want to specify -bail.
 
-If you are still stumped, you can use strace -tt or an equivalent profiling
-tool to see if the targeted binary is doing anything unnecessarily slow.
+If the program is still too slow, you can use strace -tt or an equivalent
+profiling tool to see if the targeted binary is doing anything silly.
 Sometimes, you can speed things up simply by specifying /dev/null as the
 config file, or disabling some compile-time features that aren't really needed
 for the job (try ./configure --help). One of the notoriously resource-consuming
 things would be calling other utilities via exec*(), popen(), system(), or
-equivalent calls; for example, tar can invoke external decompression tools.
+equivalent calls; for example, tar can invoke external decompression tools
+when it decides that the input file is a compressed archive.
+
 Some programs may also intentionally call sleep(), usleep(), or nanosleep();
 vim is a good example of that.
 
 In programs that are slow due to unavoidable initialization overhead, you may
 want to try the LLVM deferred forkserver mode (see llvm_mode/README.llvm),
-which can give you speed gains up to 10x, but needs to be used with care.
+which can give you speed gains up to 10x, as mentioned above.
 
 Last but not least, if you are using ASAN and the performance is unacceptable,
 consider turning it off for now, and manually examining the generated corpus
@@ -103,8 +108,10 @@ with an ASAN-enabled binary later on.
 --------------------------------
 
 Instrument just the libraries you actually want to stress-test right now, one
-at a time. Trying to simultaneously instrument glibc, zlib, gmp, OpenSSL,
-and libxml2 to test a single program is an overkill.
+at a time. Let the program use system-wide, non-instrumented libraries for
+any functionality you don't actually want to fuzz. For example, in most
+cases, it doesn't make to instrument libgmp just because you're testing a
+crypto app that relies on it for bignum math.
 
 Beware of programs that come with oddball third-party libraries bundled with
 their source code (Spidermonkey is a good example of this). Check ./configure

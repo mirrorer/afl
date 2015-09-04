@@ -16,7 +16,7 @@ Python AFL (Jakub Wilk)
   Allows fuzz-testing of Python programs. Uses custom instrumentation and its
   own forkserver.
 
-  https://bitbucket.org/jwilk/python-afl
+  http://jwilk.net/software/python-afl
 
 Go-fuzz (Dmitry Vyukov)
 -----------------------
