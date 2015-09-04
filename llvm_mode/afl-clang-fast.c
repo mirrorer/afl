@@ -181,14 +181,14 @@ static void edit_params(u32 argc, char** argv) {
   cc_params[cc_par_cnt++] = "-D__AFL_LOOP(_A)="
     "({ static volatile char *_B __attribute__((used)); "
     " _B = (char*)\"" PERSIST_SIG "\"; "
-    "int __afl_persistent_loop(unsigned int); "
-    "__afl_persistent_loop(_A); })";
+    "int _L(unsigned int) __asm__(\"__afl_persistent_loop\"); "
+    "_L(_A); })";
 
   cc_params[cc_par_cnt++] = "-D__AFL_INIT()="
     "do { static volatile char *_A __attribute__((used)); "
     " _A = (char*)\"" DEFER_SIG "\"; "
-    "void __afl_manual_init(void); "
-    "__afl_manual_init(); } while (0)";
+    "void _I(void) __asm__(\"__afl_manual_init\"); "
+    "_I(); } while (0)";
 
   if (maybe_linking) {
 

@@ -61,10 +61,7 @@ operating mode of AFL, e.g.:
   CC=/path/to/afl/afl-clang-fast ./configure [...options...]
   make
 
-...or:
-
-  CXX=/path/to/afl/afl-clang-fast++ ./configure [...options...]
-  make
+Be sure to also include CXX set to afl-clang-fast++ for C++ code.
 
 The tool honors roughly the same environmental variables as afl-gcc (see
 ../docs/env_variables.txt). This includes AFL_INST_RATIO, AFL_USE_ASAN,
