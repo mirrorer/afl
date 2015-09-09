@@ -27,6 +27,7 @@ Because of this, fuzzing with ASAN is recommended only in four scenarios:
 
 To compile with ASAN, set AFL_USE_ASAN=1 before calling 'make clean all'. The
 afl-gcc / afl-clang wrappers will pick that up and add the appropriate flags.
+Note that ASAN is incompatible with -static, so be mindful of that.
 
 (You can also use AFL_USE_MSAN=1 to enable MSAN instead.)
 

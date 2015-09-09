@@ -118,6 +118,13 @@ afl-fuzzing-scripts (Tobias Ospelt)
 
   https://github.com/floyd-fuh/afl-fuzzing-scripts/
 
+afl-sid (Jacek Wielemborek)
+---------------------------
+
+  Allows users to more conveniently build and deploy AFL via Docker.
+
+  https://github.com/d33tah/afl-sid
+
 -------------------------------------
 Crash triage, coverage analysis, etc:
 -------------------------------------

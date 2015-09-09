@@ -80,8 +80,9 @@ int main(int argc, char** argv) {
 
   }
 
-  /* Once the loop is exited, terminate normally - AFL will restat the process
-     from scratch. */
+  /* Once the loop is exited, terminate normally - AFL will restart the process
+     when this happens, with a clean slate when it comes to allocated memory,
+     leftover file descriptors, etc. */
 
   return 0;
 

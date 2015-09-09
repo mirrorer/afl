@@ -17,16 +17,23 @@ is 1.92b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.93b:
+--------------
+
+  - Hopefully fixed a problem with MacOS X and persistent mode, spotted by
+    Leo Barnes.
+
+--------------
+Version 1.92b:
+--------------
+
+  - Made yet another C++ fix (namespaces). Reported by Daniel Lockyer.
+
+--------------
 Version 1.91b:
 --------------
 
-  - Yet another C++ fix (namespaces). Reported by Daniel Lockyer.
-
---------------
-Version 1.91b:
---------------
-
-  - Another fix to make 1.90b actually work properly with C++ (d'oh).
+  - Made another fix to make 1.90b actually work properly with C++ (d'oh).
     Problem spotted by Daniel Lockyer.
 
 --------------
