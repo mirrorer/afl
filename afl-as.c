@@ -117,6 +117,12 @@ static void edit_params(int argc, char** argv) {
 
 #endif /* __APPLE__ */
 
+  /* Although this is not documented, GCC also uses TEMP and TMP when TMPDIR
+     is not set. We need to check these non-standard variables to properly
+     handle the pass_thru logic later on. */
+
+  if (!tmp_dir) tmp_dir = getenv("TEMP");
+  if (!tmp_dir) tmp_dir = getenv("TMP");
   if (!tmp_dir) tmp_dir = "/tmp";
 
   as_params = ck_alloc((argc + 32) * sizeof(u8*));
@@ -444,7 +450,8 @@ static void add_instrumentation(void) {
 
   if (!be_quiet) {
 
-    if (!ins_lines) WARNF("No instrumentation targets found.");
+    if (!ins_lines) WARNF("No instrumentation targets found%s.",
+                          pass_thru ? " (pass-thru mode)" : "");
     else OKF("Instrumented %u locations (%s-bit, %s mode, ratio %u%%).",
              ins_lines, use_64bit ? "64" : "32",
              getenv("AFL_HARDEN") ? "hardened" : "non-hardened",

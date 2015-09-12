@@ -17,6 +17,18 @@ is 1.92b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.94b:
+--------------
+
+  - Changed allocator alignment to improve support for non-x86 systems (now
+    that llvm_mode makes this more feasible).
+
+  - Fixed a minor typo in afl-cmin. Spotted by Jonathan Neuschafer.
+
+  - Fixed an obscure bug that would affect people trying to use afl-gcc
+    with $TMP set but $TMPDIR absent. Spotted by Jeremy Barnes.
+
+--------------
 Version 1.93b:
 --------------
 

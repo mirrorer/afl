@@ -57,17 +57,17 @@
 
 /* Magic tokens used to mark used / freed chunks. */
 
-#define ALLOC_MAGIC_C1  0xFF00
-#define ALLOC_MAGIC_F   0xFE00
-#define ALLOC_MAGIC_C2  0xF0
+#define ALLOC_MAGIC_C1  0xFF00FF00 /* Used head (dword)  */
+#define ALLOC_MAGIC_F   0xFE00FE00 /* Freed head (dword) */
+#define ALLOC_MAGIC_C2  0xF0       /* Used tail (byte)   */
 
 /* Positions of guard tokens in relation to the user-visible pointer. */
 
-#define ALLOC_C1(_ptr)  (((u16*)(_ptr))[-3])
+#define ALLOC_C1(_ptr)  (((u32*)(_ptr))[-2])
 #define ALLOC_S(_ptr)   (((u32*)(_ptr))[-1])
 #define ALLOC_C2(_ptr)  (((u8*)(_ptr))[ALLOC_S(_ptr)])
 
-#define ALLOC_OFF_HEAD  6
+#define ALLOC_OFF_HEAD  8
 #define ALLOC_OFF_TOTAL (ALLOC_OFF_HEAD + 1)
 
 /* Allocator increments for ck_realloc_block(). */

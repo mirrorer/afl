@@ -18,8 +18,8 @@
 # the starting corpus. This has two uses:
 #
 #   - Screening large corpora of input files before using them as a seed for
-#     seed for afl-fuzz. The tool will remove functionally redundant files and
-#     likely leave you with a much smaller set.
+#     afl-fuzz. The tool will remove functionally redundant files and likely
+#     leave you with a much smaller set.
 #
 #     (In this case, you probably also want to consider running afl-tmin on
 #     the individual files later on to reduce their size.)

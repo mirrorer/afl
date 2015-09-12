@@ -216,7 +216,6 @@ static void edit_params(u32 argc, char** argv) {
 #else
     "void _I(void) __asm__(\"__afl_manual_init\"); "
 #endif /* ^__APPLE__ */
-
     "_I(); } while (0)";
 
   if (maybe_linking) {
