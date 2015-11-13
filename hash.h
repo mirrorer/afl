@@ -10,7 +10,7 @@
    similar to the original; the 64-bit one is a custom hack with
    mostly-unproven properties.
 
-   Austin's original code is public domain; so is this variant.
+   Austin's original code is public domain.
 
  */
 

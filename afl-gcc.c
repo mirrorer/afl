@@ -184,7 +184,7 @@ static void edit_params(u32 argc, char** argv) {
 
       if (!be_quiet) WARNF("-B is already set, overriding");
 
-      if (!cur[2] && argc) { argc--; argv++; }
+      if (!cur[2] && argc > 1) { argc--; argv++; }
       continue;
 
     }

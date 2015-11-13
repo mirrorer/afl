@@ -95,7 +95,7 @@ to read the fuzzed input and parse it; in some cases, this can offer a 10x+
 performance gain. You can implement delayed initialization in LLVM mode in a
 fairly simple way.
 
-First, locate a suitable location in the code where the delayed cloning can 
+First, find a suitable location in the code where the delayed cloning can 
 take place. This needs to be done with *extreme* care to avoid breaking the
 binary. In particular, the program will probably malfunction if you select
 a location after:
@@ -118,8 +118,8 @@ With the location selected, add this code in the appropriate spot:
   __AFL_INIT();
 #endif
 
-You don't need the #ifdef guards, but they will make the program still work as
-usual when compiled with a tool other than afl-clang-fast.
+You don't need the #ifdef guards, but including them ensures that the program
+will keep working normally when compiled with a tool other than afl-clang-fast.
 
 Finally, recompile the pogram with afl-clang-fast (afl-gcc or afl-clang will
 *not* generate a deferred-initialization binary) - and you should be all set!
@@ -153,9 +153,9 @@ Similarly to the previous mode, the feature works only with afl-clang-fast;
 #ifdef guards can be used to suppress it when using other compilers.
 
 Note that as with the previous mode, the feature is easy to misuse; if you
-do not reset the critical state fully, you may end up with false positives or
+do not fully reset the critical state, you may end up with false positives or
 waste a whole lot of CPU power doing nothing useful at all. Be particularly
-wary of memory leaks and the state of file descriptors.
+wary of memory leaks and of the state of file descriptors.
 
 When running in this mode, the execution paths will inherently vary a bit
 depending on whether the input loop is being entered for the first time or

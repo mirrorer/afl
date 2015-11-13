@@ -1201,8 +1201,7 @@ static void setup_shm(void) {
      fork server commands. This should be replaced with better auto-detection
      later on, perhaps? */
 
-  if (dumb_mode != 1)
-    setenv(SHM_ENV_VAR, shm_str, 1);
+  if (!dumb_mode) setenv(SHM_ENV_VAR, shm_str, 1);
 
   ck_free(shm_str);
 
@@ -3700,7 +3699,7 @@ static void show_stats(void) {
   /* Honor AFL_EXIT_WHEN_DONE. */
 
   if (!dumb_mode && cycles_wo_finds > 20 && !pending_not_fuzzed &&
-      getenv("AFL_EXIT_WHEN_DONE")) stop_soon = 1;
+      getenv("AFL_EXIT_WHEN_DONE")) stop_soon = 2;
 
   /* If we're not on TTY, bail out. */
 
@@ -6613,12 +6612,20 @@ static void check_binary(u8* fname) {
     setenv(PERSIST_ENV_VAR, "1", 1);
     no_var_check = 1;
 
+  } else if (getenv("AFL_PERSISTENT")) {
+
+    WARNF("AFL_PERSISTENT is no longer supported and may misbehave!");
+
   }
 
   if (memmem(f_data, f_len, DEFER_SIG, strlen(DEFER_SIG) + 1)) {
 
     OKF(cPIN "Deferred forkserver binary detected.");
     setenv(DEFER_ENV_VAR, "1", 1);
+
+  } else if (getenv("AFL_DEFER_FORKSRV")) {
+
+    WARNF("AFL_DEFER_FORKSRV is no longer supported and may misbehave!");
 
   }
 
@@ -7468,7 +7475,7 @@ int main(int argc, char** argv) {
       case 'n':
 
         if (dumb_mode) FATAL("Multiple -n options not supported");
-        if (getenv("AFL_DUMB_FORKSRV")) dumb_mode = 2 ; else dumb_mode = 1;
+        if (getenv("AFL_DUMB_FORKSRV")) dumb_mode = 2; else dumb_mode = 1;
 
         break;
 
@@ -7640,7 +7647,8 @@ int main(int argc, char** argv) {
 
 stop_fuzzing:
 
-  SAYF(CURSOR_SHOW cLRD "\n\n+++ Testing aborted by user +++\n" cRST);
+  SAYF(CURSOR_SHOW cLRD "\n\n+++ Testing %s +++\n" cRST,
+       stop_soon == 2 ? "ended via AFL_EXIT_WHEN_DONE" : "aborted by user");
 
   /* Running for more than 30 minutes but still doing first cycle? */
 

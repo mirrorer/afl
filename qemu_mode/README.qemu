@@ -39,7 +39,8 @@ to 200 MB when specifying -Q to afl-fuzz; be careful when overriding this.
 
 In principle, if you set CPU_TARGET before calling ./build_qemu_support.sh,
 you should get a build capable of running non-native binaries (say, you
-can try CPU_TARGET=arm). I haven't played with this.
+can try CPU_TARGET=arm). This is also necessary for running 32-bit binaries
+on a 64-bit system (CPU_TARGET=i386).
 
 Note: if you want the QEMU helper to be installed on your system for all
 users, you need to build it before issuing 'make install' in the parent
@@ -104,10 +105,9 @@ You can send them to <afl-users@googlegroups.com>.
 ---------------------------------
 
 Statically rewriting binaries just once, instead of attempting to translate
-them at run time, can be a faster alternative to what is being attempted here.
-That said, static rewriting is fraught with peril, because it depends on being
-able to properly and fully model program control flow without actually running
-it.
+them at run time, can be a faster alternative. That said, static rewriting is
+fraught with peril, because it depends on being able to properly and fully model
+program control flow without actually executing each and every code path.
 
 If you want to experiment with this mode of operation, there is a module
 contributed by Aleksandar Nikolich:

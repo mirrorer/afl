@@ -334,7 +334,7 @@ static const u8* main_payload_32 =
   "__afl_die:\n"
   "\n"
   "  xorl %eax, %eax\n"
-  "  call exit\n"
+  "  call _exit\n"
   "\n"
   "__afl_setup_abort:\n"
   "\n"
@@ -639,7 +639,7 @@ static const u8* main_payload_64 =
   "__afl_die:\n"
   "\n"
   "  xorq %rax, %rax\n"
-  CALL_L64("exit")
+  CALL_L64("_exit")
   "\n"
   "__afl_setup_abort:\n"
   "\n"

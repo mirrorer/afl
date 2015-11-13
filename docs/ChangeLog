@@ -17,6 +17,23 @@ is 1.92b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.95b:
+--------------
+
+  - Fixed a harmless bug when handling -B. Spotted by Jacek Wielemborek.
+
+  - Made the exit message a bit more accurate when AFL_EXIT_WHEN_DONE is set.
+
+  - Added some error-checking for old-style forkserver syntax. Suggested by
+    Ben Nagy.
+
+  - Switched from exit() to _exit() in injected code to avoid snafus with
+    destructors in C++ code. Spotted by sunblate.
+
+  - Made a change to avoid spuriously setting __AFL_SHM_ID when 
+    AFL_DUMB_FORKSRV is set in conjunction with -n. Spotted by Jakub Wilk.
+
+--------------
 Version 1.94b:
 --------------
 
