@@ -1523,7 +1523,7 @@ static void load_extras(u8* dir) {
 
   }
 
-  if (x) FATAL("Dictinary levels not supported for directories.");
+  if (x) FATAL("Dictionary levels not supported for directories.");
 
   while ((de = readdir(d))) {
 

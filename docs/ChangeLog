@@ -17,6 +17,16 @@ is 1.92b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.96b:
+--------------
+
+  - Added -fpic to CFLAGS for the clang plugin, as suggested by Hanno Boeck.
+
+  - Made another clang change (IRBuilder) suggested by Jeff Trull.
+
+  - Fixed several typos, spotted by Jakub Wilk.
+
+--------------
 Version 1.95b:
 --------------
 

@@ -109,7 +109,7 @@ bool AFLCoverage::runOnModule(Module &M) {
     for (auto &BB : F) {
 
       BasicBlock::iterator IP = BB.getFirstInsertionPt();
-      IRBuilder<> IRB(IP);
+      IRBuilder<> IRB(&(*IP));
 
       if (R(100) >= inst_ratio) continue;
 
