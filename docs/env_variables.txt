@@ -114,6 +114,10 @@ checks or alter some of the more exotic semantics of the tool:
     intermittently, but it's not really recommended under normal operating
     conditions.
 
+  - AFL_SHUFFLE_QUEUE randomly reorders the input queue on startup. Requested
+    by some users for unorthodox parallelized fuzzing setups, but not
+    advisable otherwise.
+
   - When developing custom instrumentation on top of afl-fuzz, you can use
     AFL_SKIP_BIN_CHECK to inhibit the checks for non-instrumented binaries
     and shell scripts; and AFL_DUMB_FORKSRV in conjunction with the -n
@@ -122,7 +126,7 @@ checks or alter some of the more exotic semantics of the tool:
 
   - When running in the -M or -S mode, setting AFL_IMPORT_FIRST causes the
     fuzzer to import test cases from other instances before doing anything
-    else. This makes the "own finds" counter in the UI more accurate
+    else. This makes the "own finds" counter in the UI more accurate.
     Beyond counter aesthetics, not much else should change.
 
   - Setting AFL_POST_LIBRARY allows you to configure a postprocessor for

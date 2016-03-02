@@ -1,7 +1,7 @@
 #!/bin/sh
 #
-# american fuzzy lop - path minimization tool
-# -------------------------------------------
+# american fuzzy lop - fuzzer synchronization tool
+# ------------------------------------------------
 #
 # Written and maintained by Michal Zalewski <lcamtuf@google.com>
 #

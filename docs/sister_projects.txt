@@ -161,6 +161,14 @@ RecidiVM (Jakub Wilk)
 Narrow-purpose or experimental:
 -------------------------------
 
+Cygwin support (Ali Rizvi-Santiago)
+-----------------------------------
+
+  Pretty self-explanatory. As per the author, this "mostly" ports AFL to
+  Windows. Field reports welcome!
+
+  https://github.com/arizvisa/afl-cygwin
+
 Pause and resume scripts (Ben Nagy)
 -----------------------------------
 
