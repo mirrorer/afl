@@ -474,3 +474,22 @@ processes.
 
 As a result of these two optimizations, the overhead of the QEMU mode is
 roughly 2-5x, compared to 100x+ for PIN.
+
+13) The afl-analyze tool
+------------------------
+
+The file format analyzer is a simple extension of the minimization algorithm
+discussed earlier on; instead of attempting to remove no-op blocks, the tool
+performs a walking byte flip and then annotates runs of bytes in the input
+file, diving them into three broad buckets:
+
+  - Segments that appear to have no effect on the control flow in the target
+    binary (e.g., comments, image data).
+
+  - Segments that produce highly variable changes to control flow (e.g.,
+    vital headers, compression dictionaries).
+
+  - Segments where any change always produces the same change to control flow
+    (checksums, "magic" values, syntax tokens, checksummed blocks).
+
+The runs are additionally categorized based on length and arithmetic value.

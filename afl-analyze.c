@@ -367,14 +367,13 @@ static void show_char(u8 val) {
 
 /* Constants used for describing byte runs. */
 
-#define RUN_BORING 	0  /* A no-op run.                   */
-#define RUN_VARIABLE	1  /* A run with variable checksums. */
-#define RUN_FIXED	2  /* A run with constant checksums. */
-
+#define RUN_BORING 	0  /* A no-op run.                    */
+#define RUN_VARIABLE	1  /* A run with variable checksums.  */
+#define RUN_FIXED	2  /* A run with constant checksums.  */
 
 /* Interpret and report a pattern in the input file. */
 
-static void report_run(u32 st_pos, u32 len, u8 type) {
+static void report_run(u32 st_pos, u32 len, u8 type, u8 boring_01) {
 
   u32 i;
 
@@ -432,6 +431,13 @@ static void report_run(u32 st_pos, u32 len, u8 type) {
 
     SAYF(cBRI "         `-> Critical %s (len = %u)\n" cNOR,
          (len == 1) ? "byte" : "data blob", len);
+    return;
+
+  }
+
+  if (len > 2 && boring_01) {
+
+    SAYF(cBRI "         `-> Possibly no-op string (len = %u)\n" cNOR, len);
     return;
 
   }
@@ -519,16 +525,28 @@ static void report_run(u32 st_pos, u32 len, u8 type) {
 static void analyze(char** argv) {
 
   u32 i;
-  u32 cur_run_len  = RUN_BORING, prev_ck01 = 0;
+  u32 cur_run_len  = RUN_BORING, prev_ck01 = 0, cur_01_boring = 0;
   u8  cur_run_type = 0;
 
   ACTF("Analyzing input file...");
 
   SAYF("\n");
 
-  /* Do walking bit flips. We flip all bits to get a definite answer if the byte
-     does anything useful; but also a least-significant-bit flip to better
-     detect text-based syntax tokens. */
+  /* Do walking byte flips. We flip all bits (xor 0xff) to get a definite
+     answer if the byte is meaningful to the tested program; but later
+     also flip the least significant bit (or 0x01) to better detect text-based
+     syntax tokens.
+
+     We use the 0x01-flip data in two ways:
+
+     - To classify some runs of bytes with identical post-0x01-flip exec
+       paths as corresponding to a single syntax token, a blob of checksummed
+       data, etc.
+
+     - To demote some such runs to "no-op strings" when 0xff flips produce
+       different exec paths, but 0x01 flips consistently match baseline.
+
+   */
 
   for (i = 0; i < in_len; i++) {
 
@@ -541,6 +559,7 @@ static void analyze(char** argv) {
     if (cksum_ff != orig_cksum) {
 
       saw_change  = 1;
+
       in_data[i] ^= 0xfe;
       cksum_01 = run_target(argv, in_data, in_len, 0);
       in_data[i] ^= 0x01;
@@ -562,10 +581,11 @@ static void analyze(char** argv) {
 
       if (cur_run_type == RUN_BORING && saw_change) {
 
-        report_run(i - cur_run_len, cur_run_len, RUN_BORING);
+        report_run(i - cur_run_len, cur_run_len, RUN_BORING, 1);
 
-        cur_run_len  = 0;
-        cur_run_type = RUN_VARIABLE;
+        cur_run_len   = 0;
+        cur_run_type  = RUN_VARIABLE;
+        cur_01_boring = 0;
 
       } else
 
@@ -573,10 +593,12 @@ static void analyze(char** argv) {
 
       if (cur_run_type != RUN_BORING && !saw_change) {
 
-        report_run(i - cur_run_len, cur_run_len, cur_run_type);
+        report_run(i - cur_run_len, cur_run_len, cur_run_type,
+                   (cur_01_boring == cur_run_len));
 
-        cur_run_len  = 0;
-        cur_run_type = RUN_BORING;
+        cur_run_len   = 0;
+        cur_run_type  = RUN_BORING;
+        cur_01_boring = 0;
 
       } else
 
@@ -586,8 +608,11 @@ static void analyze(char** argv) {
 
         if (cur_run_len > 1) {
 
-          report_run(i - cur_run_len, cur_run_len, cur_run_type);
-          cur_run_len  = 0;
+          report_run(i - cur_run_len, cur_run_len, RUN_FIXED,
+                     (cur_01_boring == cur_run_len));
+
+          cur_run_len   = 0;
+          cur_01_boring = 0;
 
         }
 
@@ -600,10 +625,14 @@ static void analyze(char** argv) {
       if (cur_run_type == RUN_VARIABLE && prev_ck01 == cksum_01) {
 
         if (cur_run_len > 1)
-          report_run(i - cur_run_len, cur_run_len - 1, cur_run_type);
+          report_run(i - cur_run_len, cur_run_len - 1, RUN_VARIABLE,
+                     (cur_01_boring == cur_run_len));
 
         cur_run_len  = 1;
         cur_run_type = RUN_FIXED;
+
+        if (prev_ck01 == orig_cksum) cur_01_boring = 1;
+          else cur_01_boring = 0;
      
       }
 
@@ -614,6 +643,8 @@ static void analyze(char** argv) {
 
     }
 
+    if (cksum_01 == orig_cksum) cur_01_boring++;
+
     cur_run_len++;
     prev_ck01 = cksum_01;
 
@@ -621,7 +652,8 @@ static void analyze(char** argv) {
 
   /* Report any tail... */
 
-  report_run(in_len - cur_run_len, cur_run_len, cur_run_type);
+  report_run(in_len - cur_run_len, cur_run_len, cur_run_type,
+             (cur_01_boring == cur_run_len));
 
   SAYF("\n");
 
