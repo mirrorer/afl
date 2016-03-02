@@ -6071,10 +6071,10 @@ havoc_stage:
 
           }
 
-        /* Values 16 and 17 can be selected only if there are any extras
+        /* Values 15 and 16 can be selected only if there are any extras
            present in the dictionaries. */
 
-        case 16: {
+        case 15: {
 
             /* Overwrite bytes with an extra. */
 
@@ -6111,7 +6111,7 @@ havoc_stage:
 
           }
 
-        case 17: {
+        case 16: {
 
             u32 use_extra, extra_len, insert_at = UR(temp_len);
             u8* new_buf;

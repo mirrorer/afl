@@ -17,6 +17,13 @@ is 1.92b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.02b:
+--------------
+
+  - Fixed a "lcamtuf can't count to 16" bug in the havoc stage. Reported
+    by Guillaume Endignoux.
+
+--------------
 Version 2.01b:
 --------------
 
