@@ -240,3 +240,12 @@ Fuzzer shell for SQLite (Richard Hipp)
 
   http://www.sqlite.org/src/artifact/9e7e273da2030371
 
+Support for Python mutation modules (Christian Holler)
+------------------------------------------------------
+
+  https://github.com/choller/afl/blob/master/docs/mozilla/python_modules.txt
+
+Support for selective instrumentation (Christian Holler)
+--------------------------------------------------------
+
+  https://github.com/choller/afl/blob/master/docs/mozilla/partial_instrumentation.txt

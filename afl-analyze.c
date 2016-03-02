@@ -677,21 +677,40 @@ static void set_up_environment(void) {
 
   x = getenv("ASAN_OPTIONS");
 
-  if (x && !strstr(x, "abort_on_error=1"))
-    FATAL("Custom ASAN_OPTIONS set without abort_on_error=1 - please fix!");
+  if (x) {
+
+    if (!strstr(x, "abort_on_error=1"))
+      FATAL("Custom ASAN_OPTIONS set without abort_on_error=1 - please fix!");
+
+    if (!strstr(x, "symbolize=0"))
+      FATAL("Custom ASAN_OPTIONS set without symbolize=0 - please fix!");
+
+  }
 
   x = getenv("MSAN_OPTIONS");
 
-  if (x && !strstr(x, "exit_code=" STRINGIFY(MSAN_ERROR)))
-    FATAL("Custom MSAN_OPTIONS set without exit_code="
-          STRINGIFY(MSAN_ERROR) " - please fix!");
+  if (x) {
+
+    if (!strstr(x, "exit_code=" STRINGIFY(MSAN_ERROR)))
+      FATAL("Custom MSAN_OPTIONS set without exit_code="
+            STRINGIFY(MSAN_ERROR) " - please fix!");
+
+    if (!strstr(x, "symbolize=0"))
+      FATAL("Custom MSAN_OPTIONS set without symbolize=0 - please fix!");
+
+  }
 
   setenv("ASAN_OPTIONS", "abort_on_error=1:"
                          "detect_leaks=0:"
+                         "symbolize=0:"
                          "allocator_may_return_null=1", 0);
 
   setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
+                         "symbolize=0:"
                          "msan_track_origins=0", 0);
+
+  if (getenv("AFL_LD_PRELOAD"))
+    setenv("LD_PRELOAD", getenv("AFL_LD_PRELOAD"), 1);
 
 }
 
@@ -773,7 +792,7 @@ static void usage(u8* argv0) {
 
        "Required parameters:\n\n"
 
-       "  -i file       - input test case to be shrunk by the tool\n"
+       "  -i file       - input test case to be analyzed by the tool\n"
 
        "Execution control settings:\n\n"
 

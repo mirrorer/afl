@@ -4,7 +4,7 @@
 
    Written and maintained by Michal Zalewski <lcamtuf@google.com>
 
-   Copyright 2013, 2014, 2015 Google Inc. All rights reserved.
+   Copyright 2013, 2014, 2015, 2016 Google Inc. All rights reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -332,10 +332,15 @@ static void set_up_environment(void) {
 
   setenv("ASAN_OPTIONS", "abort_on_error=1:"
                          "detect_leaks=0:"
+                         "symbolize=0:"
                          "allocator_may_return_null=1", 0);
 
   setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
+                         "symbolize=0:"
                          "msan_track_origins=0", 0);
+
+  if (getenv("AFL_LD_PRELOAD"))
+    setenv("LD_PRELOAD", getenv("AFL_LD_PRELOAD"), 1);
 
 }
 

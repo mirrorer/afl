@@ -7,7 +7,7 @@
 
    LLVM integration design comes from Laszlo Szekeres.
 
-   Copyright 2015 Google Inc. All rights reserved.
+   Copyright 2015, 2016 Google Inc. All rights reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -112,10 +112,22 @@ static void edit_params(u32 argc, char** argv) {
     cc_params[0] = alt_cc ? alt_cc : (u8*)"clang";
   }
 
+  /* There are two ways to compile afl-clang-fast. In the traditional mode, we
+     use afl-llvm-pass.so to inject instrumentation. In the experimental
+     'trace-pc' mode, we use native LLVM instrumentation callbacks instead.
+     The latter is a very recent addition - see:
+
+     http://clang.llvm.org/docs/SanitizerCoverage.html#tracing-pcs */
+
+#ifdef USE_TRACE_PC
+  cc_params[cc_par_cnt++] = "-fsanitize-coverage=bb,indirect-calls,trace-pc";
+#else
   cc_params[cc_par_cnt++] = "-Xclang";
   cc_params[cc_par_cnt++] = "-load";
   cc_params[cc_par_cnt++] = "-Xclang";
   cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-pass.so", obj_path);
+#endif /* ^USE_TRACE_PC */
+
   cc_params[cc_par_cnt++] = "-Qunused-arguments";
 
   while (--argc) {
@@ -167,6 +179,13 @@ static void edit_params(u32 argc, char** argv) {
     }
 
   }
+
+#ifdef USE_TRACE_PC
+
+  if (getenv("AFL_INST_RATIO"))
+    FATAL("AFL_INST_RATIO not available at compile time with 'trace-pc'.");
+
+#endif /* USE_TRACE_PC */
 
   if (!getenv("AFL_DONT_OPTIMIZE")) {
 

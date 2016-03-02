@@ -13,8 +13,32 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 1.92b. If you're stuck on an earlier release, it's strongly advisable
+is 2.03b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 2.03b:
+--------------
+
+  - Added experimental -fsanitize-coverage=trace-pc support that goes with
+    some recent additions to LLVM, as implemented by Kostya Serebryany.
+    Right now, this is cumbersome to use with common build systems, so
+    the mode remains undocumented.
+
+  - Made several substantial improvements to better support non-standard
+    map sizes in LLVM mode.
+
+  - Switched LLVM mode to thread-local execution tracing, which may offer
+    better results in some multithreaded apps.
+
+  - Fixed a minor typo, reported by Heiko Eissfeldt.
+
+  - Force-disabled symbolization for ASAN, as suggested by Christian Holler.
+
+  - AFL_NOX86 renamed to AFL_NO_X86 for consistency.
+
+  - Added AFL_LD_PRELOAD to allow LD_PRELOAD to be set for targets without
+    affecting AFL itself. Suggested by Daniel Godas-Lopez.
 
 --------------
 Version 2.02b:

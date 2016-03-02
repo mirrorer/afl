@@ -110,7 +110,7 @@ leverage two other options:
   - The QEMU mode (see qemu_mode/README.qemu), which can be also used for
     fuzzing cross-platform binaries.
 
-In both cases, you will need to set AFL_NOX86=1 before running make or gmake.
+In both cases, you will need to set AFL_NO_X86=1 before running make or gmake.
 
 5) Solaris on x86
 -----------------

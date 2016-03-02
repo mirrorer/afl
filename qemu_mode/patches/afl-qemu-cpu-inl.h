@@ -7,7 +7,7 @@
 
    Idea & design very much by Andrew Griffiths.
 
-   Copyright 2015 Google Inc. All rights reserved.
+   Copyright 2015, 2016 Google Inc. All rights reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -223,7 +223,7 @@ static void afl_forkserver(CPUArchState *env) {
 
 static inline void afl_maybe_log(abi_ulong cur_loc) {
 
-  static abi_ulong prev_loc;
+  static __thread abi_ulong prev_loc;
 
   /* Optimize for cur_loc > afl_end_code, which is the most likely case on
      Linux systems. */
@@ -231,11 +231,9 @@ static inline void afl_maybe_log(abi_ulong cur_loc) {
   if (cur_loc > afl_end_code || cur_loc < afl_start_code || !afl_area_ptr)
     return;
 
-  /* Looks like QEMU always maps to fixed locations, so we can skip this:
-     cur_loc -= afl_start_code; */
-
-  /* Instruction addresses may be aligned. Let's mangle the value to get
-     something quasi-uniform. */
+  /* Looks like QEMU always maps to fixed locations, so ASAN is not a
+     concern. Phew. But instruction addresses may be aligned. Let's mangle
+     the value to get something quasi-uniform. */
 
   cur_loc  = (cur_loc >> 4) ^ (cur_loc << 8);
   cur_loc &= MAP_SIZE - 1;

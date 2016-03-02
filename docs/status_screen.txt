@@ -297,12 +297,6 @@ explanations for variable behavior of the tested program:
   - Use of uninitialized memory in conjunction with some intrinsic sources of
     entropy in the tested binary. This can be indicative of a security bug.
 
-  - Multiple threads executing at once in semi-random order. Not a big deal,
-    but to avoid hiccups, it's best to restrict instrumented programs to a
-    single thread. Check compile-time options or run-time flags. For example,
-    for ImageMagick, you can try --without-threads --disable-openmp; for
-    ffmpeg, look for --disable-pthreads instead.
-
   - Attempts to create files that were already created during previous runs, or
     otherwise interact with some form of persistent state. This is harmless,
     but you may want to instruct the targeted program to write to stdout or to
@@ -314,6 +308,20 @@ explanations for variable behavior of the tested program:
     behavior once the mutation engine generates something like:
 
     select random();
+
+  - Multiple threads executing at once in semi-random order. This is usually
+    just a nuisance, but if the number of variable paths is very high, try the
+    following options:
+
+    - Use afl-clang-fast from llvm_mode/ - it uses a thread-local tracking
+      model that is less prone to concurrency issues,
+
+    - See if the target can be compiled or run without threads. Common
+      ./configure options include --without-threads, --disable-pthreads, or
+      --disable-openmp.
+
+    - Replace pthreads with GNU Pth (https://www.gnu.org/software/pth/), which
+      allows you to use a deterministic scheduler.
 
 Less likely causes may include running out of disk space, SHM handles, or other
 globally limited resources.

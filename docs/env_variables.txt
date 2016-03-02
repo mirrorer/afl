@@ -139,8 +139,14 @@ checks or alter some of the more exotic semantics of the tool:
 
   - In QEMU mode (-Q), AFL_PATH will be searched for afl-qemu-trace.
 
+  - Setting AFL_LD_PRELOAD causes AFL to set LD_PRELOAD for the target binary
+    without disrupting the afl-fuzz process itself.
+
   - If you are Jakub, you may need AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES.
     Others need not apply.
+
+  - Benchmarking only: AFL_BENCH_JUST_ONE causes the fuzzer to exit after
+    processing the first queue entry.
 
 4) Settings for afl-qemu-trace
 ------------------------------
@@ -192,11 +198,13 @@ optimal values if not already present in the environment:
 
     abort_on_error=1
     detect_leaks=0
+    symbolize=0
     allocator_may_return_null=1
 
     If you want to set your own options, be sure to include abort_on_error=1 -
     otherwise, the fuzzer will not be able to detect crashes in the tested
-    app.
+    app. Similarly, include symbolize=0, since without it, AFL may have
+    difficulty telling crashes and hangs apart.
 
   - In the same vein, by default, MSAN_OPTIONS are set to:
 

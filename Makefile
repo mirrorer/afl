@@ -4,7 +4,7 @@
 #
 # Written and maintained by Michal Zalewski <lcamtuf@google.com>
 # 
-# Copyright 2013, 2014, 2015 Google Inc. All rights reserved.
+# Copyright 2013, 2014, 2015, 2016 Google Inc. All rights reserved.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 2.02b
+VERSION     = 2.03b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -46,18 +46,18 @@ COMM_HDR    = alloc-inl.h config.h debug.h types.h
 
 all: test_x86 $(PROGS) afl-as test_build all_done
 
-ifndef AFL_NOX86
+ifndef AFL_NO_X86
 
 test_x86:
 	@echo "[*] Checking for the ability to compile x86 code..."
-	@echo 'main() { __asm__("xorb %al, %al"); }' | $(CC) -w -x c - -o .test || ( echo; echo "Oops, looks like your compiler can't generate x86 code."; echo; echo "You can still try using the LLVM or QEMU mode, but see docs/INSTALL first."; echo "To ignore this error, set AFL_NOX86=1."; echo; exit 1 )
+	@echo 'main() { __asm__("xorb %al, %al"); }' | $(CC) -w -x c - -o .test || ( echo; echo "Oops, looks like your compiler can't generate x86 code."; echo; echo "You can still try using the LLVM or QEMU mode, but see docs/INSTALL first."; echo "To ignore this error, set AFL_NO_X86=1."; echo; exit 1 )
 	@rm -f .test
 	@echo "[+] Everything seems to be working, ready to compile."
 
 else
 
 test_x86:
-	@echo "[!] Note: skipping x86 compilation checks (AFL_NOX86 set)."
+	@echo "[!] Note: skipping x86 compilation checks (AFL_NO_X86 set)."
 
 endif
 
@@ -84,7 +84,7 @@ afl-analyze: afl-analyze.c $(COMM_HDR) | test_x86
 afl-gotcpu: afl-gotcpu.c $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $@.c -o $@ $(LDFLAGS)
 
-ifndef AFL_NOX86
+ifndef AFL_NO_X86
 
 test_build: afl-gcc afl-as afl-showmap
 	@echo "[*] Testing the CC wrapper and instrumentation output..."

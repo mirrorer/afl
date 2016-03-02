@@ -6,7 +6,7 @@
 
    Forkserver design by Jann Horn <jannhorn@googlemail.com>
 
-   Copyright 2013, 2014, 2015 Google Inc. All rights reserved.
+   Copyright 2013, 2014, 2015, 2016 Google Inc. All rights reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -1934,12 +1934,14 @@ static void init_forkserver(char** argv) {
 
     setenv("ASAN_OPTIONS", "abort_on_error=1:"
                            "detect_leaks=0:"
+                           "symbolize=0:"
                            "allocator_may_return_null=1", 0);
 
     /* MSAN is tricky, because it doesn't support abort_on_error=1 at this
        point. So, we do this in a very hacky way. */
 
     setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
+                           "symbolize=0:"
                            "msan_track_origins=0", 0);
 
     execv(target_path, argv);
@@ -2197,9 +2199,11 @@ static u8 run_target(char** argv) {
 
       setenv("ASAN_OPTIONS", "abort_on_error=1:"
                              "detect_leaks=0:"
+                             "symbolize=0:"
                              "allocator_may_return_null=1", 0);
 
       setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
+                             "symbolize=0:"
                              "msan_track_origins=0", 0);
 
       execv(target_path, argv);
@@ -7155,14 +7159,28 @@ static void handle_resize(int sig) {
 static void check_asan_opts(void) {
   u8* x = getenv("ASAN_OPTIONS");
 
-  if (x && !strstr(x, "abort_on_error=1"))
-    FATAL("Custom ASAN_OPTIONS set without abort_on_error=1 - please fix!");
+  if (x) {
+
+    if (!strstr(x, "abort_on_error=1"))
+      FATAL("Custom ASAN_OPTIONS set without abort_on_error=1 - please fix!");
+
+    if (!strstr(x, "symbolize=0"))
+      FATAL("Custom ASAN_OPTIONS set without symbolize=0 - please fix!");
+
+  }
 
   x = getenv("MSAN_OPTIONS");
 
-  if (x && !strstr(x, "exit_code=" STRINGIFY(MSAN_ERROR)))
-    FATAL("Custom MSAN_OPTIONS set without exit_code="
-          STRINGIFY(MSAN_ERROR) " - please fix!");
+  if (x) {
+
+    if (!strstr(x, "exit_code=" STRINGIFY(MSAN_ERROR)))
+      FATAL("Custom MSAN_OPTIONS set without exit_code="
+            STRINGIFY(MSAN_ERROR) " - please fix!");
+
+    if (!strstr(x, "symbolize=0"))
+      FATAL("Custom MSAN_OPTIONS set without symbolize=0 - please fix!");
+
+  }
 
 } 
 
@@ -7365,6 +7383,7 @@ int main(int argc, char** argv) {
   u32 sync_interval_cnt = 0, seek_to;
   u8  *extras_dir = 0;
   u8  mem_limit_given = 0;
+  u8  exit_1 = !!getenv("AFL_BENCH_JUST_ONE");
 
   char** use_argv;
 
@@ -7553,6 +7572,9 @@ int main(int argc, char** argv) {
   if (dumb_mode == 2 && no_forkserver)
     FATAL("AFL_DUMB_FORKSRV and AFL_NO_FORKSRV are mutually exclusive");
 
+  if (getenv("AFL_LD_PRELOAD"))
+    setenv("LD_PRELOAD", getenv("AFL_LD_PRELOAD"), 1);
+
   save_cmdline(argc, argv);
 
   fix_up_banner(argv[optind]);
@@ -7661,6 +7683,8 @@ int main(int argc, char** argv) {
 
     }
 
+    if (!stop_soon && exit_1) stop_soon = 2;
+
     if (stop_soon) break;
 
     queue_cur = queue_cur->next;
@@ -7676,8 +7700,8 @@ int main(int argc, char** argv) {
 
 stop_fuzzing:
 
-  SAYF(CURSOR_SHOW cLRD "\n\n+++ Testing %s +++\n" cRST,
-       stop_soon == 2 ? "ended via AFL_EXIT_WHEN_DONE" : "aborted by user");
+  SAYF(CURSOR_SHOW cLRD "\n\n+++ Testing aborted %s +++\n" cRST,
+       stop_soon == 2 ? "programatically" : "by user");
 
   /* Running for more than 30 minutes but still doing first cycle? */
 
