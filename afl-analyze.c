@@ -52,10 +52,9 @@ static u8 *in_file,                   /* Analyzer input test case          */
           *target_path,               /* Path to target binary             */
           *doc_path;                  /* Path to docs                      */
 
-static u8* in_data;                   /* Input data for trimming           */
+static u8 *in_data;                   /* Input data for analysis           */
 
 static u32 in_len,                    /* Input data length                 */
-           boring_len,                /* Bytes that don't do anything      */
            orig_cksum,                /* Original checksum                 */
            total_execs,               /* Total number of execs             */
            exec_hangs,                /* Total number of hangs             */
@@ -72,6 +71,18 @@ static u8  edges_only,                /* Ignore hit counts?                */
 static volatile u8
            stop_soon,                 /* Ctrl-C pressed?                   */
            child_timed_out;           /* Child timed out?                  */
+
+
+/* Constants used for describing byte behavior. */
+
+#define RESP_NONE       0x00          /* Changing byte is a no-op.         */
+#define RESP_MINOR      0x01          /* Some changes have no effect.      */
+#define RESP_VARIABLE   0x02          /* Changes produce variable paths.   */
+#define RESP_FIXED      0x03          /* Changes produce fixed patterns.   */
+
+#define RESP_LEN        0x04          /* Potential length field            */
+#define RESP_CKSUM      0x05          /* Potential checksum                */
+#define RESP_SUSPECT    0x06          /* Potential "suspect" blob          */
 
 
 /* Classify tuple counts. This is a slow & naive version, but good enough here. */
@@ -129,7 +140,6 @@ static inline u8 anything_set(void) {
   return 0;
 
 }
-
 
 
 /* Get rid of shared memory and temp files (atexit handler). */
@@ -316,7 +326,7 @@ static u32 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
   total_execs++;
 
   if (stop_soon) {
-    SAYF(cLRD "\n+++ Analysis aborted by user +++\n" cRST);
+    SAYF(cRST cLRD "\n+++ Analysis aborted by user +++\n" cRST);
     exit(1);
   }
 
@@ -349,6 +359,8 @@ static u32 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
 }
 
 
+#ifdef USE_COLOR
+
 /* Helper function to display a human-readable character. */
 
 static void show_char(u8 val) {
@@ -356,165 +368,175 @@ static void show_char(u8 val) {
   switch (val) {
 
     case 0 ... 32:
-    case 127 ... 255: SAYF(cMGN "%02x " cNOR, val); break;
+    case 127 ... 255: SAYF("#%02x", val); break;
 
-    default: SAYF(cCYA "%c  " cNOR, val);
+    default: SAYF(" %c ", val);
 
   }
 
 }
 
 
-/* Constants used for describing byte runs. */
+/* Show the legend */
 
-#define RUN_BORING 	0  /* A no-op run.                    */
-#define RUN_VARIABLE	1  /* A run with variable checksums.  */
-#define RUN_FIXED	2  /* A run with constant checksums.  */
+static void show_legend(void) {
+
+  SAYF("    " bgGRA cLGR " 01 " cRST " - no-op block                 "
+              bgLGN cBLK " 01 " cRST " - suspected length field\n"
+       "    " bgGRA cBRI " 01 " cRST " - superficial content         "
+              bgYEL cBLK " 01 " cRST " - suspected cksum or magic int\n"
+       "    " bgCYA cBLK " 01 " cRST " - critical stream             "
+              bgLRD cBLK " 01 " cRST " - suspected checksummed block\n"
+       "    " bgMGN cBLK " 01 " cRST " - \"magic value\" section\n\n");
+
+}
+
+#endif /* USE_COLOR */
+
 
 /* Interpret and report a pattern in the input file. */
 
-static void report_run(u32 st_pos, u32 len, u8 type, u8 boring_01) {
+static void dump_hex(u8* buf, u32 len, u8* b_data) {
 
   u32 i;
 
-  /* Start by showing a sample of data. */
+  for (i = 0; i < len; i++) {
 
-  SAYF(cGRA "[%06u] " cNOR, st_pos);
+#ifdef USE_COLOR
+    u32 rlen = 1, off;
+#else
+    u32 rlen = 1;
+#endif /* ^USE_COLOR */
 
-  if (len <= 22 || len >= 44) {
+    u8  rtype = b_data[i] & 0x0f;
 
-    /* Very short or very long buffer. Start by showing head. */
+    /* Look ahead to determine the length of run. */
 
-    for (i = 0; i < MIN(len, 22); i++) show_char(in_data[st_pos + i]);
-    SAYF("\n");
+    while (i + rlen < len && (b_data[i] >> 7) == (b_data[i + rlen] >> 7)) {
 
-    /* Show tail, if any. */
-
-    if (len >= 44) {
-
-      u32 tail_pos = st_pos + len - 22;
-
-      if (len > 44) SAYF(cGRA "  ....\n");
-      SAYF(cGRA "[%06u] " cNOR, tail_pos);
-
-      for (i = 0; i < 22; i++) show_char(in_data[tail_pos + i]);
-      SAYF("\n");
+      if (rtype < (b_data[i + rlen] & 0x0f)) rtype = b_data[i + rlen] & 0x0f;
+      rlen++;
 
     }
 
-  } else {
+    /* Try to do some further classification based on length & value. */
 
-    /* Intermediate length buffer (23-43 bytes). Show abridged
-       single-line version. */
+    if (rtype == RESP_FIXED) {
 
-    u32 tail_pos = st_pos + len - 10;
+      switch (rlen) {
 
-    for (i = 0; i < 10; i++) show_char(in_data[st_pos + i]);
-    SAYF(cGRA "(...) " cNOR);
+        case 2: {
 
-    for (i = 0; i < 10; i++) show_char(in_data[tail_pos + i]);
-    SAYF("\n");
+            u16 val = *(u16*)(in_data + i);
 
-  }
+            /* Small integers may be length fields. */
 
-  /* Now, attempt to classify. */
+            if (val && (val <= in_len || SWAP16(val) <= in_len)) {
+              rtype = RESP_LEN;
+              break;
+            }
 
-  if (type == RUN_BORING) {
+            /* Uniform integers may be checksums. */
 
-    SAYF(cBRI "         `-> Apparent no-op %s (len = %u)\n" cNOR, 
-         (len == 1) ? "byte" : "blob", len);
-    return;
+            if (val && abs(in_data[i] - in_data[i + 1]) > 32) {
+              rtype = RESP_CKSUM;
+              break;
+            }
 
-  }
+            break;
 
-  if (type == RUN_VARIABLE) {
+          }
 
-    SAYF(cBRI "         `-> Critical %s (len = %u)\n" cNOR,
-         (len == 1) ? "byte" : "data blob", len);
-    return;
+        case 4: {
 
-  }
+            u32 val = *(u32*)(in_data + i);
 
-  if (len > 2 && boring_01) {
+            /* Small integers may be length fields. */
 
-    SAYF(cBRI "         `-> Possibly no-op string (len = %u)\n" cNOR, len);
-    return;
+            if (val && (val <= in_len || SWAP32(val) <= in_len)) {
+              rtype = RESP_LEN;
+              break;
+            }
 
-  }
+            /* Uniform integers may be checksums. */
 
-  switch (len) {
+            if (val && (in_data[i] >> 7 != in_data[i + 1] >> 7 ||
+                in_data[i] >> 7 != in_data[i + 2] >> 7 ||
+                in_data[i] >> 7 != in_data[i + 3] >> 7)) {
+              rtype = RESP_CKSUM;
+              break;
+            }
 
-    /* Lengths 2 and 4 may be checksums, magic values, or length fields. Let's
-       be smart about classifying them. */
+            break;
 
-    case 2: {
+          }
 
-        u16 val = *(u16*)(in_data + st_pos);
+        case 1: case 3: case 5 ... MAX_AUTO_EXTRA - 1: break;
 
-        if (val && (val <= in_len || SWAP16(val) <= in_len)) {
-
-          SAYF(cBRI "         `-> Potential length field (len = 2)\n" cNOR);
-          break;
-
-        }
-
-        if (in_data[st_pos] && in_data[st_pos + 1] &&
-            !(in_data[st_pos] < 32 && in_data[st_pos + 1] < 32) &&
-            !(isalnum(in_data[st_pos]) && isalnum(in_data[st_pos + 1])) &&
-            !(in_data[st_pos] > 128 && in_data[st_pos + 1] > 128)) {
-
-          SAYF(cBRI "         `-> Potential checksum or magic value (len = 2)"
-               "\n" cNOR);
-
-          break;
-
-        }
-
-        SAYF(cBRI "         `-> Atomically compared value (len = 2)\n" cNOR);
-        break;
+        default: rtype = RESP_SUSPECT;
 
       }
 
-    case 4: {
+    }
 
-        u32 val = *(u32*)(in_data + st_pos);
+    /* Print out the entire run. */
 
-        if (val && (val <= in_len || SWAP32(val) <= in_len)) {
+#ifdef USE_COLOR
 
-          SAYF(cBRI "         `-> Potential length field (len = 2)\n" cNOR);
-          break;
+    for (off = 0; off < rlen; off++) {
 
-        }
+      /* Every 16 digits, display offset. */
 
-        if (in_data[st_pos] && in_data[st_pos + 1] &&
-            in_data[st_pos + 2] && in_data[st_pos + 3] &&
-            !(in_data[st_pos] < 128 && in_data[st_pos + 1] < 128 &&
-              in_data[st_pos + 2] < 128 && in_data[st_pos + 3] < 128) &&
-            !(in_data[st_pos] > 128 && in_data[st_pos + 1] > 128 &&
-              in_data[st_pos + 2] > 128 && in_data[st_pos + 3] > 128)) {
-
-          SAYF(cBRI "         `-> Potential checksum or magic value (len = 4)"
-               "\n" cNOR);
-
-          break;
-
-        }
-
-        SAYF(cBRI "         `-> Atomically compared value (len = 4)\n" cNOR);
-        break;
+      if (!((i + off) % 16)) {
+    
+        if (off) SAYF(cRST cLCY ">");
+        SAYF(cRST cGRA "%s[%06u] " cRST, (i + off) ? "\n" : "", i + off);
 
       }
 
-    case 3: case 5 ... MAX_AUTO_EXTRA - 1:
-      SAYF(cBRI "         `-> Atomically compared token (len = %u)\n" cNOR, len);
-      break;
+      switch (rtype) {
 
-    default:
-      SAYF(cLRD "         `-> Potential checksummed or encrypted blob "
-           "(len = %u)\n" cNOR, len);
-      break;
+        case RESP_NONE:     SAYF(bgGRA cLGR); break;
+        case RESP_MINOR:    SAYF(bgGRA cBRI); break;
+        case RESP_VARIABLE: SAYF(bgCYA cBLK); break;
+        case RESP_FIXED:    SAYF(bgMGN cBLK); break;
+        case RESP_LEN:      SAYF(bgLGN cBLK); break;
+        case RESP_CKSUM:    SAYF(bgYEL cBLK); break;
+        case RESP_SUSPECT:  SAYF(bgLRD cBLK); break;
+
+      }
+
+      show_char(in_data[i + off]);
+
+      if (off != rlen - 1 && (i + off + 1) % 16) SAYF(" "); else SAYF(cRST " ");
+
+    }
+
+#else
+
+    SAYF("    Offset %u, length %u: ", i, rlen);
+
+    switch (rtype) {
+
+      case RESP_NONE:     SAYF("no-op block\n"); break;
+      case RESP_MINOR:    SAYF("superficial content\n"); break;
+      case RESP_VARIABLE: SAYF("critical stream\n"); break;
+      case RESP_FIXED:    SAYF("\"magic value\" section\n"); break;
+      case RESP_LEN:      SAYF("suspected length field\n"); break;
+      case RESP_CKSUM:    SAYF("suspected cksum or magic int\n"); break;
+      case RESP_SUSPECT:  SAYF("suspected checksummed block\n"); break;
+
+    }
+
+#endif /* ^USE_COLOR */
+
+    i += rlen - 1;
 
   }
+
+#ifdef USE_COLOR
+  SAYF(cRST "\n");
+#endif /* USE_COLOR */
 
 }
 
@@ -525,135 +547,79 @@ static void report_run(u32 st_pos, u32 len, u8 type, u8 boring_01) {
 static void analyze(char** argv) {
 
   u32 i;
-  u32 cur_run_len  = RUN_BORING, prev_ck01 = 0, cur_01_boring = 0;
-  u8  cur_run_type = 0;
+  u32 boring_len = 0, prev_xff = 0, prev_x01 = 0, prev_s10 = 0, prev_a10 = 0;
 
-  ACTF("Analyzing input file...");
+  u8* b_data = ck_alloc(in_len + 1);
+  u8  seq_byte = 0;
 
-  SAYF("\n");
+  b_data[in_len] = 0xff; /* Intentional terminator. */
 
-  /* Do walking byte flips. We flip all bits (xor 0xff) to get a definite
-     answer if the byte is meaningful to the tested program; but later
-     also flip the least significant bit (or 0x01) to better detect text-based
-     syntax tokens.
+  ACTF("Analyzing input file (this may take a while)...\n");
 
-     We use the 0x01-flip data in two ways:
-
-     - To classify some runs of bytes with identical post-0x01-flip exec
-       paths as corresponding to a single syntax token, a blob of checksummed
-       data, etc.
-
-     - To demote some such runs to "no-op strings" when 0xff flips produce
-       different exec paths, but 0x01 flips consistently match baseline.
-
-   */
+#ifdef USE_COLOR
+  show_legend();
+#endif /* USE_COLOR */
 
   for (i = 0; i < in_len; i++) {
 
-    u32 cksum_ff = 0, cksum_01 = 0;
-    u8  saw_change;
+    u32 xor_ff, xor_01, sub_10, add_10;
+    u8  xff_orig, x01_orig, s10_orig, a10_orig;
+
+    /* Perform walking byte adjustments across the file. We perform four
+       operations designed to elicit some response from the underlying
+       code. */
 
     in_data[i] ^= 0xff;
-    cksum_ff = run_target(argv, in_data, in_len, 0);
+    xor_ff = run_target(argv, in_data, in_len, 0);
 
-    if (cksum_ff != orig_cksum) {
+    in_data[i] ^= 0xfe;
+    xor_01 = run_target(argv, in_data, in_len, 0);
 
-      saw_change  = 1;
+    in_data[i] = (in_data[i] ^ 0x01) - 0x10;
+    sub_10 = run_target(argv, in_data, in_len, 0);
 
-      in_data[i] ^= 0xfe;
-      cksum_01 = run_target(argv, in_data, in_len, 0);
-      in_data[i] ^= 0x01;
+    in_data[i] += 0x20;
+    add_10 = run_target(argv, in_data, in_len, 0);
+    in_data[i] -= 0x10;
 
-    } else {
+    /* Classify current behavior. */
 
-      saw_change  = 0;
-      in_data[i] ^= 0xff;
-      prev_ck01   = 0;
+    xff_orig = (xor_ff == orig_cksum);
+    x01_orig = (xor_01 == orig_cksum);
+    s10_orig = (sub_10 == orig_cksum);
+    a10_orig = (add_10 == orig_cksum);
+
+    if (xff_orig && x01_orig && s10_orig && a10_orig) {
+
+      b_data[i] = RESP_NONE;
       boring_len++;
 
-    }
+    } else if (xff_orig || x01_orig || s10_orig || a10_orig) {
 
-    /* Check for transitions between types of byte runs. */
+      b_data[i] = RESP_MINOR;
+      boring_len++;
 
-    if (cur_run_len) {
+    } else if (xor_ff == xor_01 && xor_ff == sub_10 && xor_ff == add_10) {
 
-      /* Previous run was boring, but we're now seeing checksum changes. */
+      b_data[i] = RESP_FIXED;
 
-      if (cur_run_type == RUN_BORING && saw_change) {
+    } else b_data[i] = RESP_VARIABLE;
 
-        report_run(i - cur_run_len, cur_run_len, RUN_BORING, 1);
+    /* When all checksums change, flip most significant bit of b_data. */
 
-        cur_run_len   = 0;
-        cur_run_type  = RUN_VARIABLE;
-        cur_01_boring = 0;
+    if (prev_xff != xor_ff && prev_x01 != xor_01 &&
+        prev_s10 != sub_10 && prev_a10 != add_10) seq_byte ^= 0x80;
 
-      } else
+    b_data[i] |= seq_byte;
 
-      /* Previous run was non-boring, but we no longer see changes. */
+    prev_xff = xor_ff;
+    prev_x01 = xor_01;
+    prev_s10 = sub_10;
+    prev_a10 = add_10;
 
-      if (cur_run_type != RUN_BORING && !saw_change) {
+  } 
 
-        report_run(i - cur_run_len, cur_run_len, cur_run_type,
-                   (cur_01_boring == cur_run_len));
-
-        cur_run_len   = 0;
-        cur_run_type  = RUN_BORING;
-        cur_01_boring = 0;
-
-      } else
-
-      /* Current run was fixed, but we're now seeing different cksums. */
-
-      if (cur_run_type == RUN_FIXED && prev_ck01 != cksum_01) {
-
-        if (cur_run_len > 1) {
-
-          report_run(i - cur_run_len, cur_run_len, RUN_FIXED,
-                     (cur_01_boring == cur_run_len));
-
-          cur_run_len   = 0;
-          cur_01_boring = 0;
-
-        }
-
-        cur_run_type = RUN_VARIABLE;
-
-      } else 
-
-      /* Current run was variable, but we're now seeing const cksums. */
-
-      if (cur_run_type == RUN_VARIABLE && prev_ck01 == cksum_01) {
-
-        if (cur_run_len > 1)
-          report_run(i - cur_run_len, cur_run_len - 1, RUN_VARIABLE,
-                     (cur_01_boring == cur_run_len));
-
-        cur_run_len  = 1;
-        cur_run_type = RUN_FIXED;
-
-        if (prev_ck01 == orig_cksum) cur_01_boring = 1;
-          else cur_01_boring = 0;
-     
-      }
-
-    } else {
-
-      if (saw_change) cur_run_type = RUN_VARIABLE;
-        else cur_run_type = RUN_BORING;
-
-    }
-
-    if (cksum_01 == orig_cksum) cur_01_boring++;
-
-    cur_run_len++;
-    prev_ck01 = cksum_01;
-
-  }
-
-  /* Report any tail... */
-
-  report_run(in_len - cur_run_len, cur_run_len, cur_run_type,
-             (cur_01_boring == cur_run_len));
+  dump_hex(in_data, in_len, b_data);
 
   SAYF("\n");
 
@@ -663,6 +629,8 @@ static void analyze(char** argv) {
   if (exec_hangs)
     WARNF(cLRD "Encountered %u timeouts - results may be skewed." cRST,
           exec_hangs);
+
+  ck_free(b_data);
 
 }
 

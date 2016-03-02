@@ -328,7 +328,8 @@ afl-fuzz.
 Another recent addition to AFL is the afl-analyze tool. It takes an input
 file, attempts to sequentially flip bytes, and observes the behavior of the
 tested program. It then annotates the structure of the input data by showing
-which sections appear to be critical, and which are not.
+which sections appear to be critical, and which are not. More info about its
+output can be found near the end of technical_details.txt.
 
 11) Common-sense risks
 ----------------------

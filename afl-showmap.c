@@ -215,7 +215,7 @@ static void run_target(char** argv) {
   int status = 0;
 
   if (!quiet_mode)
-    SAYF("-- Program output begins --\n");
+    SAYF("-- Program output begins --\n" cRST);
 
   MEM_BARRIER();
 
@@ -295,7 +295,7 @@ static void run_target(char** argv) {
   classify_counts(trace_bits);
 
   if (!quiet_mode)
-    SAYF("-- Program output ends --\n");
+    SAYF(cRST "-- Program output ends --\n");
 
   if (!child_timed_out && !stop_soon && WIFSIGNALED(status))
     child_crashed = 1;
@@ -443,7 +443,7 @@ static void usage(u8* argv0) {
        "  -e            - show edge coverage only, ignore hit counts\n\n"
 
        "This tool displays raw tuple data captured by AFL instrumentation.\n"
-       "For additional help, consult %s/README.\n\n",
+       "For additional help, consult %s/README.\n\n" cRST,
 
        argv0, MEM_LIMIT, doc_path);
 
@@ -705,8 +705,8 @@ int main(int argc, char** argv) {
 
   if (!quiet_mode) {
 
-    if (!tcnt) FATAL("No instrumentation detected");
-    OKF("Captured %u tuples in '%s'.", tcnt, out_file);
+    if (!tcnt) FATAL("No instrumentation detected" cRST);
+    OKF("Captured %u tuples in '%s'." cRST, tcnt, out_file);
 
   }
 

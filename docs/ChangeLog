@@ -17,6 +17,19 @@ is 1.92b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 1.99b:
+--------------
+
+  - Substantially revamped the output and the internal logic of afl-analyze.
+
+  - Cleaned up some of the color handling code and added support for
+    background colors.
+
+  - Removed some stray files (oops).
+
+  - Updated docs to better explain afl-analyze.
+
+--------------
 Version 1.98b:
 --------------
 

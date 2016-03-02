@@ -480,16 +480,36 @@ roughly 2-5x, compared to 100x+ for PIN.
 
 The file format analyzer is a simple extension of the minimization algorithm
 discussed earlier on; instead of attempting to remove no-op blocks, the tool
-performs a walking byte flip and then annotates runs of bytes in the input
-file, diving them into three broad buckets:
+performs a series of walking byte flips and then annotates runs of bytes
+in the input file.
 
-  - Segments that appear to have no effect on the control flow in the target
-    binary (e.g., comments, image data).
+It uses the following classification scheme:
 
-  - Segments that produce highly variable changes to control flow (e.g.,
-    vital headers, compression dictionaries).
+  - "No-op blocks" - segments where bit flips cause no apparent changes to
+    control flow. Common examples may be comment sections, pixel data within
+    a bitmap file, etc.
 
-  - Segments where any change always produces the same change to control flow
-    (checksums, "magic" values, syntax tokens, checksummed blocks).
+  - "Superficial content" - segments where some, but not all, bitflips
+    produce some control flow changes. Examples may include strings in rich
+    documents (e.g., XML, RTF).
 
-The runs are additionally categorized based on length and arithmetic value.
+  - "Critical stream" - a sequence of bytes where all bit flips alter control
+    flow in different but correlated ways. This may be compressed data, 
+    non-atomically compared keywords or magic values, etc.
+
+  - "Suspected length field" - small, atomic integer that, when touched in
+    any way, causes a consistent change to program control flow, suggestive
+    of a failed length check.
+
+  - "Suspected cksum or magic int" - an integer that behaves similarly to a
+    length field, but has a numerical value that makes the length explanation
+    unlikely. This is suggestive of a checksum or other "magic" integer.
+
+  - "Suspected checksummed block" - a long block of data where any change 
+    always triggers the same new execution path. Likely caused by failing
+    a checksum or a similar integrity check before any subsequent parsing
+    takes place.
+
+  - "Magic value section" - a generic token where changes cause the type
+    of binary behavior outlined earlier, but that doesn't meet any of the
+    other criteria. May be an atomically compared keyword or so.

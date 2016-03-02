@@ -25,7 +25,8 @@
  *                                                    *
  ******************************************************/
 
-/* Comment out to disable terminal colors: */
+/* Comment out to disable terminal colors (note that this makes afl-analyze
+   a lot less nice): */
 
 #define USE_COLOR
 

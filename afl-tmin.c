@@ -321,7 +321,7 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
   total_execs++;
 
   if (stop_soon) {
-    SAYF(cLRD "\n+++ Minimization aborted by user +++\n" cRST);
+    SAYF(cRST cLRD "\n+++ Minimization aborted by user +++\n" cRST);
     exit(1);
   }
 
@@ -409,7 +409,7 @@ static void minimize(char** argv) {
 
   if (set_len < TMIN_SET_MIN_SIZE) set_len = TMIN_SET_MIN_SIZE;
 
-  ACTF(cBRI "Stage #0: " cNOR "One-time block normalization...");
+  ACTF(cBRI "Stage #0: " cRST "One-time block normalization...");
 
   while (set_pos < in_len) {
 
@@ -457,7 +457,7 @@ next_pass:
   del_len = next_p2(in_len / TRIM_START_STEPS);
   stage_o_len = in_len;
 
-  ACTF(cBRI "Stage #1: " cNOR "Removing blocks of data...");
+  ACTF(cBRI "Stage #1: " cRST "Removing blocks of data...");
 
 next_del_blksize:
 
@@ -465,7 +465,7 @@ next_del_blksize:
   del_pos  = 0;
   prev_del = 1;
 
-  SAYF(cGRA "    Block length = %u, remaining size = %u\n" cNOR,
+  SAYF(cGRA "    Block length = %u, remaining size = %u\n" cRST,
        del_len, in_len);
 
   while (del_pos < in_len) {
@@ -540,7 +540,7 @@ next_del_blksize:
     alpha_map[in_data[i]]++;
   }
 
-  ACTF(cBRI "Stage #2: " cNOR "Minimizing symbols (%u code point%s)...",
+  ACTF(cBRI "Stage #2: " cRST "Minimizing symbols (%u code point%s)...",
        alpha_size, alpha_size == 1 ? "" : "s");
 
   for (i = 0; i < 256; i++) {
@@ -580,7 +580,7 @@ next_del_blksize:
 
   alpha_del2 = 0;
 
-  ACTF(cBRI "Stage #3: " cNOR "Character minimization...");
+  ACTF(cBRI "Stage #3: " cRST "Character minimization...");
 
   memcpy(tmp_buf, in_data, in_len);
 
@@ -613,10 +613,10 @@ next_del_blksize:
 finalize_all:
 
   SAYF("\n"
-       cGRA "     File size reduced by : " cNOR "%0.02f%% (to %u byte%s)\n"
-       cGRA "    Characters simplified : " cNOR "%0.02f%%\n"
-       cGRA "     Number of execs done : " cNOR "%u\n"
-       cGRA "          Fruitless execs : " cNOR "path=%u crash=%u hang=%s%u\n\n",
+       cGRA "     File size reduced by : " cRST "%0.02f%% (to %u byte%s)\n"
+       cGRA "    Characters simplified : " cRST "%0.02f%%\n"
+       cGRA "     Number of execs done : " cRST "%u\n"
+       cGRA "          Fruitless execs : " cRST "path=%u crash=%u hang=%s%u\n\n",
        100 - ((double)in_len) * 100 / orig_len, in_len, in_len == 1 ? "" : "s",
        ((double)(alpha_d_total)) * 100 / (in_len ? in_len : 1),
        total_execs, missed_paths, missed_crashes, missed_hangs ? cLRD : "",
@@ -1039,12 +1039,15 @@ int main(int argc, char** argv) {
 
   if (!crash_mode) {
 
-     OKF("Program terminates normally, minimizing in " cCYA "instrumented" cNOR " mode.");
+     OKF("Program terminates normally, minimizing in " 
+         cCYA "instrumented" cRST " mode.");
+
      if (!anything_set()) FATAL("No instrumentation detected.");
 
   } else {
 
-     OKF("Program exits with a signal, minimizing in " cMGN "crash" cNOR " mode.");
+     OKF("Program exits with a signal, minimizing in " cMGN "crash" cRST
+         " mode.");
 
   }
 

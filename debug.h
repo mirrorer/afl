@@ -28,23 +28,40 @@
 
 #ifdef USE_COLOR
 
-#  define cBLK "\x1b[0;30m"
-#  define cRED "\x1b[0;31m"
-#  define cGRN "\x1b[0;32m"
-#  define cBRN "\x1b[0;33m"
-#  define cBLU "\x1b[0;34m"
-#  define cMGN "\x1b[0;35m"
-#  define cCYA "\x1b[0;36m"
-#  define cNOR "\x1b[0;37m"
-#  define cGRA "\x1b[1;30m"
-#  define cLRD "\x1b[1;31m"
-#  define cLGN "\x1b[1;32m"
-#  define cYEL "\x1b[1;33m"
-#  define cLBL "\x1b[1;34m"
-#  define cPIN "\x1b[1;35m"
-#  define cLCY "\x1b[1;36m"
-#  define cBRI "\x1b[1;37m"
+#  define cBLK "\x1b[30m"
+#  define cRED "\x1b[31m"
+#  define cGRN "\x1b[32m"
+#  define cBRN "\x1b[33m"
+#  define cBLU "\x1b[34m"
+#  define cMGN "\x1b[35m"
+#  define cCYA "\x1b[36m"
+#  define cLGR "\x1b[37m"
+#  define cGRA "\x1b[1;90m"
+#  define cLRD "\x1b[1;91m"
+#  define cLGN "\x1b[1;92m"
+#  define cYEL "\x1b[1;93m"
+#  define cLBL "\x1b[1;94m"
+#  define cPIN "\x1b[1;95m"
+#  define cLCY "\x1b[1;96m"
+#  define cBRI "\x1b[1;97m"
 #  define cRST "\x1b[0m"
+
+#  define bgBLK "\x1b[40m"
+#  define bgRED "\x1b[41m"
+#  define bgGRN "\x1b[42m"
+#  define bgBRN "\x1b[43m"
+#  define bgBLU "\x1b[44m"
+#  define bgMGN "\x1b[45m"
+#  define bgCYA "\x1b[46m"
+#  define bgLGR "\x1b[47m"
+#  define bgGRA "\x1b[100m"
+#  define bgLRD "\x1b[101m"
+#  define bgLGN "\x1b[102m"
+#  define bgYEL "\x1b[103m"
+#  define bgLBL "\x1b[104m"
+#  define bgPIN "\x1b[105m"
+#  define bgLCY "\x1b[106m"
+#  define bgBRI "\x1b[107m"
 
 #else
 
@@ -55,7 +72,7 @@
 #  define cBLU ""
 #  define cMGN ""
 #  define cCYA ""
-#  define cNOR ""
+#  define cLGR ""
 #  define cGRA ""
 #  define cLRD ""
 #  define cLGN ""
@@ -65,6 +82,23 @@
 #  define cLCY ""
 #  define cBRI ""
 #  define cRST ""
+
+#  define bgBLK ""
+#  define bgRED ""
+#  define bgGRN ""
+#  define bgBRN ""
+#  define bgBLU ""
+#  define bgMGN ""
+#  define bgCYA ""
+#  define bgLGR ""
+#  define bgGRA ""
+#  define bgLRD ""
+#  define bgLGN ""
+#  define bgYEL ""
+#  define bgLBL ""
+#  define bgPIN ""
+#  define bgLCY ""
+#  define bgBRI ""
 
 #endif /* ^USE_COLOR */
 
@@ -163,7 +197,8 @@
 /* Die with a verbose non-OS fatal error message. */
 
 #define FATAL(x...) do { \
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cLRD "\n[-] PROGRAM ABORT : " cBRI x); \
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " \
+         cBRI x); \
     SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", \
          __FUNCTION__, __FILE__, __LINE__); \
     exit(1); \
@@ -172,7 +207,8 @@
 /* Die by calling abort() to provide a core dump. */
 
 #define ABORT(x...) do { \
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cLRD "\n[-] PROGRAM ABORT : " cBRI x); \
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " \
+         cBRI x); \
     SAYF(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n\n", \
          __FUNCTION__, __FILE__, __LINE__); \
     abort(); \
@@ -182,7 +218,8 @@
 
 #define PFATAL(x...) do { \
     fflush(stdout); \
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cLRD "\n[-]  SYSTEM ERROR : " cBRI x); \
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-]  SYSTEM ERROR : " \
+         cBRI x); \
     SAYF(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n", \
          __FUNCTION__, __FILE__, __LINE__); \
     SAYF(cLRD "       OS message : " cRST "%s\n", strerror(errno)); \
