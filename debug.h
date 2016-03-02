@@ -28,14 +28,14 @@
 
 #ifdef USE_COLOR
 
-#  define cBLK "\x1b[30m"
-#  define cRED "\x1b[31m"
-#  define cGRN "\x1b[32m"
-#  define cBRN "\x1b[33m"
-#  define cBLU "\x1b[34m"
-#  define cMGN "\x1b[35m"
-#  define cCYA "\x1b[36m"
-#  define cLGR "\x1b[37m"
+#  define cBLK "\x1b[0;30m"
+#  define cRED "\x1b[0;31m"
+#  define cGRN "\x1b[0;32m"
+#  define cBRN "\x1b[0;33m"
+#  define cBLU "\x1b[0;34m"
+#  define cMGN "\x1b[0;35m"
+#  define cCYA "\x1b[0;36m"
+#  define cLGR "\x1b[0;37m"
 #  define cGRA "\x1b[1;90m"
 #  define cLRD "\x1b[1;91m"
 #  define cLGN "\x1b[1;92m"

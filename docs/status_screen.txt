@@ -22,10 +22,8 @@ If you are using inverse video, you may want to change your settings, say:
   - For GNOME Terminal, go to Edit > Profile preferences, select the "colors"
     tab, and from the list of built-in schemes, choose "white on black".
 
-  - For the MacOS X Terminal app, go to Preferences > Settings, click on
-    the "Pro" color scheme, and select "Use bright colors for bold text".
-    Then, open a new window using the "Pro" scheme via the Shell > New Window
-    menu (or make "Pro" your default).
+  - For the MacOS X Terminal app, open a new window using the "Pro" scheme via
+    the Shell > New Window menu (or make "Pro" your default).
 
 Alternatively, if you really like your current colors, you can edit config.h
 to comment out USE_COLORS, then do 'make clean all'.

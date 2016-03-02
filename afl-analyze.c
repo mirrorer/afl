@@ -12,8 +12,10 @@
 
      http://www.apache.org/licenses/LICENSE-2.0
 
-   A nifty utility that takes an input file and takes a stab at explaining
+   A nifty utility that grabs an input file and takes a stab at explaining
    its structure by observing how changes to it affect the execution path.
+
+   If the output scrolls past the edge of the screen, pipe it to 'less -r'.
 
  */
 
@@ -381,13 +383,13 @@ static void show_char(u8 val) {
 
 static void show_legend(void) {
 
-  SAYF("    " bgGRA cLGR " 01 " cRST " - no-op block                 "
-              bgLGN cBLK " 01 " cRST " - suspected length field\n"
-       "    " bgGRA cBRI " 01 " cRST " - superficial content         "
-              bgYEL cBLK " 01 " cRST " - suspected cksum or magic int\n"
-       "    " bgCYA cBLK " 01 " cRST " - critical stream             "
-              bgLRD cBLK " 01 " cRST " - suspected checksummed block\n"
-       "    " bgMGN cBLK " 01 " cRST " - \"magic value\" section\n\n");
+  SAYF("    " cLGR bgGRA " 01 " cRST " - no-op block              "
+              cBLK bgLGN " 01 " cRST " - suspected length field\n"
+       "    " cBRI bgGRA " 01 " cRST " - superficial content      "
+              cBLK bgYEL " 01 " cRST " - suspected cksum or magic int\n"
+       "    " cBLK bgCYA " 01 " cRST " - critical stream          "
+              cBLK bgLRD " 01 " cRST " - suspected checksummed block\n"
+       "    " cBLK bgMGN " 01 " cRST " - \"magic value\" section\n\n");
 
 }
 
@@ -496,13 +498,13 @@ static void dump_hex(u8* buf, u32 len, u8* b_data) {
 
       switch (rtype) {
 
-        case RESP_NONE:     SAYF(bgGRA cLGR); break;
-        case RESP_MINOR:    SAYF(bgGRA cBRI); break;
-        case RESP_VARIABLE: SAYF(bgCYA cBLK); break;
-        case RESP_FIXED:    SAYF(bgMGN cBLK); break;
-        case RESP_LEN:      SAYF(bgLGN cBLK); break;
-        case RESP_CKSUM:    SAYF(bgYEL cBLK); break;
-        case RESP_SUSPECT:  SAYF(bgLRD cBLK); break;
+        case RESP_NONE:     SAYF(cLGR bgGRA); break;
+        case RESP_MINOR:    SAYF(cBRI bgGRA); break;
+        case RESP_VARIABLE: SAYF(cBLK bgCYA); break;
+        case RESP_FIXED:    SAYF(cBLK bgMGN); break;
+        case RESP_LEN:      SAYF(cBLK bgLGN); break;
+        case RESP_CKSUM:    SAYF(cBLK bgYEL); break;
+        case RESP_SUSPECT:  SAYF(cBLK bgLRD); break;
 
       }
 

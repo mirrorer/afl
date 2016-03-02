@@ -17,6 +17,15 @@ is 1.92b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.00b:
+--------------
+
+  - Cleaned up color handling after a minor snafu in 1.99b (affecting some
+    terminals).
+
+  - Made minor updates to the documentation.
+
+--------------
 Version 1.99b:
 --------------
 
