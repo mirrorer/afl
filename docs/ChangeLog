@@ -17,6 +17,13 @@ is 2.03b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.04b:
+--------------
+
+  - Removed indirect-calls coverage from -fsanitize-coverage (since it's
+    redundant). Spotted by Kostya Serebryany.
+
+--------------
 Version 2.03b:
 --------------
 

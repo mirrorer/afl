@@ -120,7 +120,7 @@ static void edit_params(u32 argc, char** argv) {
      http://clang.llvm.org/docs/SanitizerCoverage.html#tracing-pcs */
 
 #ifdef USE_TRACE_PC
-  cc_params[cc_par_cnt++] = "-fsanitize-coverage=bb,indirect-calls,trace-pc";
+  cc_params[cc_par_cnt++] = "-fsanitize-coverage=bb,trace-pc";
 #else
   cc_params[cc_par_cnt++] = "-Xclang";
   cc_params[cc_par_cnt++] = "-load";

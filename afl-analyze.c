@@ -707,6 +707,8 @@ static void set_up_environment(void) {
 
   setenv("MSAN_OPTIONS", "exit_code=" STRINGIFY(MSAN_ERROR) ":"
                          "symbolize=0:"
+                         "abort_on_error=1:"
+                         "allocator_may_return_null=1:"
                          "msan_track_origins=0", 0);
 
   if (getenv("AFL_LD_PRELOAD"))
