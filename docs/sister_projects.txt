@@ -157,6 +157,13 @@ RecidiVM (Jakub Wilk)
 
   http://jwilk.net/software/recidivm
 
+aflize (Jacek Wielemborek)
+--------------------------
+
+  Automatically build AFL-enabled versions of Debian packages.
+
+  https://github.com/d33tah/aflize
+
 -------------------------------
 Narrow-purpose or experimental:
 -------------------------------

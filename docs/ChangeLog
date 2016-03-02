@@ -17,6 +17,17 @@ is 1.92b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.01b:
+--------------
+
+  - Made an improvement to cycle counter color coding, based on feedback
+    from Shai Sarfaty.
+
+  - Added a mention of aflize to sister_projects.txt.
+
+  - Fixed an installation issue with afl-as, as spotted by ilovezfs.
+
+--------------
 Version 2.00b:
 --------------
 

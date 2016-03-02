@@ -643,6 +643,8 @@ static void add_to_queue(u8* fname, u32 len, u8 passed_det) {
   queued_paths++;
   pending_not_fuzzed++;
 
+  cycles_wo_finds = 0;
+
   if (!(queued_paths % 100)) {
 
     q_prev100->next_100 = q;
