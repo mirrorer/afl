@@ -17,6 +17,13 @@ is 2.03b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.05b:
+--------------
+
+  - Put __sanitizer_cov_module_init & co behind #ifdef to avoid problems
+    with ASAN. Spotted by Christian Holler.
+
+--------------
 Version 2.04b:
 --------------
 

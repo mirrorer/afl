@@ -14,7 +14,7 @@
 #
 
 PROGNAME    = afl
-VERSION     = 2.04b
+VERSION     = 2.05b
 
 PREFIX     ?= /usr/local
 BIN_PATH    = $(PREFIX)/bin
@@ -22,7 +22,7 @@ HELPER_PATH = $(PREFIX)/lib/afl
 DOC_PATH    = $(PREFIX)/share/doc/afl
 MISC_PATH   = $(PREFIX)/share/afl
 
-# PROGS intentionally omit afl-as, which gets installed elsewhere.
+# PROGS intentionally omit afl-as, which gets installed to its own dir.
 
 PROGS       = afl-gcc afl-fuzz afl-showmap afl-tmin afl-gotcpu afl-analyze
 SH_PROGS    = afl-plot afl-cmin afl-whatsup

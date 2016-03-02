@@ -249,3 +249,11 @@ Support for selective instrumentation (Christian Holler)
 --------------------------------------------------------
 
   https://github.com/choller/afl/blob/master/docs/mozilla/partial_instrumentation.txt
+
+Kernel fuzzing (Dmitry Vyukov)
+------------------------------
+
+  A similar guided approach as applied to fuzzing syscalls:
+
+  https://github.com/google/syzkaller/wiki/Found-Bugs
+  https://github.com/dvyukov/linux/commit/33787098ffaaa83b8a7ccf519913ac5fd6125931
