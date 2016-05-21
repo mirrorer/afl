@@ -1,6 +1,6 @@
 /*
 
-   A simple proof-of-concept for instrumented strcpy() or memcpy().
+   A simple proof-of-concept for instrumented strcmp() or memcmp().
 
    Normally, afl-fuzz will have difficulty ever reaching the code behind
    something like:
@@ -9,7 +9,7 @@
 
    This is because the strcmp() operation is completely opaque to the tool.
    A simple and non-invasive workaround that doesn't require complex code
-   analysis is to replace strcpy(), memcpy(), and equivalents with
+   analysis is to replace strcmp(), memcmp(), and equivalents with
    inlined, non-optimized code.
 
    I am still evaluating the value of doing this, but for time being, here's

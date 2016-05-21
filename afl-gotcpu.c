@@ -37,6 +37,7 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include <sys/resource.h>
+#include <sys/wait.h>
 
 #include "types.h"
 #include "debug.h"
@@ -125,38 +126,54 @@ int main(int argc, char** argv) {
   SAYF(cCYA "afl-gotcpu " cBRI VERSION cRST " by <lcamtuf@google.com>\n");
 
   ACTF("Measuring per-core preemption rate (this will take %0.02f sec)...",
-       ((double)CTEST_CORE_TRG_MS) * cpu_cnt / 1000);
+       ((double)CTEST_CORE_TRG_MS) / 1000);
 
   for (i = 0; i < cpu_cnt; i++) {
 
-    cpu_set_t c;
-    u32 util_perc;
+    s32 fr = fork();
 
-    CPU_ZERO(&c);
-    CPU_SET(i, &c);
+    if (fr < 0) PFATAL("fork failed");
 
-    if (sched_setaffinity(0, sizeof(c), &c))
-      PFATAL("sched_setaffinity failed");
+    if (!fr) {
 
-    util_perc = measure_preemption(CTEST_CORE_TRG_MS);
+      cpu_set_t c;
+      u32 util_perc;
 
-    if (util_perc < 105) {
+      CPU_ZERO(&c);
+      CPU_SET(i, &c);
 
-      SAYF("    Core #%u: " cLGN "AVAILABLE\n" cRST, i); 
-      maybe_cpus++;
-      idle_cpus++;
+      if (sched_setaffinity(0, sizeof(c), &c))
+        PFATAL("sched_setaffinity failed");
 
-    } else if (util_perc < 130) {
+      util_perc = measure_preemption(CTEST_CORE_TRG_MS);
 
-      SAYF("    Core #%u: " cYEL "CAUTION " cRST "(%u%%)\n", i, util_perc); 
-      maybe_cpus++;
+      if (util_perc < 110) {
 
-    } else {
+        SAYF("    Core #%u: " cLGN "AVAILABLE\n" cRST, i);
+        exit(0);
+
+      } else if (util_perc < 250) {
+
+        SAYF("    Core #%u: " cYEL "CAUTION " cRST "(%u%%)\n", i, util_perc); 
+        exit(1);
+
+      }
 
       SAYF("    Core #%u: " cLRD "OVERBOOKED " cRST "(%u%%)\n" cRST, i,
            util_perc);
+      exit(2);
 
     }
+
+  }
+
+  for (i = 0; i < cpu_cnt; i++) {
+
+    int ret;
+    if (waitpid(-1, &ret, 0) < 0) PFATAL("waitpid failed");
+
+    if (WEXITSTATUS(ret) == 0) idle_cpus++;
+    if (WEXITSTATUS(ret) <= 1) maybe_cpus++;
 
   }
 

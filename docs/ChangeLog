@@ -17,6 +17,19 @@ is 2.07b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.11b:
+--------------
+
+  - Fixed a minor typo in instrumented_cmp, spotted by Hanno Eissfeldt.
+
+  - Added a missing size check for deterministic insertion steps.
+
+  - Made an improvement to afl-gotcpu when -Z not used.
+
+  - Fixed a typo in post_library_png.so.c in experimental/. Spotted by Kostya
+    Serebryany.
+
+--------------
 Version 2.10b:
 --------------
 

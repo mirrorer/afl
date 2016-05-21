@@ -67,7 +67,7 @@ const unsigned char* afl_postprocess(const unsigned char* in_buf,
     /* Chunk checksum is calculated for chunk ID (dword) and the actual
        payload. */
 
-    real_cksum = ntohl(crc32(0, in_buf + pos + 4, chunk_len + 4));
+    real_cksum = htonl(crc32(0, in_buf + pos + 4, chunk_len + 4));
 
     /* The in-file checksum is the last dword past the chunk data. */
 

@@ -52,10 +52,10 @@ for any test cases found by other fuzzers - and will incorporate them into
 its own fuzzing when they are deemed interesting enough.
 
 The only difference between the -M and -S modes is that the master instance
-will still perform deterministic checks; while the slaves will proceed straight
-to random tweaks. If you don't want to do deterministic fuzzing at all, it's OK
-to run all instances with -S. With very slow or complex targets, or when running
-heavily parallelized jobs, this is usually a good plan.
+will still perform deterministic checks; while the secondary instances will
+proceed straight to random tweaks. If you don't want to do deterministic
+fuzzing at all, it's OK to run all instances with -S. With very slow or complex
+targets, or when running heavily parallelized jobs, this is usually a good plan.
 
 You can monitor the progress of your jobs from the command line with the
 provided afl-whatsup tool. When the instances are no longer finding new paths,
@@ -160,11 +160,11 @@ In principle, you can use the status screen of the master (-M) instance to
 monitor the overall fuzzing progress and decide when to stop. In this
 mode, the most important signal is just that no new paths are being found
 for a longer while. If you do not have a master instance, just pick any
-single slave and go by that.
+single secondary instance to watch and go by that.
 
 You can also rely on that instance's output directory to collect the
 synthesized corpus that covers all the noteworthy paths discovered anywhere
-within the fleet. The slave (-S) instances do not require any special
+within the fleet. Secondary (-S) instances do not require any special
 monitoring, other than just making sure that they are up.
 
 Keep in mind that crashing inputs are *not* automatically propagated to the

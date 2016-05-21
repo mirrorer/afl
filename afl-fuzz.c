@@ -5750,6 +5750,11 @@ skip_interest:
 
     for (j = 0; j < extras_cnt; j++) {
 
+      if (len + extras[j].len > MAX_FILE) {
+        stage_max--; 
+        continue;
+      }
+
       /* Insert token */
       memcpy(ex_tmp + i, extras[j].data, extras[j].len);
 
