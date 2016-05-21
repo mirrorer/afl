@@ -533,7 +533,7 @@ next_del_blksize:
   alpha_del1   = 0;
   syms_removed = 0;
 
-  memset(alpha_map, 0, 256);
+  memset(alpha_map, 0, 256 * sizeof(u32));
 
   for (i = 0; i < in_len; i++) {
     if (!alpha_map[in_data[i]]) alpha_size++;

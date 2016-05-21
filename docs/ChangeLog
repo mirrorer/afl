@@ -17,6 +17,13 @@ is 2.07b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.12b:
+--------------
+
+  - Fixed a minor issue in afl-tmin that can make alphabet minimization less
+    efficient during passes > 1. Spotted by Daniel Binderman.
+
+--------------
 Version 2.11b:
 --------------
 
