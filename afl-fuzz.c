@@ -7133,19 +7133,24 @@ static void get_core_count(void) {
 
 #else
 
-  /* On Linux, a simple way is to look at /proc/stat, especially since we'd
-     be parsing it anyway for other reasons later on. */
+  if (!cpu_core_count) {
 
-  FILE* f = fopen("/proc/stat", "r");
-  u8 tmp[1024];
+    /* On Linux, a simple way is to look at /proc/stat, especially since we'd
+       be parsing it anyway for other reasons later on. But do this only if
+       cpu_core_count hasn't been obtained before as a result of specifying
+       -Z. */
 
-  if (!f) return;
+    FILE* f = fopen("/proc/stat", "r");
+    u8 tmp[1024];
 
-  while (fgets(tmp, sizeof(tmp), f))
-    if (!strncmp(tmp, "cpu", 3) && isdigit(tmp[3])) cpu_core_count++;
+    if (!f) return;
 
-  fclose(f);
-  
+    while (fgets(tmp, sizeof(tmp), f))
+      if (!strncmp(tmp, "cpu", 3) && isdigit(tmp[3])) cpu_core_count++;
+
+    fclose(f);
+  }
+
 #endif /* ^(__APPLE__ || __FreeBSD__ || __OpenBSD__) */
 
   if (cpu_core_count) {
