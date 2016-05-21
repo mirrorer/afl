@@ -32,6 +32,14 @@ afl.rs (Keegan McAllister)
 
   https://github.com/kmcallister/afl.rs
 
+OCaml support (KC Sivaramakrishnan)
+-----------------------------------
+
+  Adds AFL-compatible instrumentation to OCaml programs.
+
+  https://github.com/ocamllabs/opam-repo-dev/pull/23
+  http://canopy.mirage.io/Posts/Fuzzing
+
 AFL for GCJ Java and other GCC frontends (-)
 --------------------------------------------
 

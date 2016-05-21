@@ -4130,8 +4130,26 @@ static void show_stats(void) {
 
     if (!no_cpu_meter_red && cur_utilization >= 150) cpu_color = cLRD;
 
+#ifdef HAVE_AFFINITY
+
+    if (use_affinity) {
+
+      SAYF(SP10 cGRA "[cpu@%02u:%s%3u%%" cGRA "]\r" cRST, 
+           MIN(cpu_aff_child, 99), cpu_color,
+           MIN(cur_utilization, 999));
+
+    } else {
+
+      SAYF(SP10 cGRA "   [cpu:%s%3u%%" cGRA "]\r" cRST,
+           cpu_color, MIN(cur_utilization, 999));
+ 
+   }
+#else
+
     SAYF(SP10 cGRA "   [cpu:%s%3u%%" cGRA "]\r" cRST,
-         cpu_color, cur_utilization < 999 ? cur_utilization : 999);
+         cpu_color, MIN(cur_utilization, 999));
+
+#endif /* ^HAVE_AFFINITY */
 
   } else SAYF("\r");
 
@@ -7166,6 +7184,8 @@ static void get_core_count(void) {
   if (use_affinity)
     OKF("Using specified CPU affinity: main = %u, child = %u",
         cpu_aff_main, cpu_aff_child);
+  else if (cpu_core_count > 1)
+    OKF(cBRI "Try setting CPU affinity (-Z) for a performance boost!" cRST);
 
 #endif /* HAVE_AFFINITY */
 
