@@ -61,6 +61,7 @@ DEAD_CNT=0
 
 TOTAL_TIME=0
 TOTAL_EXECS=0
+TOTAL_EPS=0
 TOTAL_CRASHES=0
 TOTAL_PFAV=0
 TOTAL_PENDING=0
@@ -105,14 +106,15 @@ for i in `find . -maxdepth 2 -iname fuzzer_stats`; do
 
   ALIVE_CNT=$((ALIVE_CNT + 1))
 
+  EXEC_SEC=$((execs_done / RUN_UNIX))
+  PATH_PERC=$((cur_path * 100 / paths_total))
+
   TOTAL_TIME=$((TOTAL_TIME + RUN_UNIX))
+  TOTAL_EPS=$((TOTAL_EPS + EXEC_SEC))
   TOTAL_EXECS=$((TOTAL_EXECS + execs_done))
   TOTAL_CRASHES=$((TOTAL_CRASHES + unique_crashes))
   TOTAL_PENDING=$((TOTAL_PENDING + pending_total))
   TOTAL_PFAV=$((TOTAL_PFAV + pending_favs))
-
-  EXEC_SEC=$((execs_done / RUN_UNIX))
-  PATH_PERC=$((cur_path * 100 / paths_total))
 
   if [ "$SUMMARY_ONLY" = "" ]; then
 
@@ -148,7 +150,7 @@ fi
 
 echo "      Total run time : $TOTAL_DAYS days, $TOTAL_HRS hours"
 echo "         Total execs : $((TOTAL_EXECS / 1000 / 1000)) million"
-echo "    Cumulative speed : $((TOTAL_EXECS * ALIVE_CNT / TOTAL_TIME)) execs/sec"
+echo "    Cumulative speed : $TOTAL_EPS execs/sec"
 echo "       Pending paths : $TOTAL_PFAV faves, $TOTAL_PENDING total"
 
 if [ "$ALIVE_CNT" -gt "1" ]; then

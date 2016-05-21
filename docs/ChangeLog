@@ -17,6 +17,15 @@ is 2.07b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.13b:
+--------------
+
+  - Fixed a spurious build test error with trace-pc and llvm_mode/Makefile.
+    Spotted by Markus Teufelberger.
+
+  - Fixed a cosmetic issue with afl-whatsup. Spotted by Brandon Perry.
+
+--------------
 Version 2.12b:
 --------------
 

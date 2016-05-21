@@ -133,9 +133,9 @@ afl-sid (Jacek Wielemborek)
 
   https://github.com/d33tah/afl-sid
 
--------------------------------------
-Crash triage, coverage analysis, etc:
--------------------------------------
+-----------------------------------------------------------
+Crash triage, coverage analysis, and other companion tools:
+-----------------------------------------------------------
 
 afl-crash-analyzer (Tobias Ospelt)
 ----------------------------------
@@ -171,6 +171,14 @@ aflize (Jacek Wielemborek)
   Automatically build AFL-enabled versions of Debian packages.
 
   https://github.com/d33tah/aflize
+
+afl-ddmin-mod (Markus Teufelberger)
+-----------------------------------
+
+  A variant of afl-tmin that uses a more sophisticated (but slower)
+  minimization algorithm.
+
+  https://github.com/MarkusTeufelberger/afl-ddmin-mod
 
 -------------------------------
 Narrow-purpose or experimental:

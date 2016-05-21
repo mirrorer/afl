@@ -7034,9 +7034,9 @@ static void check_crash_handling(void) {
 
     SAYF("\n" cLRD "[-] " cRST
          "Hmm, your system is configured to send core dump notifications to an\n"
-         "    external utility. This will cause issues due to an extended delay\n"
-         "    between the fuzzed binary malfunctioning and this information being\n"
-         "    eventually relayed to the fuzzer via the standard waitpid() API.\n\n"
+         "    external utility. This will cause issues: there will be an extended delay\n"
+         "    between stumbling upon a crash and having this information relayed to the\n"
+         "    fuzzer via the standard waitpid() API.\n\n"
 
          "    To avoid having crashes misinterpreted as hangs, please log in as root\n" 
          "    and temporarily modify /proc/sys/kernel/core_pattern, like so:\n\n"
