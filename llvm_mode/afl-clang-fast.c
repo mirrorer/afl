@@ -147,6 +147,8 @@ static void edit_params(u32 argc, char** argv) {
 
     if (strstr(cur, "FORTIFY_SOURCE")) fortify_set = 1;
 
+    if (!strcmp(cur, "-shared")) maybe_linking = 0;
+
     cc_params[cc_par_cnt++] = cur;
 
   }
@@ -196,6 +198,7 @@ static void edit_params(u32 argc, char** argv) {
   }
 
   cc_params[cc_par_cnt++] = "-D__AFL_HAVE_MANUAL_CONTROL=1";
+  cc_params[cc_par_cnt++] = "-D__AFL_COMPILER=1";
 
   /* When the user tries to use persistent or deferred forkserver modes by
      appending a single line to the program, we want to reliably inject a
@@ -221,8 +224,10 @@ static void edit_params(u32 argc, char** argv) {
     "({ static volatile char *_B __attribute__((used)); "
     " _B = (char*)\"" PERSIST_SIG "\"; "
 #ifdef __APPLE__
+    "__attribute__((visibility(\"default\"))) "
     "int _L(unsigned int) __asm__(\"___afl_persistent_loop\"); "
 #else
+    "__attribute__((visibility(\"default\"))) "
     "int _L(unsigned int) __asm__(\"__afl_persistent_loop\"); "
 #endif /* ^__APPLE__ */
     "_L(_A); })";
@@ -231,8 +236,10 @@ static void edit_params(u32 argc, char** argv) {
     "do { static volatile char *_A __attribute__((used)); "
     " _A = (char*)\"" DEFER_SIG "\"; "
 #ifdef __APPLE__
+    "__attribute__((visibility(\"default\"))) "
     "void _I(void) __asm__(\"___afl_manual_init\"); "
 #else
+    "__attribute__((visibility(\"default\"))) "
     "void _I(void) __asm__(\"__afl_manual_init\"); "
 #endif /* ^__APPLE__ */
     "_I(); } while (0)";

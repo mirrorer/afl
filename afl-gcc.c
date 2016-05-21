@@ -116,7 +116,7 @@ static void edit_params(u32 argc, char** argv) {
   u8 m32_set = 0;
 #endif
 
-  cc_params = ck_alloc((argc + 16) * sizeof(u8*));
+  cc_params = ck_alloc((argc + 64) * sizeof(u8*));
 
   name = strrchr(argv[0], '/');
   if (!name) name = argv[0]; else name++;
@@ -262,6 +262,7 @@ static void edit_params(u32 argc, char** argv) {
 
     cc_params[cc_par_cnt++] = "-O3";
     cc_params[cc_par_cnt++] = "-funroll-loops";
+    cc_params[cc_par_cnt++] = "-D__AFL_COMPILER=1";
 
   }
 

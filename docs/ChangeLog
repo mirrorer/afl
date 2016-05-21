@@ -17,6 +17,21 @@ is 2.03b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.06b:
+--------------
+
+  - Worked around LLVM persistent mode hiccups with -shared code.
+    Contributed by Christian Holler.
+
+  - Added __AFL_COMPILER as a convenient way to detect that something is
+    built under afl-gcc / afl-clang / afl-clang-fast and enable custom
+    optimizations in your code. Suggested by Pedro Corte-Real.
+
+  - Upstreamed several minor changes developed by Franjo Ivancic to
+    allow AFL to be built as a library. This is fairly use-specific and
+    may have relatively little appeal to general audiences.
+
+--------------
 Version 2.05b:
 --------------
 

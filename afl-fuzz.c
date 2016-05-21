@@ -59,11 +59,20 @@
 #  include <sys/sysctl.h>
 #endif /* __APPLE__ || __FreeBSD__ || __OpenBSD__ */
 
+/* A toggle to export some variables when building as a library. Not very
+   useful for the general public. */
+
+#ifdef AFL_LIB
+#  define EXP_ST
+#else
+#  define EXP_ST static
+#endif /* ^AFL_LIB */
 
 /* Lots of globals, but mostly for the status UI and other things where it
    really makes no sense to haul them around as function parameters. */
 
-static u8 *in_dir,                    /* Input directory with test cases  */
+
+EXP_ST u8 *in_dir,                    /* Input directory with test cases  */
           *out_file,                  /* File to fuzz, if any             */
           *out_dir,                   /* Working & output directory       */
           *sync_dir,                  /* Synchronization directory        */
@@ -74,12 +83,12 @@ static u8 *in_dir,                    /* Input directory with test cases  */
           *target_path,               /* Path to target binary            */
           *orig_cmdline;              /* Original command line            */
 
-static u32 exec_tmout = EXEC_TIMEOUT; /* Configurable exec timeout (ms)   */
-static u64 mem_limit = MEM_LIMIT;     /* Memory cap for child (MB)        */
+EXP_ST u32 exec_tmout = EXEC_TIMEOUT; /* Configurable exec timeout (ms)   */
+EXP_ST u64 mem_limit = MEM_LIMIT;     /* Memory cap for child (MB)        */
 
 static u32 stats_update_freq = 1;     /* Stats update frequency (execs)   */
 
-static u8  skip_deterministic,        /* Skip deterministic stages?       */
+EXP_ST u8  skip_deterministic,        /* Skip deterministic stages?       */
            force_deterministic,       /* Force deterministic stages?      */
            use_splicing,              /* Recombine input files?           */
            dumb_mode,                 /* Run in non-instrumented mode?    */
@@ -112,9 +121,9 @@ static s32 forksrv_pid,               /* PID of the fork server           */
            child_pid = -1,            /* PID of the fuzzed program        */
            out_dir_fd = -1;           /* FD of the lock file              */
 
-static u8* trace_bits;                /* SHM with instrumentation bitmap  */
+EXP_ST u8* trace_bits;                /* SHM with instrumentation bitmap  */
 
-static u8  virgin_bits[MAP_SIZE],     /* Regions yet untouched by fuzzing */
+EXP_ST u8  virgin_bits[MAP_SIZE],     /* Regions yet untouched by fuzzing */
            virgin_hang[MAP_SIZE],     /* Bits we haven't seen in hangs    */
            virgin_crash[MAP_SIZE];    /* Bits we haven't seen in crashes  */
 
@@ -124,7 +133,7 @@ static volatile u8 stop_soon,         /* Ctrl-C pressed?                  */
                    clear_screen = 1,  /* Window resized?                  */
                    child_timed_out;   /* Traced process timed out?        */
 
-static u32 queued_paths,              /* Total number of queued testcases */
+EXP_ST u32 queued_paths,              /* Total number of queued testcases */
            queued_variable,           /* Testcases with variable behavior */
            queued_at_start,           /* Total number of initial inputs   */
            queued_discovered,         /* Items discovered during this run */
@@ -140,7 +149,7 @@ static u32 queued_paths,              /* Total number of queued testcases */
            current_entry,             /* Current queue entry ID           */
            havoc_div = 1;             /* Cycle count divisor for havoc    */
 
-static u64 total_crashes,             /* Total number of crashes          */
+EXP_ST u64 total_crashes,             /* Total number of crashes          */
            unique_crashes,            /* Crashes with unique signatures   */
            total_hangs,               /* Total number of hangs            */
            unique_hangs,              /* Hangs with unique signatures     */
@@ -659,7 +668,7 @@ static void add_to_queue(u8* fname, u32 len, u8 passed_det) {
 
 /* Destroy the entire queue. */
 
-static void destroy_queue(void) {
+EXP_ST void destroy_queue(void) {
 
   struct queue_entry *q = queue, *n;
 
@@ -680,7 +689,7 @@ static void destroy_queue(void) {
    -B option, to focus a separate fuzzing session on a particular
    interesting input without rediscovering all the others. */
 
-static void write_bitmap(void) {
+EXP_ST void write_bitmap(void) {
 
   u8* fname;
   s32 fd;
@@ -703,7 +712,7 @@ static void write_bitmap(void) {
 
 /* Read bitmap from file. This is for the -B option again. */
 
-static void read_bitmap(u8* fname) {
+EXP_ST void read_bitmap(u8* fname) {
 
   s32 fd = open(fname, O_RDONLY);
 
@@ -1200,7 +1209,7 @@ static void cull_queue(void) {
 
 /* Configure shared memory and virgin_bits. This is called at startup. */
 
-static void setup_shm(void) {
+EXP_ST void setup_shm(void) {
 
   u8* shm_str;
 
@@ -1834,7 +1843,7 @@ static void destroy_extras(void) {
    cloning a stopped child. So, we just execute once, and then send commands
    through a pipe. The other part of this logic is in afl-as.h. */
 
-static void init_forkserver(char** argv) {
+EXP_ST void init_forkserver(char** argv) {
 
   static struct itimerval it;
   int st_pipe[2], ctl_pipe[2];
@@ -4331,7 +4340,7 @@ abort_trimming:
    error conditions, returning 1 if it's time to bail out. This is
    a helper function for fuzz_one(). */
 
-static u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
+EXP_ST u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 
   u8 fault;
 
@@ -6504,7 +6513,7 @@ static void handle_timeout(int sig) {
    isn't a shell script - a common and painful mistake. We also check for
    a valid ELF header and for evidence of AFL instrumentation. */
 
-static void check_binary(u8* fname) {
+EXP_ST void check_binary(u8* fname) {
 
   u8* env_path = 0;
   struct stat st;
@@ -6774,7 +6783,7 @@ static void usage(u8* argv0) {
 
 /* Prepare output directories and fds. */
 
-static void setup_dirs_fds(void) {
+EXP_ST void setup_dirs_fds(void) {
 
   u8* tmp;
   s32 fd;
@@ -6894,7 +6903,7 @@ static void setup_dirs_fds(void) {
 
 /* Setup the output file for fuzzed data, if not using -f. */
 
-static void setup_stdio_file(void) {
+EXP_ST void setup_stdio_file(void) {
 
   u8* fn = alloc_printf("%s/.cur_input", out_dir);
 
@@ -7189,7 +7198,7 @@ static void check_asan_opts(void) {
 
 /* Detect @@ in args. */
 
-static void detect_file_args(char** argv) {
+EXP_ST void detect_file_args(char** argv) {
 
   u32 i = 0;
   u8* cwd = getcwd(NULL, 0);
@@ -7238,7 +7247,7 @@ static void detect_file_args(char** argv) {
    Solaris doesn't resume interrupted reads(), sets SA_RESETHAND when you call
    siginterrupt(), and does other stupid things. */
 
-static void setup_signal_handlers(void) {
+EXP_ST void setup_signal_handlers(void) {
 
   struct sigaction sa;
 
@@ -7375,6 +7384,8 @@ static void save_cmdline(u32 argc, char** argv) {
 
 }
 
+
+#ifndef AFL_LIB
 
 /* Main entry point */
 
@@ -7727,3 +7738,5 @@ stop_fuzzing:
   exit(0);
 
 }
+
+#endif /* !AFL_LIB */
