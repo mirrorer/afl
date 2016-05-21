@@ -146,7 +146,8 @@ checks or alter some of the more exotic semantics of the tool:
     Others need not apply.
 
   - Benchmarking only: AFL_BENCH_JUST_ONE causes the fuzzer to exit after
-    processing the first queue entry.
+    processing the first queue entry; and AFL_BENCH_UNTIL_CRASH causes it to
+    exit when first crash is found.
 
 4) Settings for afl-qemu-trace
 ------------------------------

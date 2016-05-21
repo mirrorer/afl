@@ -96,7 +96,7 @@ static void find_obj(u8* argv0) {
 
 static void edit_params(u32 argc, char** argv) {
 
-  u8 fortify_set = 0, asan_set = 0, x_set = 0, maybe_linking = 1;
+  u8 fortify_set = 0, asan_set = 0, x_set = 0, maybe_linking = 1, bit_mode = 0;
   u8 *name;
 
   cc_params = ck_alloc((argc + 64) * sizeof(u8*));
@@ -133,9 +133,8 @@ static void edit_params(u32 argc, char** argv) {
   while (--argc) {
     u8* cur = *(++argv);
 
-#if defined(__x86_64__)
-    if (!strcmp(cur, "-m32")) FATAL("-m32 is not supported");
-#endif
+    if (!strcmp(cur, "-m32")) bit_mode = 32;
+    if (!strcmp(cur, "-m64")) bit_mode = 64;
 
     if (!strcmp(cur, "-x")) x_set = 1;
 
@@ -251,7 +250,29 @@ static void edit_params(u32 argc, char** argv) {
       cc_params[cc_par_cnt++] = "none";
     }
 
-    cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt.o", obj_path);
+    switch (bit_mode) {
+
+      case 0:
+        cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt.o", obj_path);
+        break;
+
+      case 32:
+        cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt-32.o", obj_path);
+
+        if (access(cc_params[cc_par_cnt - 1], R_OK))
+          FATAL("-m32 is not supported by your compiler");
+
+        break;
+
+      case 64:
+        cc_params[cc_par_cnt++] = alloc_printf("%s/afl-llvm-rt-64.o", obj_path);
+
+        if (access(cc_params[cc_par_cnt - 1], R_OK))
+          FATAL("-m64 is not supported by your compiler");
+
+        break;
+
+    }
 
   }
 

@@ -3782,10 +3782,12 @@ static void show_stats(void) {
  
   }
 
-  /* Honor AFL_EXIT_WHEN_DONE. */
+  /* Honor AFL_EXIT_WHEN_DONE and AFL_BENCH_UNTIL_CRASH. */
 
   if (!dumb_mode && cycles_wo_finds > 20 && !pending_not_fuzzed &&
       getenv("AFL_EXIT_WHEN_DONE")) stop_soon = 2;
+
+  if (total_crashes && getenv("AFL_BENCH_UNTIL_CRASH")) stop_soon = 2;
 
   /* If we're not on TTY, bail out. */
 

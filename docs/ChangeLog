@@ -17,6 +17,15 @@ is 2.07b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.08b:
+--------------
+
+  - Added explicit support for -m32 and -m64 for llvm_mode. Inspired by
+    a request from Christian Holler.
+
+  - Added a new benchmarking option, as requested by Kostya Serebryany.
+
+--------------
 Version 2.07b:
 --------------
 
