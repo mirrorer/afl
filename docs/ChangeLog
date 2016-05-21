@@ -13,8 +13,21 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 2.03b. If you're stuck on an earlier release, it's strongly advisable
+is 2.07b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 2.07b:
+--------------
+
+  - Added CPU affinity option (-Z) on Linux. With some caution, this can
+    offer a significant (10%+) performance bump and reduce jitter.
+    Proposed by Austin Seipp.
+
+  - Updated afl-gotcpu to use CPU affinity where supported.
+
+  - Fixed confusing CPU_TARGET error messages with QEMU build. Spotted by
+    Daniel Komaromy and others.
 
 --------------
 Version 2.06b:

@@ -44,6 +44,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <dlfcn.h>
+#include <sched.h>
 
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -58,6 +59,12 @@
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined (__OpenBSD__)
 #  include <sys/sysctl.h>
 #endif /* __APPLE__ || __FreeBSD__ || __OpenBSD__ */
+
+/* For supporting -Z on systems that have sched_setaffinity. */
+
+#ifdef __linux__
+#  define HAVE_AFFINITY 1
+#endif /* __linux__ */
 
 /* A toggle to export some variables when building as a library. Not very
    useful for the general public. */
@@ -195,6 +202,15 @@ static u64 total_bitmap_size,         /* Total bit count for all bitmaps  */
 
 static u32 cpu_core_count;            /* CPU core count                   */
 
+#ifdef HAVE_AFFINITY
+
+static u8  use_affinity;              /* Using -Z                         */
+
+static u32 cpu_aff_main,	      /* Affinity for main process        */
+           cpu_aff_child;             /* Affinity for fuzzed child        */
+
+#endif /* HAVE_AFFINITY */
+
 static FILE* plot_file;               /* Gnuplot output file              */
 
 struct queue_entry {
@@ -322,6 +338,25 @@ static u64 get_cur_time_us(void) {
   return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
 
 }
+
+
+#ifdef HAVE_AFFINITY
+
+/* Set CPU affinity (on systems that support it). */
+
+static void set_cpu_affinity(u32 cpu_id) {
+
+  cpu_set_t c;
+
+  CPU_ZERO(&c);
+  CPU_SET(cpu_id, &c);
+
+  if (sched_setaffinity(0, sizeof(c), &c))
+    PFATAL("sched_setaffinity failed");
+
+}
+
+#endif /* HAVE_AFFINITY */
 
 
 /* Generate a random number (from 0 to limit - 1). This may
@@ -1862,6 +1897,10 @@ EXP_ST void init_forkserver(char** argv) {
 
     struct rlimit r;
 
+#ifdef HAVE_AFFINITY
+    if (use_affinity) set_cpu_affinity(cpu_aff_child);
+#endif /* HAVE_AFFINITY */
+
     /* Umpf. On OpenBSD, the default fd limit for root users is set to
        soft 128. Let's try to fix that... */
 
@@ -2159,6 +2198,10 @@ static u8 run_target(char** argv) {
     if (!child_pid) {
 
       struct rlimit r;
+
+#ifdef HAVE_AFFINITY
+      if (use_affinity) set_cpu_affinity(cpu_aff_child);
+#endif /* HAVE_AFFINITY */
 
       if (mem_limit) {
 
@@ -6770,6 +6813,9 @@ static void usage(u8* argv0) {
 
        "  -T text       - text banner to show on the screen\n"
        "  -M / -S id    - distributed mode (see parallel_fuzzing.txt)\n"
+#ifdef HAVE_AFFINITY
+       "  -Z core_id    - set CPU affinity (see perf_tips.txt)\n"
+#endif /* HAVE_AFFINITY */
        "  -C            - crash exploration mode (the peruvian rabbit thing)\n\n"
 
        "For additional tips, please consult %s/README.\n\n",
@@ -7113,6 +7159,14 @@ static void get_core_count(void) {
 
   } else WARNF("Unable to figure out the number of CPU cores.");
 
+#ifdef HAVE_AFFINITY
+
+  if (use_affinity)
+    OKF("Using specified CPU affinity: main = %u, child = %u",
+        cpu_aff_main, cpu_aff_child);
+
+#endif /* HAVE_AFFINITY */
+
 }
 
 
@@ -7404,7 +7458,7 @@ int main(int argc, char** argv) {
 
   doc_path = access(DOC_PATH, F_OK) ? "docs" : DOC_PATH;
 
-  while ((opt = getopt(argc, argv, "+i:o:f:m:t:T:dnCB:S:M:x:Q")) > 0)
+  while ((opt = getopt(argc, argv, "+i:o:f:m:t:T:dnCB:S:M:x:QZ:")) > 0)
 
     switch (opt) {
 
@@ -7500,6 +7554,35 @@ int main(int argc, char** argv) {
 
         break;
 
+#ifdef HAVE_AFFINITY
+
+      case 'Z': {
+
+          s32 i;
+
+          if (use_affinity) FATAL("Multiple -Z options not supported");
+          use_affinity = 1;
+
+          cpu_core_count = sysconf(_SC_NPROCESSORS_ONLN);
+
+          i = sscanf(optarg, "%u,%u", &cpu_aff_main, &cpu_aff_child);
+
+          if (i < 1 || cpu_aff_main >= cpu_core_count) 
+            FATAL("Bogus primary core ID passed to -Z (expected 0-%u)",
+                  cpu_core_count - 1);
+
+          if (i == 1) cpu_aff_child = cpu_aff_main;
+
+          if (cpu_aff_child >= cpu_core_count)
+            FATAL("Bogus secondary core ID passed to -Z (expected 0-%u)",
+                  cpu_core_count - 1);
+
+          break;
+
+        }
+
+#endif /* HAVE_AFFINITY */
+
       case 'd':
 
         if (skip_deterministic) FATAL("Multiple -d options not supported");
@@ -7564,6 +7647,10 @@ int main(int argc, char** argv) {
 
   setup_signal_handlers();
   check_asan_opts();
+
+#ifdef HAVE_AFFINITY
+  if (use_affinity) set_cpu_affinity(cpu_aff_main);
+#endif /* HAVE_AFFINITY */
 
   if (sync_id) fix_up_sync();
 

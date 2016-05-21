@@ -321,6 +321,7 @@
 /* Constants for afl-gotcpu to control busy loop timing: */
 
 #define  CTEST_TARGET_MS    5000
+#define  CTEST_CORE_TRG_MS  1000
 #define  CTEST_BUSY_CYCLES  (10 * 1000 * 1000)
 
 /* Uncomment this to use inferior block-coverage-based instrumentation. Note

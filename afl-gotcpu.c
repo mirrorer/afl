@@ -4,7 +4,7 @@
 
    Written and maintained by Michal Zalewski <lcamtuf@google.com>
 
-   Copyright 2015 Google Inc. All rights reserved.
+   Copyright 2015, 2016 Google Inc. All rights reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,10 +26,12 @@
  */
 
 #define AFL_MAIN
+#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 #include <sched.h>
 
 #include <sys/time.h>
@@ -38,6 +40,10 @@
 
 #include "types.h"
 #include "debug.h"
+
+#ifdef __linux__
+#  define HAVE_AFFINITY 1
+#endif /* __linux__ */
 
 
 /* Get unix time in microseconds. */
@@ -68,21 +74,14 @@ static u64 get_cpu_usage_us(void) {
 }
 
 
-/* Do the benchmark thing. */
+/* Measure preemption rate. */
 
-int main(int argc, char** argv) {
+static u32 measure_preemption(u32 target_ms) {
 
   static volatile u32 v1, v2;
 
-  s32 loop_repeats = 0, util_perc;
   u64 st_t, en_t, st_c, en_c, real_delta, slice_delta;
-
-  SAYF(cCYA "afl-gotcpu " cBRI VERSION cRST " by <lcamtuf@google.com>\n");
-
-  /* Run a busy loop for CTEST_TARGET_MS. */
-
-  ACTF("Measuring preemption rate (this will take %0.02f sec)...",
-       ((double)CTEST_TARGET_MS) / 1000);
+  s32 loop_repeats = 0;
 
   st_t = get_cur_time_us();
   st_c = get_cpu_usage_us();
@@ -96,7 +95,7 @@ repeat_loop:
 
   en_t = get_cur_time_us();
 
-  if (en_t - st_t < CTEST_TARGET_MS * 1000) {
+  if (en_t - st_t < target_ms * 1000) {
     loop_repeats++;
     goto repeat_loop;
   }
@@ -109,10 +108,104 @@ repeat_loop:
   real_delta  = (en_t - st_t) / 1000;
   slice_delta = (en_c - st_c) / 1000;
 
-  OKF("Busy loop hit %u times, real = %llu ms, slice = %llu ms.",
-      loop_repeats, real_delta, slice_delta);
+  return real_delta * 100 / slice_delta;
 
-  util_perc = real_delta * 100 / slice_delta;
+}
+
+
+/* Do the benchmark thing. */
+
+int main(int argc, char** argv) {
+
+#ifdef HAVE_AFFINITY
+
+  u32 cpu_cnt = sysconf(_SC_NPROCESSORS_ONLN),
+      idle_cpus = 0, maybe_cpus = 0, i;
+
+  SAYF(cCYA "afl-gotcpu " cBRI VERSION cRST " by <lcamtuf@google.com>\n");
+
+  ACTF("Measuring per-core preemption rate (this will take %0.02f sec)...",
+       ((double)CTEST_CORE_TRG_MS) * cpu_cnt / 1000);
+
+  for (i = 0; i < cpu_cnt; i++) {
+
+    cpu_set_t c;
+    u32 util_perc;
+
+    CPU_ZERO(&c);
+    CPU_SET(i, &c);
+
+    if (sched_setaffinity(0, sizeof(c), &c))
+      PFATAL("sched_setaffinity failed");
+
+    util_perc = measure_preemption(CTEST_CORE_TRG_MS);
+
+    if (util_perc < 105) {
+
+      SAYF("    Core #%u: " cLGN "AVAILABLE\n" cRST, i); 
+      maybe_cpus++;
+      idle_cpus++;
+
+    } else if (util_perc < 130) {
+
+      SAYF("    Core #%u: " cYEL "CAUTION " cRST "(%u%%)\n", i, util_perc); 
+      maybe_cpus++;
+
+    } else {
+
+      SAYF("    Core #%u: " cLRD "OVERBOOKED " cRST "(%u%%)\n" cRST, i,
+           util_perc);
+
+    }
+
+  }
+
+  SAYF(cGRA "\n>>> ");
+
+  if (idle_cpus) {
+
+    if (maybe_cpus == idle_cpus) {
+
+      SAYF(cLGN "PASS: " cRST "You can run more processes on %u core%s.",
+           idle_cpus, idle_cpus > 1 ? "s" : "");
+
+    } else {
+
+      SAYF(cLGN "PASS: " cRST "You can run more processes on %u to %u core%s.",
+           idle_cpus, maybe_cpus, maybe_cpus > 1 ? "s" : "");
+
+    }
+
+    SAYF(cGRA " <<<" cRST "\n\n");
+    return 0;
+
+  }
+
+  if (maybe_cpus) {
+
+    SAYF(cYEL "CAUTION: " cRST "You may still have %u core%s available.",
+         maybe_cpus, maybe_cpus > 1 ? "s" : "");
+    SAYF(cGRA " <<<" cRST "\n\n");
+    return 1;
+
+  }
+
+  SAYF(cLRD "FAIL: " cRST "All cores are overbooked.");
+  SAYF(cGRA " <<<" cRST "\n\n");
+  return 2;
+
+#else
+
+  u32 util_perc;
+
+  SAYF(cCYA "afl-gotcpu " cBRI VERSION cRST " by <lcamtuf@google.com>\n");
+
+  /* Run a busy loop for CTEST_TARGET_MS. */
+
+  ACTF("Measuring gross preemption rate (this will take %0.02f sec)...",
+       ((double)CTEST_TARGET_MS) / 1000);
+
+  util_perc = measure_preemption(CTEST_TARGET_MS);
 
   /* Deliver the final verdict. */
 
@@ -136,5 +229,7 @@ repeat_loop:
   SAYF(cGRA " <<<" cRST "\n\n");
 
   return (util_perc > 105) + (util_perc > 130);
+
+#endif /* ^HAVE_AFFINITY */
 
 }
