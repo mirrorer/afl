@@ -262,7 +262,12 @@ static void edit_params(u32 argc, char** argv) {
 
     cc_params[cc_par_cnt++] = "-O3";
     cc_params[cc_par_cnt++] = "-funroll-loops";
+
+    /* Two indicators that you're building for fuzzing; one of them is
+       AFL-specific, the other is shared with libfuzzer. */
+
     cc_params[cc_par_cnt++] = "-D__AFL_COMPILER=1";
+    cc_params[cc_par_cnt++] = "-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1";
 
   }
 

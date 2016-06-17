@@ -17,6 +17,15 @@ is 2.07b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.14b:
+--------------
+
+  - Added FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION as a macro defined when
+    compiling with afl-gcc and friends. Suggested by Kostya Serebryany.
+
+  - Refreshed some of the non-x86 docs.
+
+--------------
 Version 2.13b:
 --------------
 
