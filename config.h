@@ -21,7 +21,7 @@
 
 /* Version string: */
 
-#define VERSION             "2.19b"
+#define VERSION             "2.20b"
 
 /******************************************************
  *                                                    *
@@ -61,12 +61,8 @@
 /* Number of calibration cycles per every new test case (and for test
    cases that show variable behavior): */
 
-#define CAL_CYCLES          10
+#define CAL_CYCLES          8
 #define CAL_CYCLES_LONG     40
-
-/* The same, but when AFL_NO_VAR_CHECK is set in the environment: */
-
-#define CAL_CYCLES_NO_VAR   4
 
 /* Number of subsequent hangs before abandoning an input file: */
 

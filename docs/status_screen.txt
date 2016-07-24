@@ -119,7 +119,7 @@ If you feel that the fuzzer is progressing too slowly, see the note about the
 ---------------
 
   +--------------------------------------+
-  |    map density : 4763 (29.07%)       |
+  |    map density : 10.15% / 29.07%     |
   | count coverage : 4.03 bits/tuple     |
   +--------------------------------------+
 
@@ -127,7 +127,11 @@ The section provides some trivia about the coverage observed by the
 instrumentation embedded in the target binary.
 
 The first line in the box tells you how many branch tuples we have already
-hit, in proportion to how much the bitmap can hold. Be wary of extremes:
+hit, in proportion to how much the bitmap can hold. The number on the left
+describes the current input; the one on the right is the value for the entire
+input corpus.
+
+Be wary of extremes:
 
   - Absolute numbers below 200 or so suggest one of three things: that the
     program is extremely simple; that it is not instrumented properly (e.g.,
@@ -271,7 +275,7 @@ some of the more expensive deterministic fuzzing steps.
   |  pend fav : 583     |
   | own finds : 0       |
   |  imported : 0       |
-  |  variable : 0       |
+  | stability : 100.00% |
   +---------------------+
 
 The first field in this section tracks the path depth reached through the
@@ -291,27 +295,33 @@ Next, we have the number of new paths found during this fuzzing section and
 imported from other fuzzer instances when doing parallelized fuzzing; and the
 number of inputs that produce seemingly variable behavior in the tested binary.
 
-That last bit is actually fairly interesting. There are four quasi-common
-explanations for variable behavior of the tested program:
+That last bit is actually fairly interesting: it measures the consistency of
+observed traces. If a program always behaves the same for the same input data,
+it will earn a score of 100%. When the value is over 90%, the fuzzing process
+is still unlikely to be negatively affected. If it gets much lower, you may
+be in trouble, since AFL will have difficulty discerning between meaningful
+and "phantom" effects of tweaking the input file.
 
-  - Use of uninitialized memory in conjunction with some intrinsic sources of
-    entropy in the tested binary. This can be indicative of a security bug.
+Now, most targets will just get a 100% score, but when you see lower figures,
+there are several things to look at:
 
-  - Attempts to create files that were already created during previous runs, or
-    otherwise interact with some form of persistent state. This is harmless,
-    but you may want to instruct the targeted program to write to stdout or to
-    /dev/null to avoid surprises (and disable the creation of temporary files
-    and similar artifacts, if applicable).
+  - The use of uninitialized memory in conjunction with some intrinsic sources
+    of entropy in the tested binary. Harmless to AFL, but could be indicative
+    of a security bug.
 
-  - Hitting functionality that is actually designed to behave randomly. For
-    example, when fuzzing sqlite, the fuzzer will dutifully detect variable
-    behavior once the mutation engine generates something like:
+  - Attempts to manipulate persistent resources, such as left over temporary
+    files or shared memory objects. This is usually harmless, but you may want
+    to double-check to make sure the program isn't bailing out prematurely.
+    Running out of disk space, SHM handles, or other global resources can
+    trigger this, too.
 
-    select random();
+  - Hitting some functionality that is actually designed to behave randomly.
+    Generally harmless. For example, when fuzzing sqlite, an input like
+    'select random();' will trigger a variable execution path.
 
-  - Multiple threads executing at once in semi-random order. This is usually
-    just a nuisance, but if the number of variable paths is very high, try the
-    following options:
+  - Multiple threads executing at once in semi-random order. This is harmless
+    when the 'stability' metric stays over 90% or so, but can become an issue
+    if not. Here's what to try:
 
     - Use afl-clang-fast from llvm_mode/ - it uses a thread-local tracking
       model that is less prone to concurrency issues,
@@ -323,16 +333,9 @@ explanations for variable behavior of the tested program:
     - Replace pthreads with GNU Pth (https://www.gnu.org/software/pth/), which
       allows you to use a deterministic scheduler.
 
-Less likely causes may include running out of disk space, SHM handles, or other
-globally limited resources.
-
 The paths where variable behavior is detected are marked with a matching entry
 in the <out_dir>/queue/.state/variable_behavior/ directory, so you can look
 them up easily.
-
-If you can't suppress variable behavior and don't want to see these warnings,
-simply set AFL_NO_VAR_CHECK=1 in the environment before running afl-fuzz. This
-will also dramatically speed up session resumption.
 
 9) CPU load
 -----------
@@ -378,6 +381,7 @@ directory. This includes:
   - cur_path       - currently processed entry number
   - pending_favs   - number of favored entries still waiting to be fuzzed
   - pending_total  - number of all entries waiting to be fuzzed
+  - stability      - percentage of bitmap bytes that behave consistently
   - variable_paths - number of test cases showing variable behavior
   - unique_crashes - number of unique crashes recorded
   - unique_hangs   - number of unique hangs encountered

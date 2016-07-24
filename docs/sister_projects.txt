@@ -78,6 +78,13 @@ TriforceAFL (Tim Newsham and Jesse Hertz)
 
   https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2016/june/project-triforce-run-afl-on-everything/
 
+WinAFL (Ivan Fratric)
+---------------------
+
+  As the name implies, allows you to fuzz Windows binaries (using DynamoRio).
+
+  https://github.com/ivanfratric/winafl
+
 ----------------
 Network fuzzing:
 ----------------

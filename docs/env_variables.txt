@@ -99,11 +99,6 @@ checks or alter some of the more exotic semantics of the tool:
     normally done when starting up the forkserver and causes a pretty
     significant performance drop.
 
-  - Setting AFL_NO_VAR_CHECK skips the detection of variable test cases,
-    greatly speeding up session resumption and path discovery for complex
-    multi-threaded apps (but depriving you of a potentially useful signal
-    in more orderly programs).
-
   - AFL_EXIT_WHEN_DONE causes afl-fuzz to terminate when all existing paths
     have been fuzzed and there were no new finds for a while. This would be
     normally indicated by the cycle counter in the UI turning green. May be

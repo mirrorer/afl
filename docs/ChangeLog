@@ -17,6 +17,22 @@ is 2.18b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.20b:
+--------------
+
+  - Revamped the handling of variable paths, replacing path count with a
+    "stability" score to give users a much better signal. Based on the
+    feedback from Vegard Nossum.
+
+  - Made a stability improvement to the syncing behavior with resuming
+    fuzzers. Based on the feedback from Vegard.
+
+  - Changed the UI to include current input bitmap density along with
+    total density. Ditto.
+
+  - Added experimental support for parallelizing -M.
+
+--------------
 Version 2.19b:
 --------------
 
