@@ -144,29 +144,7 @@ a fair amount of time allocating and initializing megabytes of memory when
 presented with pathological inputs. Low -m values can make them give up sooner
 and not waste CPU time.
 
-8) Set CPU core affinity for AFL
---------------------------------
-
-Making sure that the fuzzer always runs on the same (idle) CPU core can offer
-a significant speed bump and reduce scheduler jitter. The benefits can be even
-more striking on true multiprocessor systems.
-
-On Linux, you can assign the fuzzer to a specific core by first running
-afl-gotcpu to see which cores are idle, and then specifying the ID of a
-preferred core via -Z, like so:
-
-  $ ./afl-fuzz -Z core_id [...other parameters...]
-
-Note that this parameter needs to be used with care; accidentally forcing
-multiple fuzzers to share the same core may result in performance that is
-worse than what you would get without -Z.
-
-(It is also possible to specify two comma-delimited values for -Z, in which
-case, the fuzzer will run on one designated core, and the target binary will
-be banished to another. This can sometimes offer minor benefits, but isn't
-recommended for general use.)
-
-9) Check OS configuration
+8) Check OS configuration
 -------------------------
 
 There are several OS-level factors that may affect fuzzing speed:
@@ -200,8 +178,8 @@ There are several OS-level factors that may affect fuzzing speed:
     SCHED_RR - can usually speed things up, too, but needs to be done with
     care.
 
-10) If all other options fail, use -d
--------------------------------------
+9) If all other options fail, use -d
+------------------------------------
 
 For programs that are genuinely slow, in cases where you really can't escape
 using huge input files, or when you simply want to get quick and dirty results

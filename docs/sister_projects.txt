@@ -6,9 +6,9 @@ Sister projects
   designed for, or meant to integrate with AFL. See README for the general
   instruction manual.
 
-----------------------------
-Support for other languages:
-----------------------------
+-------------------------------------------
+Support for other languages / environments:
+-------------------------------------------
 
 Python AFL (Jakub Wilk)
 -----------------------
@@ -69,6 +69,14 @@ AFL fixup shim (Ben Nagy)
   that don't have C / .so bindings. Includes examples in Go.
 
   https://github.com/bnagy/aflfix
+
+TriforceAFL (Tim Newsham and Jesse Hertz)
+-----------------------------------------
+
+  Leverages QEMU full system emulation mode to allow AFL to target operating
+  systems and other alien worlds:
+
+  https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2016/june/project-triforce-run-afl-on-everything/
 
 ----------------
 Network fuzzing:
@@ -273,3 +281,4 @@ Kernel fuzzing (Dmitry Vyukov)
 
   https://github.com/google/syzkaller/wiki/Found-Bugs
   https://github.com/dvyukov/linux/commit/33787098ffaaa83b8a7ccf519913ac5fd6125931
+  http://events.linuxfoundation.org/sites/events/files/slides/AFL%20filesystem%20fuzzing%2C%20Vault%202016_0.pdf

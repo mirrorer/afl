@@ -73,21 +73,17 @@ static volatile u8
 /* Classify tuple counts. Instead of mapping to individual bits, as in
    afl-fuzz.c, we map to more user-friendly numbers between 1 and 8. */
 
-#define AREP4(_sym)   (_sym), (_sym), (_sym), (_sym)
-#define AREP8(_sym)   AREP4(_sym),  AREP4(_sym)
-#define AREP16(_sym)  AREP8(_sym),  AREP8(_sym)
-#define AREP32(_sym)  AREP16(_sym), AREP16(_sym)
-#define AREP64(_sym)  AREP32(_sym), AREP32(_sym)
-#define AREP128(_sym) AREP64(_sym), AREP64(_sym)
+static const u8 count_class_lookup[256] = {
 
-static u8 count_class_lookup[256] = {
-
-  /* 0 - 3:       4 */ 0, 1, 2, 3,
-  /* 4 - 7:      +4 */ AREP4(4),
-  /* 8 - 15:     +8 */ AREP8(5),
-  /* 16 - 31:   +16 */ AREP16(6),
-  /* 32 - 127:  +96 */ AREP64(7), AREP32(7),
-  /* 128+:     +128 */ AREP128(8)
+  [0]           = 0,
+  [1]           = 1,
+  [2]           = 2,
+  [3]           = 3,
+  [4 ... 7]     = 4,
+  [8 ... 15]    = 5,
+  [16 ... 31]   = 6,
+  [32 ... 127]  = 7,
+  [128 ... 255] = 8
 
 };
 

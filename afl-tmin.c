@@ -81,21 +81,17 @@ static volatile u8
 
 /* Classify tuple counts. This is a slow & naive version, but good enough here. */
 
-#define AREP4(_sym)   (_sym), (_sym), (_sym), (_sym)
-#define AREP8(_sym)   AREP4(_sym),  AREP4(_sym)
-#define AREP16(_sym)  AREP8(_sym),  AREP8(_sym)
-#define AREP32(_sym)  AREP16(_sym), AREP16(_sym)
-#define AREP64(_sym)  AREP32(_sym), AREP32(_sym)
-#define AREP128(_sym) AREP64(_sym), AREP64(_sym)
+static const u8 count_class_lookup[256] = {
 
-static u8 count_class_lookup[256] = {
-
-  /* 0 - 3:       4 */ 0, 1, 2, 4,
-  /* 4 - 7:      +4 */ AREP4(8),
-  /* 8 - 15:     +8 */ AREP8(16),
-  /* 16 - 31:   +16 */ AREP16(32),
-  /* 32 - 127:  +96 */ AREP64(64), AREP32(64),
-  /* 128+:     +128 */ AREP128(128)
+  [0]           = 0,
+  [1]           = 1,
+  [2]           = 2,
+  [3]           = 4,
+  [4 ... 7]     = 8,
+  [8 ... 15]    = 16,
+  [16 ... 31]   = 32,
+  [32 ... 127]  = 64,
+  [128 ... 255] = 128
 
 };
 

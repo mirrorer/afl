@@ -109,6 +109,10 @@ checks or alter some of the more exotic semantics of the tool:
     normally indicated by the cycle counter in the UI turning green. May be
     convenient for some types of automated jobs.
 
+  - Setting AFL_NO_AFFINITY disables attempts to bind to a specific CPU core
+    on Linux systems. This slows things down, but lets you run more instances
+    of afl-fuzz than would be prudent (if you really want to).
+
   - AFL_SKIP_CRASHES causes AFL to tolerate crashing files in the input
     queue. This can help with rare situations where a program crashes only
     intermittently, but it's not really recommended under normal operating
