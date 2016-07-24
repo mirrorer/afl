@@ -17,6 +17,15 @@ is 2.07b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.15b:
+--------------
+
+  - Added a README section on looking for non-crashing bugs.
+
+  - Added license data to several boring files. Contributed by
+    Jonathan Metzman.
+
+--------------
 Version 2.14b:
 --------------
 

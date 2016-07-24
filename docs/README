@@ -336,7 +336,28 @@ be critical, and which are not; while not bulletproof, it can often offer quick
 insights into complex file formats. More info about its operation can be found
 near the end of technical_details.txt.
 
-11) Common-sense risks
+11) Going beyond crashes
+------------------------
+
+Fuzzing is a wonderful and underutilized technique for discovering non-crashing
+design and implementation errors, too. Plenty of interesting bugs have been
+found by modifying the target programs to call abort() when:
+
+  - Two bignum libraries produce different outputs when given the same
+    fuzzer-generated input,
+
+  - An image library produces different outputs when asked to decode the same
+    input image several times in a row,
+
+  - A compression library produces an output inconsistent with the input file
+    when asked to compress and then decompress a particular blob.
+
+Implementing these or similar sanity checks usually takes very little time;
+if you are the maintainer of a particular package, you can make this code
+conditional with #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION (a flag also
+shared with libfuzzer) or #ifdef __AFL_COMPILER (this one is just for AFL).
+
+12) Common-sense risks
 ----------------------
 
 Please keep in mind that, similarly to many other computationally-intensive
@@ -364,7 +385,7 @@ tasks, fuzzing may put strain on your hardware and on the OS. In particular:
 
     $ iostat -d 3 -x -k [...optional disk ID...]
 
-12) Known limitations & areas for improvement
+13) Known limitations & areas for improvement
 ---------------------------------------------
 
 Here are some of the most important caveats for AFL:
@@ -402,7 +423,7 @@ Here are some of the most important caveats for AFL:
 
 Beyond this, see INSTALL for platform-specific tips.
 
-13) Special thanks
+14) Special thanks
 ------------------
 
 Many of the improvements to afl-fuzz wouldn't be possible without feedback,
@@ -439,7 +460,7 @@ bug reports, or patches from:
   Guillaume Endignoux                   ilovezfs
   Daniel Godas-Lopez                    Franjo Ivancic
   Austin Seipp                          Daniel Komaromy
-  Daniel Binderman
+  Daniel Binderman                      Jonathan Metzman
 
 Thank you!
 

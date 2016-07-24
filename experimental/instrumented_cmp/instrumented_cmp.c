@@ -1,6 +1,17 @@
 /*
 
-   A simple proof-of-concept for instrumented strcmp() or memcmp().
+   american fuzzy lop - instrumented strcmp() or memcmp() proof-of-concept
+   -----------------------------------------------------------------------
+
+   Written and maintained by Michal Zalewski <lcamtuf@google.com>
+
+   Copyright 2015 Google Inc. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
 
    Normally, afl-fuzz will have difficulty ever reaching the code behind
    something like:
