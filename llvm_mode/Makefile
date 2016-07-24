@@ -20,7 +20,7 @@ PREFIX      ?= /usr/local
 HELPER_PATH  = $(PREFIX)/lib/afl
 BIN_PATH     = $(PREFIX)/bin
 
-VERSION      = $(shell grep ^VERSION ../Makefile | cut -d= -f2 | sed 's/ //')
+VERSION     = $(shell grep '^\#define VERSION ' ../config.h | cut -d '"' -f2)
 
 LLVM_CONFIG ?= llvm-config
 

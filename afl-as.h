@@ -181,7 +181,9 @@ static const u8* main_payload_32 =
   "  xorl %ecx, %edi\n"
   "  shrl $1, %ecx\n"
   "  movl %ecx, __afl_prev_loc\n"
-#endif /* !COVERAGE_ONLY */
+#else
+  "  movl %ecx, %edi\n"
+#endif /* ^!COVERAGE_ONLY */
   "\n"
 #ifdef SKIP_COUNTS
   "  orb  $1, (%edx, %edi, 1)\n"

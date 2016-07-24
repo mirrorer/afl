@@ -17,6 +17,16 @@ is 2.07b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.16b:
+--------------
+
+  - Improved support for older versions of clang (hopefully without
+    breaking anything).
+
+  - Moved version data from Makefile to config.h. Suggested by
+    Jonathan Metzman.
+
+--------------
 Version 2.15b:
 --------------
 
