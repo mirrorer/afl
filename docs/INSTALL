@@ -140,11 +140,13 @@ $ sudo make install
 Do *not* specify --with-as=/usr/gnu/bin/as - this will produce a GCC binary that
 ignores the -B flag and you will be back to square one.
 
-If you have system-wide crash reporting enabled, you may run into problems
-similar to the gotchas for Linux and MacOS X, but I have not verified this.
-More information about AppCrash can be found here:
+Note that Solaris reportedly comes withe crash reporting enabled, which causes
+problems with crashes being misinterpreted as hangs, similarly to the gotchas
+for Linux and MacOS X. AFL does not auto-detect crash reporting on this
+particular platform, but you may need to run the following command:
 
-  http://www.oracle.com/technetwork/server-storage/solaris10/app-crash-142906.html
+$ coreadm -d global -d global-setid -d process -d proc-setid \
+  -d kzone -d log
 
 User emulation mode of QEMU is not available on Solaris, so black-box
 instrumentation mode (-Q) will not work.

@@ -17,6 +17,15 @@ is 2.18b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.21b:
+--------------
+
+  - Added some crash reporting notes for Solaris in docs/INSTALL, as
+    investigated by Martin Carpenter.
+
+  - Fixed a minor UI mix-up with havoc strategy stats.
+
+--------------
 Version 2.20b:
 --------------
 
