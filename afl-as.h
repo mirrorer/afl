@@ -98,7 +98,7 @@
    of every .c file. This should have no impact in any practical sense.
 
    Another side effect of this design is that getenv() will be called once per
-   every .o file when running in non-instrumented mode; an since getenv() tends
+   every .o file when running in non-instrumented mode; and since getenv() tends
    to be optimized in funny ways, we need to be very careful to save every
    oddball register it may touch.
 

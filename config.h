@@ -21,7 +21,7 @@
 
 /* Version string: */
 
-#define VERSION             "2.18b"
+#define VERSION             "2.19b"
 
 /******************************************************
  *                                                    *

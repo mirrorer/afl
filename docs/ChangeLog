@@ -17,6 +17,13 @@ is 2.18b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.19b:
+--------------
+
+  - Made a fix to make sure that auto CPU binding happens at non-overlapping
+    times.
+
+--------------
 Version 2.18b:
 --------------
 
@@ -1503,7 +1510,7 @@ Version 0.88b:
   - Refactored the code slightly to make more frequent updates to fuzzer_stats
     and to provide more detail about synchronization.
 
-  - Added a fflush(stdout) call for non-tty operation, as requested by 
+  - Added an fflush(stdout) call for non-tty operation, as requested by 
     Joonas Kuorilehto.
 
   - Added some detail to fuzzer_stats for parity with plot_file.
