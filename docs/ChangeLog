@@ -13,8 +13,16 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 2.07b. If you're stuck on an earlier release, it's strongly advisable
+is 2.18b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 2.18b:
+--------------
+
+  - Made several performance improvements to has_new_bits() and
+    classify_counts(). This should offer a robust performance bump with
+    fast targets.
 
 --------------
 Version 2.17b:

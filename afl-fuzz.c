@@ -343,7 +343,7 @@ static u64 get_cur_time_us(void) {
 
 static inline u32 UR(u32 limit) {
 
-  if (!rand_cnt--) {
+  if (unlikely(!rand_cnt--)) {
 
     u32 seed[2];
 
@@ -863,9 +863,6 @@ EXP_ST void read_bitmap(u8* fname) {
    This function is called after every exec() on a fairly large buffer, so
    it needs to be fast. We do this in 32-bit and 64-bit flavors. */
 
-#define FFL(_b) (0xffULL << ((_b) << 3))
-#define FF(_b)  (0xff << ((_b) << 3))
-
 static inline u8 has_new_bits(u8* virgin_map) {
 
 #ifdef __x86_64__
@@ -888,53 +885,39 @@ static inline u8 has_new_bits(u8* virgin_map) {
 
   while (i--) {
 
-#ifdef __x86_64__
+    /* Optimize for (*current & *virgin) == 0 - i.e., no bits in current bitmap
+       that have not been already cleared from the virgin map - since this will
+       almost always be the case. */
 
-    u64 cur = *current;
-    u64 vir = *virgin;
+    if (unlikely(*current) && unlikely(*current & *virgin)) {
 
-#else
+      if (likely(ret < 2)) {
 
-    u32 cur = *current;
-    u32 vir = *virgin;
+        u8* cur = (u8*)current;
+        u8* vir = (u8*)virgin;
 
-#endif /* ^__x86_64__ */
-
-    /* Optimize for *current == ~*virgin, since this will almost always be the
-       case. */
-
-    if (cur & vir) {
-
-      if (ret < 2) {
-
-        /* This trace did not have any new bytes yet; see if there's any
-           current[] byte that is non-zero when virgin[] is 0xff. */
+        /* Looks like we have not found any new bytes yet; see if any non-zero
+           bytes in current[] are pristine in virgin[]. */
 
 #ifdef __x86_64__
 
-        if (((cur & FFL(0)) && (vir & FFL(0)) == FFL(0)) ||
-            ((cur & FFL(1)) && (vir & FFL(1)) == FFL(1)) ||
-            ((cur & FFL(2)) && (vir & FFL(2)) == FFL(2)) ||
-            ((cur & FFL(3)) && (vir & FFL(3)) == FFL(3)) ||
-            ((cur & FFL(4)) && (vir & FFL(4)) == FFL(4)) ||
-            ((cur & FFL(5)) && (vir & FFL(5)) == FFL(5)) ||
-            ((cur & FFL(6)) && (vir & FFL(6)) == FFL(6)) ||
-            ((cur & FFL(7)) && (vir & FFL(7)) == FFL(7))) ret = 2;
+        if ((cur[0] && vir[0] == 0xff) || (cur[1] && vir[1] == 0xff) ||
+            (cur[2] && vir[2] == 0xff) || (cur[3] && vir[3] == 0xff) ||
+            (cur[4] && vir[4] == 0xff) || (cur[5] && vir[5] == 0xff) ||
+            (cur[6] && vir[6] == 0xff) || (cur[7] && vir[7] == 0xff)) ret = 2;
         else ret = 1;
 
 #else
 
-        if (((cur & FF(0)) && (vir & FF(0)) == FF(0)) ||
-            ((cur & FF(1)) && (vir & FF(1)) == FF(1)) ||
-            ((cur & FF(2)) && (vir & FF(2)) == FF(2)) ||
-            ((cur & FF(3)) && (vir & FF(3)) == FF(3))) ret = 2;
+        if ((cur[0] && vir[0] == 0xff) || (cur[1] && vir[1] == 0xff) ||
+            (cur[2] && vir[2] == 0xff) || (cur[3] && vir[3] == 0xff)) ret = 2;
         else ret = 1;
 
 #endif /* ^__x86_64__ */
 
       }
 
-      *virgin = vir & ~cur;
+      *virgin &= ~*current;
 
     }
 
@@ -981,6 +964,8 @@ static u32 count_bits(u8* mem) {
 
 }
 
+
+#define FF(_b)  (0xff << ((_b) << 3))
 
 /* Count the number of bytes set in the bitmap. Called fairly sporadically,
    mostly to update the status screen or calibrate and examine confirmed
@@ -1060,7 +1045,7 @@ static void simplify_trace(u64* mem) {
 
     /* Optimize for sparse bitmaps. */
 
-    if (*mem) {
+    if (unlikely(*mem)) {
 
       u8* mem8 = (u8*)mem;
 
@@ -1091,7 +1076,7 @@ static void simplify_trace(u32* mem) {
 
     /* Optimize for sparse bitmaps. */
 
-    if (*mem) {
+    if (unlikely(*mem)) {
 
       u8* mem8 = (u8*)mem;
 
@@ -1114,7 +1099,7 @@ static void simplify_trace(u32* mem) {
    preprocessing step for any newly acquired traces. Called on every exec,
    must be fast. */
 
-static const u8 count_class_lookup[256] = {
+static const u8 count_class_lookup8[256] = {
 
   [0]           = 0,
   [1]           = 1,
@@ -1128,6 +1113,22 @@ static const u8 count_class_lookup[256] = {
 
 };
 
+static u16 count_class_lookup16[65536];
+
+
+static void init_count_class16(void) {
+
+  u32 b1, b2;
+
+  for (b1 = 0; b1 < 256; b1++) 
+    for (b2 = 0; b2 < 256; b2++)
+      count_class_lookup16[(b1 << 8) + b2] = 
+        (count_class_lookup8[b1] << 8) |
+        count_class_lookup8[b2];
+
+}
+
+
 #ifdef __x86_64__
 
 static inline void classify_counts(u64* mem) {
@@ -1138,18 +1139,14 @@ static inline void classify_counts(u64* mem) {
 
     /* Optimize for sparse bitmaps. */
 
-    if (*mem) {
+    if (unlikely(*mem)) {
 
-      u8* mem8 = (u8*)mem;
+      u16* mem16 = (u16*)mem;
 
-      mem8[0] = count_class_lookup[mem8[0]];
-      mem8[1] = count_class_lookup[mem8[1]];
-      mem8[2] = count_class_lookup[mem8[2]];
-      mem8[3] = count_class_lookup[mem8[3]];
-      mem8[4] = count_class_lookup[mem8[4]];
-      mem8[5] = count_class_lookup[mem8[5]];
-      mem8[6] = count_class_lookup[mem8[6]];
-      mem8[7] = count_class_lookup[mem8[7]];
+      mem16[0] = count_class_lookup16[mem16[0]];
+      mem16[1] = count_class_lookup16[mem16[1]];
+      mem16[2] = count_class_lookup16[mem16[2]];
+      mem16[3] = count_class_lookup16[mem16[3]];
 
     }
 
@@ -1169,14 +1166,12 @@ static inline void classify_counts(u32* mem) {
 
     /* Optimize for sparse bitmaps. */
 
-    if (*mem) {
+    if (unlikely(*mem)) {
 
-      u8* mem8 = (u8*)mem;
+      u16* mem16 = (u16*)mem;
 
-      mem8[0] = count_class_lookup[mem8[0]];
-      mem8[1] = count_class_lookup[mem8[1]];
-      mem8[2] = count_class_lookup[mem8[2]];
-      mem8[3] = count_class_lookup[mem8[3]];
+      mem16[0] = count_class_lookup16[mem16[0]];
+      mem16[1] = count_class_lookup16[mem16[1]];
 
     }
 
@@ -7764,6 +7759,7 @@ int main(int argc, char** argv) {
 
   setup_post();
   setup_shm();
+  init_count_class16();
 
   setup_dirs_fds();
   read_testcases();
