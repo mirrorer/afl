@@ -86,7 +86,7 @@ afl-gotcpu: afl-gotcpu.c $(COMM_HDR) | test_x86
 	$(CC) $(CFLAGS) $@.c -o $@ $(LDFLAGS)
 
 libdislocator.so: libdislocator.so.c $(COMM_HDR) | test_x86
-	$(CC) $(CFLAGS) -shared $@.c -o $@ $(LDFLAGS)
+	$(CC) $(CFLAGS) -shared -fPIC $@.c -o $@ $(LDFLAGS)
 
 ifndef AFL_NO_X86
 

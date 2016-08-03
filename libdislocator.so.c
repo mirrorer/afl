@@ -35,7 +35,7 @@
 
      - It checks for calloc() overflows and can cause soft or hard failures
        of alloc requests past a configurable memory limit (AFL_LD_LIMIT_MB,
-       AFL_LD_HARD_LIMIT).
+       AFL_LD_HARD_FAIL).
 
    Basically, it is inspired by some of the non-default options available
    for the OpenBSD allocator - see malloc.conf(5) on that platform for
@@ -49,7 +49,7 @@
 
    The allocator is slow and memory-intensive (even the tiniest allocation
    uses up 4 kB of physical memory and 8 kB of virtual mem), making it
-   completely unsuitable for "production" uses; but it is faster and more
+   completely unsuitable for "production" uses; but it can be faster and more
    hassle-free than ASAN / MSAN when fuzzing small, self-contained binaries.
 
    To use this library, run AFL like so:
@@ -57,7 +57,8 @@
    AFL_LD_PRELOAD=/path/to/libdislocator.so ./afl-fuzz [...other params...]
 
    You *have* to specify path, even if it's just ./libdislocator.so or
-   $PWD/libdislocator.so.
+   $PWD/libdislocator.so. On MacOS X, you may have to use DYLD_INSERT_LIBRARIES
+   instead of LD_PRELOAD.
 
    Similarly to afl-tmin, the library is not "proprietary" and can be
    used with other fuzzers or testing tools without the need for any code
@@ -85,15 +86,21 @@
 
 #define DEBUGF(_x...) do { \
     if (alloc_verbose) { \
-      fprintf(stderr, "[AFL] " _x); \
-      fprintf(stderr, "\n"); \
+      if (++call_depth == 1) { \
+        fprintf(stderr, "[AFL] " _x); \
+        fprintf(stderr, "\n"); \
+      } \
+      call_depth--; \
     } \
   } while (0)
 
 #define FATAL(_x...) do { \
-    fprintf(stderr, "*** [AFL] " _x); \
-    fprintf(stderr, " ***\n"); \
-    abort(); \
+    if (++call_depth == 1) { \
+      fprintf(stderr, "*** [AFL] " _x); \
+      fprintf(stderr, " ***\n"); \
+      abort(); \
+    } \
+    call_depth--; \
   } while (0)
 
 /* Macro to count the number of pages needed to store a buffer: */
@@ -112,9 +119,11 @@
 
 static u32 max_mem = MAX_ALLOC;         /* Max heap usage to permit         */
 static u8  alloc_verbose,               /* Additional debug messages        */
-           hard_limit;                  /* abort() when max_mem exceeded?   */
+           hard_fail;                   /* abort() when max_mem exceeded?   */
 
-static __thread u64 total_mem;          /* Currently allocated mem          */
+static __thread size_t total_mem;       /* Currently allocated mem          */
+
+static __thread u32 call_depth;
 
 /* This is the main alloc function. It allocates one page more than necessary,
    sets that tailing page to PROT_NONE, and then increments the return address
@@ -127,7 +136,7 @@ static void* __dislocator_alloc(size_t len) {
 
   if (total_mem + len > max_mem) {
 
-    if (hard_limit)
+    if (hard_fail)
       FATAL("total allocs exceed %u MB", max_mem / 1024 / 1024);
 
     DEBUGF("total allocs exceed %u MB, returning NULL",
@@ -145,7 +154,10 @@ static void* __dislocator_alloc(size_t len) {
 
   if (ret == (void*)-1) {
 
-    DEBUGF("mmap() failed when allocating memory (OOM?)");
+    if (hard_fail) FATAL("mmap() failed on alloc (OOM?)");
+
+    DEBUGF("mmap() failed on alloc (OOM?)");
+
     return NULL;
 
   }
@@ -190,7 +202,7 @@ void* calloc(size_t elem_len, size_t elem_cnt) {
 
   ret = __dislocator_alloc(len);
 
-  DEBUGF("calloc(%zu, %zu) = %p [%llu total]", elem_len, elem_cnt, ret,
+  DEBUGF("calloc(%zu, %zu) = %p [%zu total]", elem_len, elem_cnt, ret,
          total_mem);
 
   return ret;
@@ -208,7 +220,7 @@ void* malloc(size_t len) {
 
   ret = __dislocator_alloc(len);
 
-  DEBUGF("malloc(%zu) = %p [%llu total]", len, ret, total_mem);
+  DEBUGF("malloc(%zu) = %p [%zu total]", len, ret, total_mem);
 
   if (ret && len) memset(ret, ALLOC_CLOBBER, len);
 
@@ -266,7 +278,7 @@ void* realloc(void* ptr, size_t len) {
 
   }
 
-  DEBUGF("realloc(%p, %zu) = %p [%llu total]", ptr, len, ret, total_mem);
+  DEBUGF("realloc(%p, %zu) = %p [%zu total]", ptr, len, ret, total_mem);
 
   return ret;
 
@@ -285,6 +297,6 @@ __attribute__((constructor)) void __dislocator_init(void) {
   }
 
   alloc_verbose = !!getenv("AFL_LD_VERBOSE");
-  hard_limit = !!getenv("AFL_LD_HARD_LIMIT");
+  hard_fail = !!getenv("AFL_LD_HARD_FAIL");
 
 }

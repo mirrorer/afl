@@ -193,7 +193,7 @@ The library honors three environmental variables:
     library, in megabytes. The default value is 1 GB. Once this is exceeded,
     allocations will return NULL.
 
-  - AFL_LD_LIMIT_HARD alters the behavior by calling abort() on excessive
+  - AFL_LD_HARD_FAIL alters the behavior by calling abort() on excessive
     allocations, thus causing what AFL would perceive as a crash. Useful for
     programs that are supposed to maintain a specific memory footprint.
 
