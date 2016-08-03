@@ -44,7 +44,7 @@ typedef uint32_t u32;
 typedef unsigned long long u64;
 #else
 typedef uint64_t u64;
-#endif /* ^sizeof(...) */
+#endif /* ^__x86_64__ */
 
 typedef int8_t   s8;
 typedef int16_t  s16;

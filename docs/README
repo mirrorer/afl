@@ -115,7 +115,9 @@ $ CC=/path/to/afl/afl-gcc ./configure --disable-shared
 
 Setting AFL_HARDEN=1 when calling 'make' will cause the CC wrapper to
 automatically enable code hardening options that make it easier to detect
-simple memory bugs.
+simple memory bugs. Preloading 'libdislocator.so' (an abusive allocator) can
+help uncover heap corruption isses, too; see libdislocator.so.c for info and
+usage tips.
 
 PS. ASAN users are advised to review notes_for_asan.txt file for important
 caveats.

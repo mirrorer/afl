@@ -17,6 +17,14 @@ is 2.21b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.24b:
+--------------
+
+  - Added libdislocator.so, an experimental, abusive allocator. Try
+    it out with AFL_LD_PRELOAD=/path/to/libdislocator.so when running
+    afl-fuzz.
+
+--------------
 Version 2.23b:
 --------------
 

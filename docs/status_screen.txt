@@ -333,11 +333,12 @@ there are several things to look at:
     - Replace pthreads with GNU Pth (https://www.gnu.org/software/pth/), which
       allows you to use a deterministic scheduler.
 
-  - In persistent mode, minor reduction in the "stability" metric can be
-    normal, because not all the code behaves identically when re-entered; but
-    major drops may signify that the code within __AFL_LOOP() not working
+  - In persistent mode, minor drops in the "stability" metric can be normal,
+    because not all the code behaves identically when re-entered; but major
+    dips may signify that the code within __AFL_LOOP() is not behaving
     correctly on subsequent iterations (e.g., due to incomplete clean-up or
-    reinitialization of the state).
+    reinitialization of the state) and that most of the fuzzing effort goes
+    to waste.
 
 The paths where variable behavior is detected are marked with a matching entry
 in the <out_dir>/queue/.state/variable_behavior/ directory, so you can look

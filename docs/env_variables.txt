@@ -139,7 +139,8 @@ checks or alter some of the more exotic semantics of the tool:
   - In QEMU mode (-Q), AFL_PATH will be searched for afl-qemu-trace.
 
   - Setting AFL_LD_PRELOAD causes AFL to set LD_PRELOAD for the target binary
-    without disrupting the afl-fuzz process itself.
+    without disrupting the afl-fuzz process itself. This is useful, among other
+    things, for bootstrapping libdislocator.so.
 
   - If you are Jakub, you may need AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES.
     Others need not apply.
@@ -183,7 +184,23 @@ Virtually nothing to play with. Well, in QEMU mode (-Q), AFL_PATH will be
 searched for afl-qemu-trace. In addition to this, TMPDIR may be used if a
 temporary file can't be created in the current working directory.
 
-7) Third-party variables set by afl-fuzz & other tools
+7) Settings for libdislocator.so
+--------------------------------
+
+The library honors three environmental variables:
+
+  - AFL_LD_LIMIT_MB caps the size of the maximum heap usage permitted by the
+    library, in megabytes. The default value is 1 GB. Once this is exceeded,
+    allocations will return NULL.
+
+  - AFL_LD_LIMIT_HARD alters the behavior by calling abort() on excessive
+    allocations, thus causing what AFL would perceive as a crash. Useful for
+    programs that are supposed to maintain a specific memory footprint.
+
+  - AFL_LD_VERBOSE causes the library to output some diagnostic messages
+    that may be useful for pinpointing the cause of any observed issues.
+
+8) Third-party variables set by afl-fuzz & other tools
 ------------------------------------------------------
 
 Several variables are not directly interpreted by afl-fuzz, but are set to
