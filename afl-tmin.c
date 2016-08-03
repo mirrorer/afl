@@ -237,9 +237,6 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
   s32 prog_in_fd;
   u32 cksum;
 
-  if (getenv("AFL_LD_PRELOAD"))
-    setenv("LD_PRELOAD", getenv("AFL_LD_PRELOAD"), 1);
-
   memset(trace_bits, 0, MAP_SIZE);
   MEM_BARRIER();
 
@@ -701,8 +698,10 @@ static void set_up_environment(void) {
                          "allocator_may_return_null=1:"
                          "msan_track_origins=0", 0);
 
-  if (getenv("AFL_LD_PRELOAD"))
-    setenv("LD_PRELOAD", getenv("AFL_LD_PRELOAD"), 1);
+  if (getenv("AFL_PRELOAD")) {
+    setenv("LD_PRELOAD", getenv("AFL_PRELOAD"), 1);
+    setenv("DYLD_INSERT_LIBRARIES", getenv("AFL_PRELOAD"), 1);
+  }
 
 }
 

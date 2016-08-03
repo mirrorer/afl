@@ -138,7 +138,7 @@ checks or alter some of the more exotic semantics of the tool:
 
   - In QEMU mode (-Q), AFL_PATH will be searched for afl-qemu-trace.
 
-  - Setting AFL_LD_PRELOAD causes AFL to set LD_PRELOAD for the target binary
+  - Setting AFL_PRELOAD causes AFL to set LD_PRELOAD for the target binary
     without disrupting the afl-fuzz process itself. This is useful, among other
     things, for bootstrapping libdislocator.so.
 

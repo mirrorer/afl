@@ -54,11 +54,10 @@
 
    To use this library, run AFL like so:
 
-   AFL_LD_PRELOAD=/path/to/libdislocator.so ./afl-fuzz [...other params...]
+   AFL_PRELOAD=/path/to/libdislocator.so ./afl-fuzz [...other params...]
 
    You *have* to specify path, even if it's just ./libdislocator.so or
-   $PWD/libdislocator.so. On MacOS X, you may have to use DYLD_INSERT_LIBRARIES
-   instead of LD_PRELOAD.
+   $PWD/libdislocator.so.
 
    Similarly to afl-tmin, the library is not "proprietary" and can be
    used with other fuzzers or testing tools without the need for any code
@@ -81,6 +80,10 @@
 #ifndef PAGE_SIZE
 #  define PAGE_SIZE 4096
 #endif /* !PAGE_SIZE */
+
+#ifndef MAP_ANONYMOUS
+#  define MAP_ANONYMOUS MAP_ANON
+#endif /* !MAP_ANONYMOUS */
 
 /* Error / message handling: */
 
@@ -123,7 +126,7 @@ static u8  alloc_verbose,               /* Additional debug messages        */
 
 static __thread size_t total_mem;       /* Currently allocated mem          */
 
-static __thread u32 call_depth;
+static __thread u32 call_depth;         /* To avoid recursion via fprintf() */
 
 /* This is the main alloc function. It allocates one page more than necessary,
    sets that tailing page to PROT_NONE, and then increments the return address
