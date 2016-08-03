@@ -244,6 +244,9 @@ static u32 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
   s32 prog_in_fd;
   u32 cksum;
 
+  if (getenv("AFL_LD_PRELOAD"))
+    setenv("LD_PRELOAD", getenv("AFL_LD_PRELOAD"), 1);
+
   memset(trace_bits, 0, MAP_SIZE);
   MEM_BARRIER();
 

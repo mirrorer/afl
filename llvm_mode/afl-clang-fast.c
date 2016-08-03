@@ -130,6 +130,10 @@ static void edit_params(u32 argc, char** argv) {
 
   cc_params[cc_par_cnt++] = "-Qunused-arguments";
 
+  /* Detect stray -v calls from ./configure scripts. */
+
+  if (argc == 1 && !strcmp(argv[1], "-v")) maybe_linking = 0;
+
   while (--argc) {
     u8* cur = *(++argv);
 
@@ -138,8 +142,8 @@ static void edit_params(u32 argc, char** argv) {
 
     if (!strcmp(cur, "-x")) x_set = 1;
 
-    if (!strcmp(cur, "-c") || !strcmp(cur, "-S") || !strcmp(cur, "-E") ||
-        !strcmp(cur, "-v")) maybe_linking = 0;
+    if (!strcmp(cur, "-c") || !strcmp(cur, "-S") || !strcmp(cur, "-E"))
+      maybe_linking = 0;
 
     if (!strcmp(cur, "-fsanitize=address") ||
         !strcmp(cur, "-fsanitize=memory")) asan_set = 1;

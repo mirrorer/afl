@@ -215,6 +215,9 @@ static void run_target(char** argv) {
   static struct itimerval it;
   int status = 0;
 
+  if (getenv("AFL_LD_PRELOAD"))
+    setenv("LD_PRELOAD", getenv("AFL_LD_PRELOAD"), 1);
+
   if (!quiet_mode)
     SAYF("-- Program output begins --\n" cRST);
 

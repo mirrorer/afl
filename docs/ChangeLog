@@ -13,8 +13,21 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 2.18b. If you're stuck on an earlier release, it's strongly advisable
+is 2.21b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 2.22b:
+--------------
+
+  - Mentioned the potential conflicts between MSAN / ASAN and FORTIFY_SOURCE.
+    There is no automated check for this, since some distros may implicitly
+    set FORTIFY_SOURCE outside of the compiler's argv[].
+
+  - Populated the support for AFL_LD_PRELOAD to all companion tools.
+
+  - Made a change to the handling of ./afl-clang-fast -v. Spotted by
+    Jan Kneschke.
 
 --------------
 Version 2.21b:

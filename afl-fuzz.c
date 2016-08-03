@@ -2585,11 +2585,16 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
 
         u32 i;
 
-        for (i = 0; i < MAP_SIZE; i++) 
+        for (i = 0; i < MAP_SIZE; i++) {
+
           if (!var_bytes[i] && first_trace[i] != trace_bits[i]) {
+
             var_bytes[i] = 1;
             stage_max    = CAL_CYCLES_LONG;
+
           }
+
+        }
 
         var_detected = 1;
 
@@ -7639,12 +7644,7 @@ int main(int argc, char** argv) {
         out_dir = optarg;
         break;
 
-      case 'M': /* master sync ID */
-
-        force_deterministic = 1;
-        /* Fall through */
-
-      case 'S': { /* secondary sync ID */
+      case 'M': { /* master sync ID */
 
           u8* c;
 
@@ -7661,8 +7661,16 @@ int main(int argc, char** argv) {
 
           }
 
+          force_deterministic = 1;
+
         }
 
+        break;
+
+      case 'S': 
+
+        if (sync_id) FATAL("Multiple -S or -M options not supported");
+        sync_id = optarg;
         break;
 
       case 'f': /* target file */
