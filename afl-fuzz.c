@@ -116,8 +116,7 @@ EXP_ST u8  skip_deterministic,        /* Skip deterministic stages?       */
            bitmap_changed = 1,        /* Time to update bitmap?           */
            qemu_mode,                 /* Running in QEMU mode?            */
            skip_requested,            /* Skip request, via SIGUSR1        */
-           run_over10m,               /* Run time over 10 minutes?        */
-           persistent_mode;           /* Running in persistent mode?      */
+           run_over10m;               /* Run time over 10 minutes?        */
 
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd = -1,       /* Persistent fd for /dev/urandom   */
@@ -4201,7 +4200,7 @@ static void show_stats(void) {
     else strcpy(tmp, "n/a");
 
   SAYF(" stability : %s%-10s " bSTG bV "\n", stab_ratio < 90 ? cLRD :
-          ((queued_variable && !persistent_mode) ? cMGN : cRST), tmp);
+          (queued_variable ? cMGN : cRST), tmp);
 
   if (!bytes_trim_out) {
 
@@ -6870,7 +6869,6 @@ EXP_ST void check_binary(u8* fname) {
 
     OKF(cPIN "Deferred forkserver binary detected.");
     setenv(DEFER_ENV_VAR, "1", 1);
-    persistent_mode = 1;
 
   } else if (getenv("AFL_DEFER_FORKSRV")) {
 

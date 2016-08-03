@@ -17,6 +17,16 @@ is 2.21b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.23b:
+--------------
+
+  - Improved the stability metric for persistent mode binaries. Problem
+    spotted by Kurt Roeckx.
+
+  - Made a related improvement that may bring the metric to 100% for those
+    targets.
+
+--------------
 Version 2.22b:
 --------------
 

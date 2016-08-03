@@ -333,8 +333,10 @@ there are several things to look at:
     - Replace pthreads with GNU Pth (https://www.gnu.org/software/pth/), which
       allows you to use a deterministic scheduler.
 
-  - In persistent mode, the code within __AFL_LOOP() not working correctly on
-    subsequent iterations (e.g., due to incomplete clean-up or
+  - In persistent mode, minor reduction in the "stability" metric can be
+    normal, because not all the code behaves identically when re-entered; but
+    major drops may signify that the code within __AFL_LOOP() not working
+    correctly on subsequent iterations (e.g., due to incomplete clean-up or
     reinitialization of the state).
 
 The paths where variable behavior is detected are marked with a matching entry

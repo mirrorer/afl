@@ -21,11 +21,11 @@
       in the targeted binary (as shown in ../libpng_no_checksum/). One possible
       exception is the process of fuzzing binary-only software in QEMU mode.
 
-   2) Use of postprocessors for anything other than checksums is questionable
+   2) The use of postprocessors for anything other than checksums is questionable
       and may cause more harm than good. AFL is normally pretty good about
       dealing with length fields, magic values, etc.
 
-   3) Post-processors that do anything non-trivial must be extremely robust to
+   3) Postprocessors that do anything non-trivial must be extremely robust to
       gracefully handle malformed data and other error conditions - otherwise,
       they will crash and take afl-fuzz down with them. Be wary of reading past
       *len and of integer overflows when calculating file offsets.
