@@ -115,9 +115,8 @@ $ CC=/path/to/afl/afl-gcc ./configure --disable-shared
 
 Setting AFL_HARDEN=1 when calling 'make' will cause the CC wrapper to
 automatically enable code hardening options that make it easier to detect
-simple memory bugs. Preloading 'libdislocator.so' (an abusive allocator) can
-help uncover heap corruption issues, too; see libdislocator.so.c for info and
-usage tips.
+simple memory bugs. Libdislocator, a helper library included with AFL (see
+libdislocator/README.dislocator) can help uncover heap corruption issues, too.
 
 PS. ASAN users are advised to review notes_for_asan.txt file for important
 caveats.
@@ -291,6 +290,10 @@ PS. Even when no explicit dictionary is given, afl-fuzz will try to extract
 existing syntax tokens in the input corpus by watching the instrumentation
 very closely during deterministic byte flips. This works for some types of
 parsers and grammars, but isn't nearly as good as the -x mode.
+
+If a dictionary is really hard to come by, another option is to let AFL run
+for a while, and then use the token capture library that comes as a companion
+utility with AFL. For that, see libtokencap/README.tokencap.
 
 10) Crash triage
 ----------------

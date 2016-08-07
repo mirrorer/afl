@@ -17,6 +17,17 @@ is 2.21b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.27b:
+--------------
+
+  - Added libtokencap, a simple feature to intercept strcmp / memcmp and
+    generate dictionary entries that can help extend coverage.
+
+  - Moved libdislocator to its own dir, added README.
+
+  - The demo in experimental/instrumented_cmp is no more.
+
+--------------
 Version 2.26b:
 --------------
 

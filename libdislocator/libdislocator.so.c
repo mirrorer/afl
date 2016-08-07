@@ -14,57 +14,8 @@
      http://www.apache.org/licenses/LICENSE-2.0
 
    This is a companion library that can be used as a drop-in replacement
-   for the libc allocator in the fuzzed binaries. It improves the odds of
-   bumping into heap-related security bugs in several ways:
-
-     - It allocates all buffers so that they are immediately adjacent to a
-       subsequent PROT_NONE page, causing most off-by-one reads and writes
-       to immediately segfault,
-
-     - It adds a canary immediately below the allocated buffer, to catch
-       writes to negative offsets (won't catch reads, though),
-
-     - It sets the memory returned by malloc() to garbage values, improving
-       the odds of crashing when the target accesses uninitialized data,
-
-     - It sets freed memory to PROT_NONE and does not actually reuse it,
-       causing most use-after-free bugs to segfault right away,
-
-     - It forces all realloc() calls to return a new address - and sets
-       PROT_NONE on the original block. This catches use-after-realloc bugs,
-
-     - It checks for calloc() overflows and can cause soft or hard failures
-       of alloc requests past a configurable memory limit (AFL_LD_LIMIT_MB,
-       AFL_LD_HARD_FAIL).
-
-   Basically, it is inspired by some of the non-default options available
-   for the OpenBSD allocator - see malloc.conf(5) on that platform for
-   reference. It is also somewhat similar to several other debugging
-   libraries, such as gmalloc and DUMA, but is simple, plug-and-play, and
-   designed specifically for fuzzing jobs.
-
-   Note that it does nothing for stack-based memory handling errors. The
-   -fstack-protector-all setting for GCC / clang, enabled when using
-   AFL_HARDEN, can catch some subset of that.
-
-   The allocator is slow and memory-intensive (even the tiniest allocation
-   uses up 4 kB of physical memory and 8 kB of virtual mem), making it
-   completely unsuitable for "production" uses; but it can be faster and more
-   hassle-free than ASAN / MSAN when fuzzing small, self-contained binaries.
-
-   To use this library, run AFL like so:
-
-   AFL_PRELOAD=/path/to/libdislocator.so ./afl-fuzz [...other params...]
-
-   You *have* to specify path, even if it's just ./libdislocator.so or
-   $PWD/libdislocator.so.
-
-   Similarly to afl-tmin, the library is not "proprietary" and can be
-   used with other fuzzers or testing tools without the need for any code
-   tweaks.
-
-   Note that the LD_PRELOAD approach will work only if the target binary is
-   dynamically linked.
+   for the libc allocator in the fuzzed binaries. See README.dislocator for
+   more info.
 
  */
 
@@ -74,8 +25,8 @@
 #include <limits.h>
 #include <sys/mman.h>
 
-#include "config.h"
-#include "types.h"
+#include "../config.h"
+#include "../types.h"
 
 #ifndef PAGE_SIZE
 #  define PAGE_SIZE 4096
@@ -118,7 +69,7 @@
 #define PTR_C(_p) (((u32*)(_p))[-1])
 #define PTR_L(_p) (((u32*)(_p))[-2])
 
-/* Configurable stuff (use AFL_DISLOC_* to set): */
+/* Configurable stuff (use AFL_LD_* to set): */
 
 static u32 max_mem = MAX_ALLOC;         /* Max heap usage to permit         */
 static u8  alloc_verbose,               /* Additional debug messages        */
@@ -127,6 +78,7 @@ static u8  alloc_verbose,               /* Additional debug messages        */
 static __thread size_t total_mem;       /* Currently allocated mem          */
 
 static __thread u32 call_depth;         /* To avoid recursion via fprintf() */
+
 
 /* This is the main alloc function. It allocates one page more than necessary,
    sets that tailing page to PROT_NONE, and then increments the return address

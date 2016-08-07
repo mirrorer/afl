@@ -116,7 +116,7 @@ static void edit_params(u32 argc, char** argv) {
   u8 m32_set = 0;
 #endif
 
-  cc_params = ck_alloc((argc + 64) * sizeof(u8*));
+  cc_params = ck_alloc((argc + 128) * sizeof(u8*));
 
   name = strrchr(argv[0], '/');
   if (!name) name = argv[0]; else name++;
@@ -268,6 +268,16 @@ static void edit_params(u32 argc, char** argv) {
 
     cc_params[cc_par_cnt++] = "-D__AFL_COMPILER=1";
     cc_params[cc_par_cnt++] = "-DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION=1";
+
+  }
+
+  if (getenv("AFL_NO_BUILTIN")) {
+
+    cc_params[cc_par_cnt++] = "-fno-builtin-strcmp";
+    cc_params[cc_par_cnt++] = "-fno-builtin-strncmp";
+    cc_params[cc_par_cnt++] = "-fno-builtin-strcasecmp";
+    cc_params[cc_par_cnt++] = "-fno-builtin-strncasecmp";
+    cc_params[cc_par_cnt++] = "-fno-builtin-memcmp";
 
   }
 

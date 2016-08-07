@@ -38,7 +38,9 @@ is not AFL-specific.
 
 There is also the option of generating a corpus using a non-ASAN binary, and
 then feeding it to an ASAN-instrumented one to check for bugs. This is faster,
-and can give you somewhat comparable results.
+and can give you somewhat comparable results. You can also try using
+libdislocator (see libdislocator/README.dislocator in the parent directory) as a
+lightweight and hassle-free (but less thorough) alternative.
 
 2) Long version
 ---------------
