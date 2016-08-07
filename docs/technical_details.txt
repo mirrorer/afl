@@ -279,7 +279,7 @@ and the number of execve() calls spent on the process. The average per-file
 gains are around 5-20%.
 
 The standalone afl-tmin tool uses a more exhaustive, iterative algorithm, and
-also attempts to perform alphabet normalization on the trimmed files.
+also attempts to perform alphabet normalization on the trimmed files. 
 
 6) Fuzzing strategies
 ---------------------

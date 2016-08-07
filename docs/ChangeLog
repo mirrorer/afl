@@ -13,8 +13,20 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 2.21b. If you're stuck on an earlier release, it's strongly advisable
+is 2.23b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 2.28b:
+--------------
+
+  - Added "life pro tips" to docs/.
+
+  - Moved testcases/_extras/ to dictionaries/ for visibility.
+
+  - Made minor improvements to install scripts.
+
+  - Added an important safety tip.
 
 --------------
 Version 2.27b:

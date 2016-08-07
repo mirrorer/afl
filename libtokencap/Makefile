@@ -34,4 +34,5 @@ clean:
 
 install: all
 	install -m 755 libtokencap.so $${DESTDIR}$(HELPER_PATH)
+	install -m 644 README.tokencap $${DESTDIR}$(HELPER_PATH)
 
