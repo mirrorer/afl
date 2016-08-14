@@ -17,6 +17,20 @@ is 2.23b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.30b:
+--------------
+
+  - Made minor improvements to persistent mode to avoid the remote
+    possibility of "no instrumentation detected" issues with very low
+    instrumentation densities.
+
+  - Fixed a minor glitch with a leftover process in persistent mode.
+    Reported by Jakub Wilk and Daniel Stender.
+
+  - Made persistent mode bitmaps a bit more consistent and adjusted the way
+    this is shown in the UI, especially in persistent mode.
+
+--------------
 Version 2.29b:
 --------------
 

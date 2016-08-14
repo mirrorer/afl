@@ -176,8 +176,10 @@ int __afl_persistent_loop(unsigned int max_cnt) {
        before the loop. */
 
     if (is_persistent) {
+
       memset(__afl_area_ptr, 0, MAP_SIZE);
       __afl_area_ptr[0] = 1;
+      __afl_prev_loc = 0;
     }
 
     cycle_cnt  = max_cnt;
@@ -191,6 +193,10 @@ int __afl_persistent_loop(unsigned int max_cnt) {
     if (--cycle_cnt) {
 
       raise(SIGSTOP);
+
+      __afl_area_ptr[0] = 1;
+      __afl_prev_loc = 0;
+
       return 1;
 
     } else {

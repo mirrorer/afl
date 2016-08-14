@@ -116,7 +116,8 @@ EXP_ST u8  skip_deterministic,        /* Skip deterministic stages?       */
            bitmap_changed = 1,        /* Time to update bitmap?           */
            qemu_mode,                 /* Running in QEMU mode?            */
            skip_requested,            /* Skip request, via SIGUSR1        */
-           run_over10m;               /* Run time over 10 minutes?        */
+           run_over10m,               /* Run time over 10 minutes?        */
+           persistent_mode;           /* Running in persistent mode?      */
 
 static s32 out_fd,                    /* Persistent fd for out_file       */
            dev_urandom_fd = -1,       /* Persistent fd for /dev/urandom   */
@@ -396,7 +397,7 @@ static void bind_to_free_cpu(void) {
   u8 cpu_used[4096] = { 0 };
   u32 i;
 
-  if (!cpu_core_count) return;
+  if (cpu_core_count < 2) return;
 
   if (getenv("AFL_NO_AFFINITY")) {
 
@@ -2401,7 +2402,8 @@ static u8 run_target(char** argv) {
 
   }
 
-  child_pid = 0;
+  if (!WIFSTOPPED(status)) child_pid = 0;
+
   it.it_value.tv_sec = 0;
   it.it_value.tv_usec = 0;
 
@@ -4199,8 +4201,9 @@ static void show_stats(void) {
   if (t_bytes) sprintf(tmp, "%0.02f%%", stab_ratio);
     else strcpy(tmp, "n/a");
 
-  SAYF(" stability : %s%-10s " bSTG bV "\n", stab_ratio < 90 ? cLRD :
-          (queued_variable ? cMGN : cRST), tmp);
+  SAYF(" stability : %s%-10s " bSTG bV "\n", (stab_ratio < 85 && var_byte_count > 40) 
+       ? cLRD : ((queued_variable && (!persistent_mode || var_byte_count > 20))
+       ? cMGN : cRST), tmp);
 
   if (!bytes_trim_out) {
 
@@ -6858,6 +6861,7 @@ EXP_ST void check_binary(u8* fname) {
 
     OKF(cPIN "Persistent mode binary detected.");
     setenv(PERSIST_ENV_VAR, "1", 1);
+    persistent_mode = 1;
 
   } else if (getenv("AFL_PERSISTENT")) {
 
