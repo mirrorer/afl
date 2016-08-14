@@ -17,6 +17,14 @@ is 2.23b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.29b:
+--------------
+
+  - Made a minor #include fix to llvm_mode. Suggested by Jonathan Metzman.
+
+  - Made cosmetic updates to the docs.
+
+--------------
 Version 2.28b:
 --------------
 

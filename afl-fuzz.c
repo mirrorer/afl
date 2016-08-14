@@ -7961,7 +7961,7 @@ int main(int argc, char** argv) {
 stop_fuzzing:
 
   SAYF(CURSOR_SHOW cLRD "\n\n+++ Testing aborted %s +++\n" cRST,
-       stop_soon == 2 ? "programatically" : "by user");
+       stop_soon == 2 ? "programmatically" : "by user");
 
   /* Running for more than 30 minutes but still doing first cycle? */
 

@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <unistd.h>
+#include <string.h>
 #include <assert.h>
 
 #include <sys/mman.h>

@@ -33,7 +33,7 @@ Run the bundled afl-plot utility to generate browser-friendly graphs.
 
 %
 
-Need to monitor AFL jobs programatically? Check out the fuzzer_stats file
+Need to monitor AFL jobs programmatically? Check out the fuzzer_stats file
 in the AFL output dir or try afl-whatsup.
 
 %
@@ -59,11 +59,6 @@ Check out qemu_mode/README.qemu for more.
 
 Did you know that afl-fuzz can minimize any test case for you?
 Try the bundled afl-tmin tool - and get small repro files fast!
-
-%
-
-Need to fix a checksum? It's easy to do with an output postprocessor!
-See experimental/post_library to learn more.
 
 %
 
@@ -122,7 +117,7 @@ You can find a simple solution in experimental/argv_fuzzing.
 
 %
 
-Attacking a format that uses checksums? Remove the checksum code or
+Attacking a format that uses checksums? Remove the checksum-checking code or
 use a postprocessor! See experimental/post_library/ for more.
 
 %
