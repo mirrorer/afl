@@ -3906,7 +3906,7 @@ static void show_stats(void) {
 
   /* Honor AFL_EXIT_WHEN_DONE and AFL_BENCH_UNTIL_CRASH. */
 
-  if (!dumb_mode && cycles_wo_finds > 50 && !pending_not_fuzzed &&
+  if (!dumb_mode && cycles_wo_finds > 100 && !pending_not_fuzzed &&
       getenv("AFL_EXIT_WHEN_DONE")) stop_soon = 2;
 
   if (total_crashes && getenv("AFL_BENCH_UNTIL_CRASH")) stop_soon = 2;
@@ -3980,10 +3980,10 @@ static void show_stats(void) {
     if (queue_cycle == 1) strcpy(tmp, cMGN); else
 
     /* Subsequent cycles, but we're still making finds. */
-    if (cycles_wo_finds < 5) strcpy(tmp, cYEL); else
+    if (cycles_wo_finds < 25) strcpy(tmp, cYEL); else
 
     /* No finds for a long time and no test cases to try. */
-    if (cycles_wo_finds > 50 && !pending_not_fuzzed) strcpy(tmp, cLGN);
+    if (cycles_wo_finds > 100 && !pending_not_fuzzed) strcpy(tmp, cLGN);
 
     /* Default: cautiously OK to stop? */
     else strcpy(tmp, cLBL);
@@ -4669,9 +4669,9 @@ static u32 calculate_score(struct queue_entry* q) {
 
     case 0 ... 3:   break;
     case 4 ... 7:   perf_score *= 2; break;
-    case 8 ... 13:  perf_score *= 4; break;
-    case 14 ... 25: perf_score *= 6; break;
-    default:        perf_score *= 8;
+    case 8 ... 13:  perf_score *= 3; break;
+    case 14 ... 25: perf_score *= 4; break;
+    default:        perf_score *= 5;
 
   }
 

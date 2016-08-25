@@ -21,7 +21,7 @@
 
 /* Version string: */
 
-#define VERSION             "2.31b"
+#define VERSION             "2.32b"
 
 /******************************************************
  *                                                    *
@@ -115,7 +115,7 @@
 
 /* Splicing cycle count: */
 
-#define SPLICE_CYCLES       16
+#define SPLICE_CYCLES       15
 
 /* Nominal per-splice havoc cycle length: */
 

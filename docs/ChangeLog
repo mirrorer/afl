@@ -17,6 +17,16 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.32b:
+--------------
+
+  - Added a check for AFL_HARDEN combined with AFL_USE_*SAN. Suggested by
+    Hanno Boeck.
+
+  - Made several other cosmetic adjustments to cycle timing in the wake of the
+    big tweak made in 2.31b.
+
+--------------
 Version 2.31b:
 --------------
 
