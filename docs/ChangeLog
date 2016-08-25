@@ -13,8 +13,22 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 2.23b. If you're stuck on an earlier release, it's strongly advisable
+is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 2.31b:
+--------------
+
+  - Changed havoc cycle counts for a marked performance boost, especially
+    with -S / -d. See the discussion of FidgetyAFL in:
+
+    https://groups.google.com/forum/#!topic/afl-users/fOPeb62FZUg
+
+    While this does not implement the approach proposed by the authors of
+    the CCS paper, the solution is a result of digging into that research;
+    more improvements may follow as I do more experiments and get more
+    definitive data.
 
 --------------
 Version 2.30b:

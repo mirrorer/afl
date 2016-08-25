@@ -190,8 +190,9 @@ include compilers and video decoders.
 Tips for optimizing fuzzing performance are discussed in perf_tips.txt.
 
 Note that afl-fuzz starts by performing an array of deterministic fuzzing
-steps, which can take several days. If you want quick & dirty results right
-away, akin to zzuf or honggfuzz, add the -d option to the command line.
+steps, which can take several days, but tend to produce neat test cases. If you
+want quick & dirty results right away - akin to zzuf and other traditional
+fuzzers - add the -d option to the command line.
 
 7) Interpreting output
 ----------------------
@@ -475,7 +476,8 @@ bug reports, or patches from:
   Austin Seipp                          Daniel Komaromy
   Daniel Binderman                      Jonathan Metzman
   Vegard Nossum                         Jan Kneschke
-  Kurt Roeckx
+  Kurt Roeckx                           Marcel Bohme
+  Van-Thuan Pham                        Abhik Roychoudhury
 
 Thank you!
 
