@@ -152,6 +152,9 @@ static void edit_params(u32 argc, char** argv) {
 
     if (!strcmp(cur, "-shared")) maybe_linking = 0;
 
+    if (!strcmp(cur, "-Wl,-z,defs") ||
+        !strcmp(cur, "-Wl,--no-undefined")) continue;
+
     cc_params[cc_par_cnt++] = cur;
 
   }

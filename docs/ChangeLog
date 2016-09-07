@@ -17,6 +17,15 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.33b:
+--------------
+
+  - Added code to strip -Wl,-z,defs and -Wl,--no-undefined for afl-clang-fast,
+    since they interfere with -shared. Spotted and diagnosed by Toby Hutton.
+
+  - Added some fuzzing tips for Android.
+
+--------------
 Version 2.32b:
 --------------
 
