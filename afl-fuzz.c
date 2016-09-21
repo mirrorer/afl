@@ -4924,8 +4924,11 @@ static u8 fuzz_one(char** argv) {
 
 #endif /* ^IGNORE_FINDS */
 
-  if (not_on_tty)
-    ACTF("Fuzzing test case #%u (%u total)...", current_entry, queued_paths);
+  if (not_on_tty) {
+    ACTF("Fuzzing test case #%u (%u total, %llu uniq crashes found)...",
+         current_entry, queued_paths, unique_crashes);
+    fflush(stdout);
+  }
 
   /* Map the test case into memory. */
 
@@ -6921,6 +6924,12 @@ static void fix_up_banner(u8* name) {
 static void check_if_tty(void) {
 
   struct winsize ws;
+
+  if (getenv("AFL_NO_UI")) {
+    OKF("Disabling the UI because AFL_NO_UI is set.");
+    not_on_tty = 1;
+    return;
+  }
 
   if (ioctl(1, TIOCGWINSZ, &ws)) {
 

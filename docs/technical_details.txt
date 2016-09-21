@@ -279,7 +279,38 @@ and the number of execve() calls spent on the process, selecting the block size
 and stepover to match. The average per-file gains are around 5-20%.
 
 The standalone afl-tmin tool uses a more exhaustive, iterative algorithm, and
-also attempts to perform alphabet normalization on the trimmed files. 
+also attempts to perform alphabet normalization on the trimmed files. The
+operation of afl-tmin is as follows.
+
+First, the tool automatically selects the operating mode. If the initial input
+crashes the target binary, afl-tmin will run in non-instrumented mode, simply
+keeping any tweaks that produce a simpler file but still crash the target. If
+the target is non-crashing, the tool uses an instrumented mode and keeps only
+the tweaks that produce exactly the same execution path.
+
+The actual minimization algorithm is:
+
+  1) Attempt to zero large blocks of data with large stepovers. Empirically,
+     this is shown to reduce the number of execs by preempting finer-grained
+     efforts later on.
+
+  2) Perform a block deletion pass with decreasing block sizes and stepovers,
+     binary-search-style. 
+
+  3) Perform alphabet normalization by counting unique characters and trying
+     to bulk-replace each with a zero value.
+
+  4) As a last result, perform byte-by-byte normalization on non-zero bytes.
+
+Instead of zeroing with a 0x00 byte, afl-tmin uses the ASCII digit '0'. This
+is done because such a modification is much less likely to interfere with
+text parsing, so it is more likely to result in successful minimization of
+text files.
+
+The algorithm used here is less involved than some other test case
+minimization approaches proposed in academic work, but requires far fewer
+executions and tends to produce comparable results in most real-world
+applications.
 
 6) Fuzzing strategies
 ---------------------

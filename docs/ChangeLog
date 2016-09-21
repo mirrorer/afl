@@ -17,6 +17,14 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.34b:
+--------------
+
+  - Added a note about afl-tmin to technical_details.txt.
+
+  - Added support for AFL_NO_UI, as suggested by Leo Barnes.
+
+--------------
 Version 2.33b:
 --------------
 
