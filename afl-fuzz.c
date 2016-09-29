@@ -7661,7 +7661,7 @@ int main(int argc, char** argv) {
           u8* c;
 
           if (sync_id) FATAL("Multiple -S or -M options not supported");
-          sync_id = optarg;
+          sync_id = ck_strdup(optarg);
 
           if ((c = strchr(sync_id, ':'))) {
 
@@ -7991,6 +7991,7 @@ stop_fuzzing:
   destroy_queue();
   destroy_extras();
   ck_free(target_path);
+  ck_free(sync_id);
 
   alloc_report();
 

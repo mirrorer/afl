@@ -173,6 +173,13 @@ afl-cov (Michael Rash)
 
   https://github.com/mrash/afl-cov
 
+afl-sancov (Bhargava Shastry)
+-----------------------------
+
+  Similar to afl-cov, but uses clang sanitizer instrumentation.
+
+  https://github.com/bshastry/afl-sancov
+
 RecidiVM (Jakub Wilk)
 ---------------------
 

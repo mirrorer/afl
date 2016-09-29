@@ -89,7 +89,8 @@ static void* __dislocator_alloc(size_t len) {
 
   void* ret;
 
-  if (total_mem + len > max_mem) {
+
+  if (total_mem + len > max_mem ||  total_mem + len <= total_mem) {
 
     if (hard_fail)
       FATAL("total allocs exceed %u MB", max_mem / 1024 / 1024);
