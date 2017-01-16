@@ -74,7 +74,7 @@ if [ "$SUMMARY_ONLY" = "" ]; then
 
 fi
 
-for i in `find . -maxdepth 2 -iname fuzzer_stats`; do
+for i in `find . -maxdepth 2 -iname fuzzer_stats | sort`; do
 
   sed 's/^command_line.*$/_skip:1/;s/[ ]*:[ ]*/="/;s/$/"/' "$i" >"$TMP"
   . "$TMP"

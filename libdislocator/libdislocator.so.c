@@ -64,7 +64,7 @@
 /* Canary & clobber bytes: */
 
 #define ALLOC_CANARY  0xAACCAACC
-#define ALLOC_CLOBBER 0x41
+#define ALLOC_CLOBBER 0xCC
 
 #define PTR_C(_p) (((u32*)(_p))[-1])
 #define PTR_L(_p) (((u32*)(_p))[-2])
@@ -90,7 +90,7 @@ static void* __dislocator_alloc(size_t len) {
   void* ret;
 
 
-  if (total_mem + len > max_mem ||  total_mem + len <= total_mem) {
+  if (total_mem + len > max_mem || total_mem + len < total_mem) {
 
     if (hard_fail)
       FATAL("total allocs exceed %u MB", max_mem / 1024 / 1024);

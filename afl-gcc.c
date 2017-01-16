@@ -323,7 +323,6 @@ int main(int argc, char** argv) {
 
   }
 
-
   find_as(argv[0]);
 
   edit_params(argc, argv);

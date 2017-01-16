@@ -98,6 +98,11 @@ Compared to fully-fledged virtualization, the user emulation mode is *NOT* a
 security boundary. The binaries can freely interact with the host OS. If you
 somehow need to fuzz an untrusted binary, put everything in a sandbox first.
 
+QEMU does not necessarily support all CPU or hardware features that your
+target program may be utilizing. In particular, it does not appear to have
+full support for AVX2 / FMA3. Using binaries for older CPUs, or recompling them
+with -march=core2, can help.
+
 Beyond that, this is an early-stage mechanism, so fields reports are welcome.
 You can send them to <afl-users@googlegroups.com>.
 

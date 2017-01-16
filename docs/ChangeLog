@@ -17,6 +17,34 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.36b:
+--------------
+
+  - Fixed a cosmetic bad free() bug when aborting -S sessions. Spotted
+    by Johannes S.
+
+  - Made a small change to afl-whatsup to sort fuzzers by name.
+
+  - Fixed a minor issue with malloc(0) in libdislocator. Spotted by
+    Rene Freingruber.
+
+  - Changed the clobber pattern in libdislocator to a slightly more
+    reliable one. Suggested by Rene Freingruber.
+
+  - Added a note about THP performance. Suggested by Sergey Davidoff.
+
+  - Added a somewhat unofficial support for running afl-tmin with a
+    baseline "mask" that causes it to minimize only for edges that
+    are unique to the input file, but not to the "boring" baseline.
+    Suggested by Sami Liedes.
+
+  - "Fixed" a getPassName() problem with never versions of clang.
+    Reported by Craig Young and several other folks.
+
+  Yep, I know I have a backlog on several other feature requests.
+  Stay tuned!
+
+--------------
 Version 2.35b:
 --------------
 

@@ -167,6 +167,12 @@ There are several OS-level factors that may affect fuzzing speed:
     On other systems, the impact of CPU scaling will be different; when fuzzing,
     use OS-specific tools to find out if all cores are running at full speed.
 
+  - Transparent huge pages. Some allocators, such as jemalloc, can incur a
+    heavy fuzzing penalty when transparent huge pages (THP) are enabled in the
+    kernel. You can disable this via:
+
+    echo never > /sys/kernel/mm/transparent_hugepage/enabled
+
   - Suboptimal scheduling strategies. The significance of this will vary from
     one target to another, but on Linux, you may want to make sure that the
     following options are set:
