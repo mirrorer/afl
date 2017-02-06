@@ -100,7 +100,7 @@ somehow need to fuzz an untrusted binary, put everything in a sandbox first.
 
 QEMU does not necessarily support all CPU or hardware features that your
 target program may be utilizing. In particular, it does not appear to have
-full support for AVX2 / FMA3. Using binaries for older CPUs, or recompling them
+full support for AVX2 / FMA3. Using binaries for older CPUs, or recompiling them
 with -march=core2, can help.
 
 Beyond that, this is an early-stage mechanism, so fields reports are welcome.

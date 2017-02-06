@@ -114,13 +114,13 @@ static void edit_params(u32 argc, char** argv) {
 
   /* There are two ways to compile afl-clang-fast. In the traditional mode, we
      use afl-llvm-pass.so to inject instrumentation. In the experimental
-     'trace-pc' mode, we use native LLVM instrumentation callbacks instead.
-     The latter is a very recent addition - see:
+     'trace-pc-guard' mode, we use native LLVM instrumentation callbacks
+     instead. The latter is a very recent addition - see:
 
-     http://clang.llvm.org/docs/SanitizerCoverage.html#tracing-pcs */
+     http://clang.llvm.org/docs/SanitizerCoverage.html#tracing-pcs-with-guards */
 
 #ifdef USE_TRACE_PC
-  cc_params[cc_par_cnt++] = "-fsanitize-coverage=bb,trace-pc";
+  cc_params[cc_par_cnt++] = "-fsanitize-coverage=trace-pc-guard";
 #else
   cc_params[cc_par_cnt++] = "-Xclang";
   cc_params[cc_par_cnt++] = "-load";

@@ -49,10 +49,6 @@ namespace {
 
       bool runOnModule(Module &M) override;
 
-      /* Ugh, the return type changed in recent versions of LLVM
-         (const char* -> StringRef). Commenting out until the situation
-         stabilizes, since we don't strictly need this anyway. */
-
       // StringRef getPassName() const override {
       //  return "American Fuzzy Lop Instrumentation";
       // }

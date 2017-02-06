@@ -1075,6 +1075,7 @@ int main(int argc, char** argv) {
            The option may be extended and made more official if it proves
            to be useful. */
 
+        if (mask_bitmap) FATAL("Multiple -B options not supported");
         mask_bitmap = ck_alloc(MAP_SIZE);
         read_bitmap(optarg);
         break;

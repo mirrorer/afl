@@ -17,6 +17,22 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.37b:
+--------------
+
+  - Fixed a typo. Spotted by Jakub Wilk.
+
+  - Fixed support for make install when using trace-pc. Spotted by
+    Kurt Roeckx.
+
+  - Switched trace-pc to trace-pc-guard, which should be considerably
+    faster and is less quirky. Kudos to Konstantin Serebryany (and sorry
+    for dragging my feet).
+
+    Note that for some reason, this mode doesn't perform as well as
+    "vanilla" afl-clang-fast / afl-clang.
+
+--------------
 Version 2.36b:
 --------------
 
