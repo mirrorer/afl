@@ -121,6 +121,8 @@ static void edit_params(u32 argc, char** argv) {
 
 #ifdef USE_TRACE_PC
   cc_params[cc_par_cnt++] = "-fsanitize-coverage=trace-pc-guard";
+  cc_params[cc_par_cnt++] = "-mllvm";
+  cc_params[cc_par_cnt++] = "-sanitizer-coverage-block-threshold=0";
 #else
   cc_params[cc_par_cnt++] = "-Xclang";
   cc_params[cc_par_cnt++] = "-load";

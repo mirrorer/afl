@@ -17,6 +17,13 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.38b:
+--------------
+
+  - Added -mllvm -sanitizer-coverage-block-threshold=0 to trace-pc-guard
+    mode, as suggested by Kostya Serebryany.
+
+--------------
 Version 2.37b:
 --------------
 

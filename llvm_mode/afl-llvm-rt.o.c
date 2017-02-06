@@ -34,6 +34,10 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 
+/* This is a somewhat ugly hack for the experimental 'trace-pc-guard' mode.
+   Basically, we need to make sure that the forkserver is initialized after
+   the LLVM-generated runtime initialization pass, not before. */
+
 #ifdef USE_TRACE_PC
 #  define CONST_PRIO 5
 #else
@@ -260,14 +264,14 @@ __attribute__((constructor(CONST_PRIO))) void __afl_auto_init(void) {
    The first function (__sanitizer_cov_trace_pc_guard) is called back on every
    edge (as opposed to every basic block). */
 
-
 void __sanitizer_cov_trace_pc_guard(uint32_t* guard) {
   __afl_area_ptr[*guard]++;
 }
 
 
 /* Init callback. Populates instrumentation IDs. Note that we're using
-   ID of 0 as a special value to indicate non-instrumented bits. */
+   ID of 0 as a special value to indicate non-instrumented bits. That may
+   still touch the bitmap, but in a fairly harmless way. */
 
 void __sanitizer_cov_trace_pc_guard_init(uint32_t* start, uint32_t* stop) {
 
