@@ -240,12 +240,22 @@ fi
 IN_COUNT=$((`ls -- "$IN_DIR" 2>/dev/null | wc -l`))
 
 if [ "$IN_COUNT" = "0" ]; then
-  echo "No inputs in the target directory - nothing to be done."
+  echo "[+] Hmm, no inputs in the target directory. Nothing to be done."
   rm -rf "$TRACE_DIR"
   exit 1
 fi
 
 FIRST_FILE=`ls "$IN_DIR" | head -1`
+
+# Make sure that we're not dealing with a directory.
+
+if [ -d "$IN_DIR/$FIRST_FILE" ]; then
+  echo "[-] Error: The target directory contains subdirectories - please fix." 1>&2
+  rm -rf "$TRACE_DIR"
+  exit 1
+fi
+
+# Check for the more efficient way to copy files...
 
 if ln "$IN_DIR/$FIRST_FILE" "$TRACE_DIR/.link_test" 2>/dev/null; then
   CP_TOOL=ln
@@ -384,7 +394,7 @@ sort -k1,1 -s -u "$TRACE_DIR/.candidate_list" | \
   sed 's/^/BEST_FILE[/;s/ /]="/;s/$/"/' >"$TRACE_DIR/.candidate_script"
 
 if [ ! -s "$TRACE_DIR/.candidate_script" ]; then
-  echo "[-] Error: no traces obtained from test cases, check syntax!"
+  echo "[-] Error: no traces obtained from test cases, check syntax!" 1>&2
   test "$AFL_KEEP_TRACES" = "" && rm -rf "$TRACE_DIR"
   exit 1
 fi

@@ -278,6 +278,8 @@ void __sanitizer_cov_trace_pc_guard_init(uint32_t* start, uint32_t* stop) {
   u32 inst_ratio = 100;
   u8* x;
 
+  if (start == stop || *start) return;
+
   x = getenv("AFL_INST_RATIO");
   if (x) inst_ratio = atoi(x);
 
@@ -285,6 +287,12 @@ void __sanitizer_cov_trace_pc_guard_init(uint32_t* start, uint32_t* stop) {
     fprintf(stderr, "[-] ERROR: Invalid AFL_INST_RATIO (must be 1-100).\n");
     abort();
   }
+
+  /* Make sure that the first element in the range is always set - we use that
+     to avoid duplicate calls (which can happen as an artifact of the underlying
+     implementation in LLVM). */
+
+  *(start++) = R(MAP_SIZE - 1) + 1;
 
   while (start < stop) {
 

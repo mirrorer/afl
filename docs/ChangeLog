@@ -17,6 +17,16 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.39b:
+--------------
+
+  - Improved error reporting in afl-cmin. Suggested by floyd.
+
+  - Made a minor tweak to trace-pc-guard support. Suggested by kcc.
+
+  - Added a mention of afl-monitor.
+
+--------------
 Version 2.38b:
 --------------
 

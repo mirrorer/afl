@@ -182,7 +182,9 @@ this way:
 
   AFL_TRACE_PC=1 make clean all
 
-Note that this mode is currently about 20-30% slower than "vanilla"
-afl-clang-fast, and about 5-10% slower than afl-clang. I am not entirely sure
-why.
+Note that this mode is currently about 20% slower than "vanilla" afl-clang-fast,
+and about 5-10% slower than afl-clang. This is likely because the
+instrumentation is not inlined, and instead involves a function call. On systems
+that support it, compiling your target with -flto should help.
+
 

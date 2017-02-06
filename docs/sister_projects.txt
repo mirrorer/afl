@@ -148,6 +148,13 @@ afl-sid (Jacek Wielemborek)
 
   https://github.com/d33tah/afl-sid
 
+afl-monitor (Paul S. Ziegler)
+-----------------------------
+
+  Provides more detailed and versatile statistics about your running AFL jobs.
+
+  https://github.com/reflare/afl-monitor
+
 -----------------------------------------------------------
 Crash triage, coverage analysis, and other companion tools:
 -----------------------------------------------------------
