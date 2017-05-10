@@ -17,6 +17,17 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.40b:
+--------------
+
+  - Fixed a minor oversight in the insertion strategy for dictionary words.
+    Spotted by Andrzej Jackowski.
+
+  - Made a small improvement to the havoc block insertion strategy.
+
+  - Adjusted color rules for "is it done yet?" indicators.
+
+--------------
 Version 2.39b:
 --------------
 
@@ -71,7 +82,7 @@ Version 2.36b:
     are unique to the input file, but not to the "boring" baseline.
     Suggested by Sami Liedes.
 
-  - "Fixed" a getPassName() problem with never versions of clang.
+  - "Fixed" a getPassName() problem with newer versions of clang.
     Reported by Craig Young and several other folks.
 
   Yep, I know I have a backlog on several other feature requests.
