@@ -17,6 +17,14 @@ is 2.31b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.41b:
+--------------
+
+  - Addressed a major user complaint related to timeout detection. Timing out
+    inputs are now binned as "hangs" only if they exceed a far more generous
+    time limit than the one used to reject slow paths.
+
+--------------
 Version 2.40b:
 --------------
 
