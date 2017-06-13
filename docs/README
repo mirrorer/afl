@@ -220,10 +220,11 @@ in real time:
                fatal signal (e.g., SIGSEGV, SIGILL, SIGABRT). The entries are 
                grouped by the received signal.
 
-  - hangs/   - unique test cases that cause the tested program to time out. Note
-               that when default (aggressive) timeout settings are in effect,
-               this can be slightly noisy due to latency spikes and other
-               natural phenomena.
+  - hangs/   - unique test cases that cause the tested program to time out. The
+               default time limit before something is classified as a hang is
+               the larger of 1 second and the value of the -t parameter.
+               The value can be fine-tuned by setting AFL_HANG_TMOUT, but this
+               is rarely necessary.
 
 Crashes and hangs are considered "unique" if the associated execution paths
 involve any state transitions not seen in previously-recorded faults. If a
@@ -307,7 +308,7 @@ Every crash is also traceable to its parent non-crashing test case in the
 queue, making it easier to diagnose faults.
 
 Having said that, it's important to acknowledge that some fuzzing crashes can be
-difficult quickly evaluate for exploitability without a lot of debugging and
+difficult to quickly evaluate for exploitability without a lot of debugging and
 code analysis work. To assist with this task, afl-fuzz supports a very unique
 "crash exploration" mode enabled with the -C flag.
 
@@ -481,6 +482,7 @@ bug reports, or patches from:
   Joshua J. Drake                       Toby Hutton
   Rene Freingruber                      Sergey Davidoff
   Sami Liedes                           Craig Young
+  Andrzej Jackowski
 
 Thank you!
 

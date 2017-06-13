@@ -231,7 +231,7 @@ things up.
   | favored paths : 879 (41.96%)         |
   |  new edges on : 423 (20.19%)         |
   | total crashes : 0 (0 unique)         |
-  |   total hangs : 24 (19 unique)       |
+  |  total tmouts : 24 (19 unique)       |
   +--------------------------------------+
 
 This gives you several metrics that are of interest mostly to complete nerds.
@@ -239,7 +239,11 @@ The section includes the number of paths that the fuzzer likes the most based
 on a minimization algorithm baked into the code (these will get considerably
 more air time), and the number of test cases that actually resulted in better
 edge coverage (versus just pushing the branch hit counters up). There are also
-additional, more detailed counters for crashes and hangs.
+additional, more detailed counters for crashes and timeouts.
+
+Note that the timeout counter is somewhat different from the hang counter; this
+one includes all test cases that exceeded the timeout, even if they did not
+exceed it by a margin sufficient to be classified as hangs.
 
 7) Fuzzing strategy yields
 --------------------------

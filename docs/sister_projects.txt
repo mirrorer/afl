@@ -85,6 +85,10 @@ WinAFL (Ivan Fratric)
 
   https://github.com/ivanfratric/winafl
 
+  Another Windows alternative may be:
+
+  https://github.com/carlosgprado/BrundleFuzz/
+
 ----------------
 Network fuzzing:
 ----------------
@@ -120,6 +124,13 @@ Distfuzz-AFL (Martijn Bogaard)
 
   https://github.com/MartijnB/disfuzz-afl
 
+AFLDFF (quantumvm)
+------------------
+
+  A nice GUI for managing AFL jobs.
+
+  https://github.com/quantumvm/AFLDFF
+
 afl-launch (Ben Nagy)
 ---------------------
 
@@ -134,6 +145,10 @@ AFL Utils (rc0r)
 
   https://github.com/rc0r/afl-utils
 
+  Another crash triage tool:
+
+  https://github.com/floyd-fuh/afl-crash-analyzer
+
 afl-fuzzing-scripts (Tobias Ospelt)
 -----------------------------------
 
@@ -147,6 +162,10 @@ afl-sid (Jacek Wielemborek)
   Allows users to more conveniently build and deploy AFL via Docker.
 
   https://github.com/d33tah/afl-sid
+
+  Another Docker-related project:
+
+  https://github.com/ozzyjohnson/docker-afl
 
 afl-monitor (Paul S. Ziegler)
 -----------------------------
@@ -226,7 +245,7 @@ Pause and resume scripts (Ben Nagy)
 
   Simple automation to suspend and resume groups of fuzzing jobs.
 
-  https://gist.github.com/bnagy/8f0eb29eb125653f73fd
+  https://github.com/bnagy/afl-trivia
 
 Static binary-only instrumentation (Aleksandar Nikolich)
 --------------------------------------------------------
@@ -303,3 +322,17 @@ Kernel fuzzing (Dmitry Vyukov)
   https://github.com/google/syzkaller/wiki/Found-Bugs
   https://github.com/dvyukov/linux/commit/33787098ffaaa83b8a7ccf519913ac5fd6125931
   http://events.linuxfoundation.org/sites/events/files/slides/AFL%20filesystem%20fuzzing%2C%20Vault%202016_0.pdf
+
+Android support (ele7enxxh)
+---------------------------
+
+  Based on a somewhat dated version of AFL:
+
+  https://github.com/ele7enxxh/android-afl
+
+CGI wrapper (floyd)
+-------------------
+
+  Facilitates the testing of CGI scripts.
+
+  https://github.com/floyd-fuh/afl-cgi-wrapper
