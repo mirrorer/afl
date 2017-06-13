@@ -308,7 +308,7 @@ Every crash is also traceable to its parent non-crashing test case in the
 queue, making it easier to diagnose faults.
 
 Having said that, it's important to acknowledge that some fuzzing crashes can be
-difficult quickly evaluate for exploitability without a lot of debugging and
+difficult to quickly evaluate for exploitability without a lot of debugging and
 code analysis work. To assist with this task, afl-fuzz supports a very unique
 "crash exploration" mode enabled with the -C flag.
 
