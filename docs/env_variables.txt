@@ -116,6 +116,13 @@ checks or alter some of the more exotic semantics of the tool:
     intermittently, but it's not really recommended under normal operating
     conditions.
 
+  - Setting AFL_HANG_TMOUT allows you to specify a different timeout for
+    deciding if a particular test case is a "hang". The default is 1 second
+    or the value of the -t parameter, whichever is larger. Dialing the value
+    down can be useful if you are very concerned about slow inputs, or if you
+    don't want AFL to spend too much time classifying that stuff and just 
+    rapidly put all timeouts in that bin.
+
   - AFL_SHUFFLE_QUEUE randomly reorders the input queue on startup. Requested
     by some users for unorthodox parallelized fuzzing setups, but not
     advisable otherwise.

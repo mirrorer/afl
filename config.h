@@ -21,7 +21,7 @@
 
 /* Version string: */
 
-#define VERSION             "2.40b"
+#define VERSION             "2.41b"
 
 /******************************************************
  *                                                    *
@@ -38,7 +38,8 @@
 
 #define FANCY_BOXES
 
-/* Default timeout for fuzzed code (milliseconds): */
+/* Default timeout for fuzzed code (milliseconds). This is the upper bound,
+   also used for detecting hangs; the actual value is auto-scaled: */
 
 #define EXEC_TIMEOUT        1000
 
@@ -64,9 +65,9 @@
 #define CAL_CYCLES          8
 #define CAL_CYCLES_LONG     40
 
-/* Number of subsequent hangs before abandoning an input file: */
+/* Number of subsequent timeouts before abandoning an input file: */
 
-#define HANG_LIMIT          250
+#define TMOUT_LIMIT         250
 
 /* Maximum number of unique hangs or crashes to record: */
 
