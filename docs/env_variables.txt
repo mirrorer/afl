@@ -123,6 +123,9 @@ checks or alter some of the more exotic semantics of the tool:
     don't want AFL to spend too much time classifying that stuff and just 
     rapidly put all timeouts in that bin.
 
+  - AFL_NO_ARITH causes AFL to skip most of the deterministic arithmetics.
+    This can be useful to speed up the fuzzing of text-based file formats.
+
   - AFL_SHUFFLE_QUEUE randomly reorders the input queue on startup. Requested
     by some users for unorthodox parallelized fuzzing setups, but not
     advisable otherwise.

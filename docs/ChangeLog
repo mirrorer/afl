@@ -17,6 +17,13 @@ is 2.41b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.43b:
+--------------
+
+  - Added AFL_NO_ARITH to aid in the fuzzing of text-based formats.
+    Requested by Jakub Wilk.
+
+--------------
 Version 2.42b:
 --------------
 
