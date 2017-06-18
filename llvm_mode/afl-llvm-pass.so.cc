@@ -22,6 +22,8 @@
 
  */
 
+#define AFL_LLVM_PASS
+
 #include "../config.h"
 #include "../debug.h"
 
@@ -112,11 +114,11 @@ bool AFLCoverage::runOnModule(Module &M) {
       BasicBlock::iterator IP = BB.getFirstInsertionPt();
       IRBuilder<> IRB(&(*IP));
 
-      if (R(100) >= inst_ratio) continue;
+      if (AFL_R(100) >= inst_ratio) continue;
 
       /* Make up cur_loc */
 
-      unsigned int cur_loc = R(MAP_SIZE);
+      unsigned int cur_loc = AFL_R(MAP_SIZE);
 
       ConstantInt *CurLoc = ConstantInt::get(Int32Ty, cur_loc);
 

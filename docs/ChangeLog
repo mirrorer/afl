@@ -13,8 +13,15 @@ Want to stay in the loop on major new features? Join our mailing list by
 sending a mail to <afl-users+subscribe@googlegroups.com>.
 
 Not sure if you should upgrade? The lowest currently recommended version
-is 2.31b. If you're stuck on an earlier release, it's strongly advisable
+is 2.41b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
+
+--------------
+Version 2.42b:
+--------------
+
+  - Renamed the R() macro to avoid a problem with llvm_mode in the latest
+    versions of LLVM. Fix suggested by Christian Holler.
 
 --------------
 Version 2.41b:
