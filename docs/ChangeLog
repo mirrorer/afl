@@ -17,6 +17,21 @@ is 2.41b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.44b:
+--------------
+
+  - Added a visual indicator of ASAN / MSAN mode when compiling. Requested
+    by Jakub Wilk.
+
+  - Added support for afl-showmap coredumps (-c). Suggested by Jakub Wilk.
+
+  - Added LD_BIND_NOW=1 for afl-showmap by default. Although not really useful,
+    it reportedly helps reproduce some crashes. Suggested by Jakub Wilk.
+
+  - Added a note about allocator_may_return_null=1 not always working with
+    ASAN. Spotted by Jakub Wilk.
+
+--------------
 Version 2.43b:
 --------------
 

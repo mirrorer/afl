@@ -113,7 +113,23 @@ emulation, so please do not try to use them with the -Q option; QEMU doesn't
 seem to appreciate the shadow VM trick used by these tools, and will likely
 just allocate all your physical memory, then crash.
 
-4) What about UBSAN?
+4) ASAN and OOM crashes
+-----------------------
+
+By default, ASAN treats memory allocation failures as fatal errors, immediately
+causing the program to crash. Since this is a departure from normal POSIX
+semantics (and creates the appearance of security issues in otherwise
+properly-behaving programs), we try to disable this by specifying 
+allocator_may_return_null=1 in ASAN_OPTIONS.
+
+Unfortunately, it's been reported that this setting still causes ASAN to
+trigger phantom crashes in situations where the standard allocator would
+simply return NULL. If this is interfering with your fuzzing jobs, you may
+want to cc: yourself on this bug:
+
+  https://bugs.llvm.org/show_bug.cgi?id=22026
+
+5) What about UBSAN?
 --------------------
 
 Some folks expressed interest in fuzzing with UBSAN. This isn't officially
