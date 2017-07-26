@@ -3310,10 +3310,10 @@ static u32 find_start_position(void) {
   i = read(fd, tmp, sizeof(tmp) - 1); (void)i; /* Ignore errors */
   close(fd);
 
-  off = strstr(tmp, "cur_path       : ");
+  off = strstr(tmp, "cur_path          : ");
   if (!off) return 0;
 
-  ret = atoi(off + 17);
+  ret = atoi(off + 20);
   if (ret >= queued_paths) ret = 0;
   return ret;
 
@@ -3401,7 +3401,7 @@ static void write_stats_file(double bitmap_cvg, double stability, double eps) {
              "paths_found       : %u\n"
              "paths_imported    : %u\n"
              "max_depth         : %u\n"
-             "cur_path          : %u\n"
+             "cur_path          : %u\n" /* Must match find_start_position() */
              "pending_favs      : %u\n"
              "pending_total     : %u\n"
              "variable_paths    : %u\n"

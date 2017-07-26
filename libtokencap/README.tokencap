@@ -32,7 +32,8 @@ part without mucking with CFLAGS in Makefiles, you can set AFL_NO_BUILTIN=1
 when using afl-gcc. This setting specifically adds the following flags:
 
   -fno-builtin-strcmp -fno-builtin-strncmp -fno-builtin-strcasecmp
-  -fno-builtin-strcasencmp -fno-builtin-memcmp
+  -fno-builtin-strcasencmp -fno-builtin-memcmp -fno-builtin-strstr
+  -fno-builtin-strcasestr
 
 The next step is simply loading this library via LD_PRELOAD. The optimal usage
 pattern is to allow afl-fuzz to fuzz normally for a while and build up a corpus,

@@ -286,7 +286,7 @@ static void run_target(char** argv) {
 
     }
 
-    if (keep_cores) r.rlim_max = r.rlim_cur = 0;
+    if (!keep_cores) r.rlim_max = r.rlim_cur = 0;
     else r.rlim_max = r.rlim_cur = RLIM_INFINITY;
 
     setrlimit(RLIMIT_CORE, &r); /* Ignore errors */
