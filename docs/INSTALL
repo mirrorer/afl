@@ -140,7 +140,7 @@ $ sudo make install
 Do *not* specify --with-as=/usr/gnu/bin/as - this will produce a GCC binary that
 ignores the -B flag and you will be back to square one.
 
-Note that Solaris reportedly comes withe crash reporting enabled, which causes
+Note that Solaris reportedly comes with crash reporting enabled, which causes
 problems with crashes being misinterpreted as hangs, similarly to the gotchas
 for Linux and MacOS X. AFL does not auto-detect crash reporting on this
 particular platform, but you may need to run the following command:

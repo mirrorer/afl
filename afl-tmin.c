@@ -73,6 +73,7 @@ static s32 shm_id,                    /* ID of the SHM region              */
 static u8  crash_mode,                /* Crash-centric mode?               */
            exit_crash,                /* Treat non-zero exit as crash?     */
            edges_only,                /* Ignore hit counts?                */
+           exact_mode,                /* Require path match for crashes?   */
            use_stdin = 1;             /* Use stdin for program input?      */
 
 static volatile u8
@@ -361,7 +362,7 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
 
     if (crash_mode) {
 
-      return 1;
+      if (!exact_mode) return 1;
 
     } else {
 
@@ -370,7 +371,7 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
 
     }
 
-  }
+  } else
 
   /* Handle non-crashing inputs appropriately. */
 
@@ -1101,6 +1102,8 @@ int main(int argc, char** argv) {
   else
     use_argv = argv + optind;
 
+  exact_mode = !!getenv("AFL_TMIN_EXACT");
+
   SAYF("\n");
 
   read_initial_file();
@@ -1122,8 +1125,8 @@ int main(int argc, char** argv) {
 
   } else {
 
-     OKF("Program exits with a signal, minimizing in " cMGN "crash" cRST
-         " mode.");
+     OKF("Program exits with a signal, minimizing in " cMGN "%scrash" cRST
+         " mode.", exact_mode ? "EXACT " : "");
 
   }
 

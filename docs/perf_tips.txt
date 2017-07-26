@@ -94,7 +94,11 @@ equivalent calls; for example, tar can invoke external decompression tools
 when it decides that the input file is a compressed archive.
 
 Some programs may also intentionally call sleep(), usleep(), or nanosleep();
-vim is a good example of that.
+vim is a good example of that. Other programs may attempt fsync() and so on.
+There are third-party libraries that make it easy to get rid of such code,
+e.g.:
+
+  https://launchpad.net/libeatmydata
 
 In programs that are slow due to unavoidable initialization overhead, you may
 want to try the LLVM deferred forkserver mode (see llvm_mode/README.llvm),
