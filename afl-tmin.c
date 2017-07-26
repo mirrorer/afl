@@ -157,7 +157,7 @@ static inline u8 anything_set(void) {
 
 static void remove_shm(void) {
 
-  unlink(prog_in); /* Ignore errors */
+  if (prog_in) unlink(prog_in); /* Ignore errors */
   shmctl(shm_id, IPC_RMID, NULL);
 
 }
@@ -1130,6 +1130,9 @@ int main(int argc, char** argv) {
   minimize(use_argv);
 
   ACTF("Writing output to '%s'...", out_file);
+
+  unlink(prog_in);
+  prog_in = NULL;
 
   close(write_to_file(out_file, in_data, in_len));
 

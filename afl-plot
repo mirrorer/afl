@@ -38,16 +38,20 @@ _EOF_
 
 fi
 
-echo "$1" | grep -qE '^(/var)?/tmp/'
-T1="$?"
+if [ "$AFL_ALLOW_TMP" = "" ]; then
 
-echo "$2" | grep -qE '^(/var)?/tmp/'
-T2="$?"
+  echo "$1" | grep -qE '^(/var)?/tmp/'
+  T1="$?"
 
-if [ "$T1" = "0" -o "$T2" = "0" ]; then
+  echo "$2" | grep -qE '^(/var)?/tmp/'
+  T2="$?"
 
-  echo "[-] Error: this script shouldn't be used with shared /tmp directories." 1>&2
-  exit 1
+  if [ "$T1" = "0" -o "$T2" = "0" ]; then
+
+    echo "[-] Error: this script shouldn't be used with shared /tmp directories." 1>&2
+    exit 1
+
+  fi
 
 fi
 
