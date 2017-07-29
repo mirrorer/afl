@@ -194,6 +194,10 @@ The corpus minimization script offers very little customization:
     minimization and normally deleted at exit. The files can be found in the
     <out_dir>/.traces/*.
 
+  - AFL_ALLOW_TMP permits this and some other scripts to run in /tmp. This is
+    a modest security risk on multi-user systems with rogue users, but should
+    be safe on dedicated fuzzing boxes.
+
 6) Settings for afl-tmin
 ------------------------
 

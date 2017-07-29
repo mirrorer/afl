@@ -17,6 +17,14 @@ is 2.41b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.48b:
+--------------
+
+  - Added AFL_ALLOW_TMP to permit some scripts to run in /tmp.
+
+  - Fixed cwd handling in afl-analyze (similar to the quirk in afl-tmin).
+
+--------------
 Version 2.47b:
 --------------
 
@@ -30,6 +38,8 @@ Version 2.46b:
     want to abort on calloc() overflows.
 
   - Made a minor fix to libtokencap. Reported by Daniel Stender.
+
+  - Added a small JSON dictionary, inspired on a dictionary done by Jakub Wilk.
 
 --------------
 Version 2.45b:

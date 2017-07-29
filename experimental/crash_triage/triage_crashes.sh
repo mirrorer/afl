@@ -40,18 +40,24 @@ fi
 DIR="$1"
 BIN="$2"
 
-echo "$DIR" | grep -qE '^(/var)?/tmp/'
-T1="$?"
 
-echo "$BIN" | grep -qE '^(/var)?/tmp/'
-T2="$?"
+if [ "$AFL_ALLOW_TMP" = "" ]; then
 
-if [ "$T1" = "0" -o "$T2" = "0" ]; then
-  echo "[-] Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
-  exit 1
+  echo "$DIR" | grep -qE '^(/var)?/tmp/'
+  T1="$?"
+
+  echo "$BIN" | grep -qE '^(/var)?/tmp/'
+  T2="$?"
+
+  if [ "$T1" = "0" -o "$T2" = "0" ]; then
+    echo "[-] Error: do not use shared /tmp or /var/tmp directories with this script." 1>&2
+    exit 1
+  fi
+
 fi
 
-if [ "$GDB" = "" ]; then
+if
+ [ "$GDB" = "" ]; then
   GDB=gdb
 fi
 
