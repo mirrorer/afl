@@ -16,23 +16,33 @@ Not sure if you should upgrade? The lowest currently recommended version
 is 2.41b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
---------------
-Version 2.48b:
---------------
+---------------------------
+Version 2.49b (2017-07-18):
+---------------------------
+
+  - Added AFL_TMIN_EXACT to allow path constraint for crash minimization.
+
+  - Added dates for releases (retroactively for all of 2017).
+
+---------------------------
+Version 2.48b (2017-07-17):
+---------------------------
 
   - Added AFL_ALLOW_TMP to permit some scripts to run in /tmp.
 
   - Fixed cwd handling in afl-analyze (similar to the quirk in afl-tmin).
 
---------------
-Version 2.47b:
---------------
+  - Made it possible to point -o and -f to the same file in afl-tmin.
+
+---------------------------
+Version 2.47b (2017-07-14):
+---------------------------
 
   - Fixed cwd handling in afl-tmin. Spotted by Jakub Wilk.
 
---------------
-Version 2.46b:
---------------
+---------------------------
+Version 2.46b (2017-07-10):
+---------------------------
 
   - libdislocator now supports AFL_LD_NO_CALLOC_OVER for folks who do not
     want to abort on calloc() overflows.
@@ -41,9 +51,9 @@ Version 2.46b:
 
   - Added a small JSON dictionary, inspired on a dictionary done by Jakub Wilk.
 
---------------
-Version 2.45b:
---------------
+---------------------------
+Version 2.45b (2017-07-04):
+---------------------------
 
   - Added strstr, strcasestr support to libtokencap. Contributed by
     Daniel Hodson.
@@ -52,9 +62,9 @@ Version 2.45b:
 
   - There are definitely no bugs in afl-showmap -c now.
 
---------------
-Version 2.44b:
---------------
+---------------------------
+Version 2.44b (2017-06-28):
+---------------------------
 
   - Added a visual indicator of ASAN / MSAN mode when compiling. Requested
     by Jakub Wilk.
@@ -67,31 +77,31 @@ Version 2.44b:
   - Added a note about allocator_may_return_null=1 not always working with
     ASAN. Spotted by Jakub Wilk.
 
---------------
-Version 2.43b:
---------------
+---------------------------
+Version 2.43b (2017-06-16):
+---------------------------
 
   - Added AFL_NO_ARITH to aid in the fuzzing of text-based formats.
     Requested by Jakub Wilk.
 
---------------
-Version 2.42b:
---------------
+---------------------------
+Version 2.42b (2017-06-02):
+---------------------------
 
   - Renamed the R() macro to avoid a problem with llvm_mode in the latest
     versions of LLVM. Fix suggested by Christian Holler.
 
---------------
-Version 2.41b:
---------------
+---------------------------
+Version 2.41b (2017-04-12):
+---------------------------
 
   - Addressed a major user complaint related to timeout detection. Timing out
     inputs are now binned as "hangs" only if they exceed a far more generous
     time limit than the one used to reject slow paths.
 
---------------
-Version 2.40b:
---------------
+---------------------------
+Version 2.40b (2017-04-02):
+---------------------------
 
   - Fixed a minor oversight in the insertion strategy for dictionary words.
     Spotted by Andrzej Jackowski.
@@ -100,9 +110,9 @@ Version 2.40b:
 
   - Adjusted color rules for "is it done yet?" indicators.
 
---------------
-Version 2.39b:
---------------
+---------------------------
+Version 2.39b (2017-02-02):
+---------------------------
 
   - Improved error reporting in afl-cmin. Suggested by floyd.
 
@@ -110,16 +120,16 @@ Version 2.39b:
 
   - Added a mention of afl-monitor.
 
---------------
-Version 2.38b:
---------------
+---------------------------
+Version 2.38b (2017-01-22):
+---------------------------
 
   - Added -mllvm -sanitizer-coverage-block-threshold=0 to trace-pc-guard
     mode, as suggested by Kostya Serebryany.
 
---------------
-Version 2.37b:
---------------
+---------------------------
+Version 2.37b (2017-01-22):
+---------------------------
 
   - Fixed a typo. Spotted by Jakub Wilk.
 
@@ -133,9 +143,9 @@ Version 2.37b:
     Note that for some reason, this mode doesn't perform as well as
     "vanilla" afl-clang-fast / afl-clang.
 
---------------
-Version 2.36b:
---------------
+---------------------------
+Version 2.36b (2017-01-14):
+---------------------------
 
   - Fixed a cosmetic bad free() bug when aborting -S sessions. Spotted
     by Johannes S.
@@ -2628,8 +2638,8 @@ Version 0.22b:
 
   - Fixed the handling of gcc -pipe, thanks to anonymous reporter.
 
---------------
-Version 0.21b:
---------------
+---------------------------
+Version 0.21b (2013-11-12):
+---------------------------
 
   - Initial public release.

@@ -205,6 +205,11 @@ Virtually nothing to play with. Well, in QEMU mode (-Q), AFL_PATH will be
 searched for afl-qemu-trace. In addition to this, TMPDIR may be used if a
 temporary file can't be created in the current working directory.
 
+You can specify AFL_TMIN_EXACT if you want afl-tmin to require execution paths
+to match when minimizing crashes. This will make minimization less useful, but
+may prevent the tool from "jumping" from one crashing condition to another in
+very buggy software. You probably want to combine it with the -e flag.
+
 7) Settings for libdislocator.so
 --------------------------------
 
