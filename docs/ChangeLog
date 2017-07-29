@@ -17,6 +17,12 @@ is 2.41b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 --------------
+Version 2.47b:
+--------------
+
+  - Fixed cwd handling in afl-tmin. Spotted by Jakub Wilk.
+
+--------------
 Version 2.46b:
 --------------
 
