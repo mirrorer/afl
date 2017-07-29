@@ -73,7 +73,8 @@
 
 static u32 max_mem = MAX_ALLOC;         /* Max heap usage to permit         */
 static u8  alloc_verbose,               /* Additional debug messages        */
-           hard_fail;                   /* abort() when max_mem exceeded?   */
+           hard_fail,                   /* abort() when max_mem exceeded?   */
+           no_calloc_over;              /* abort() on calloc() overflows?   */
 
 static __thread size_t total_mem;       /* Currently allocated mem          */
 
@@ -153,8 +154,16 @@ void* calloc(size_t elem_len, size_t elem_cnt) {
 
   /* Perform some sanity checks to detect obvious issues... */
 
-  if (elem_cnt && len / elem_cnt != elem_len)
+  if (elem_cnt && len / elem_cnt != elem_len) {
+
+    if (no_calloc_over) {
+      DEBUGF("calloc(%zu, %zu) would overflow, returning NULL", elem_len, elem_cnt);
+      return NULL;
+    }
+
     FATAL("calloc(%zu, %zu) would overflow", elem_len, elem_cnt);
+
+  }
 
   ret = __dislocator_alloc(len);
 
@@ -254,5 +263,6 @@ __attribute__((constructor)) void __dislocator_init(void) {
 
   alloc_verbose = !!getenv("AFL_LD_VERBOSE");
   hard_fail = !!getenv("AFL_LD_HARD_FAIL");
+  no_calloc_over = !!getenv("AFL_LD_NO_CALLOC_OVER");
 
 }

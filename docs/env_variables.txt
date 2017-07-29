@@ -217,6 +217,10 @@ The library honors three environmental variables:
   - AFL_LD_VERBOSE causes the library to output some diagnostic messages
     that may be useful for pinpointing the cause of any observed issues.
 
+  - AFL_LD_NO_CALLOC_OVER inhibits abort() on calloc() overflows. Most
+    of the common allocators check for that internally and return NULL, so
+    it's a security risk only in more exotic setups.
+
 8) Settings for libtokencap.so
 ------------------------------
 
