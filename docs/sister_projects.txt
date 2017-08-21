@@ -228,6 +228,14 @@ afl-ddmin-mod (Markus Teufelberger)
 
   https://github.com/MarkusTeufelberger/afl-ddmin-mod
 
+afl-kit (Kuang-che Wu)
+----------------------
+
+  Replacements for afl-cmin and afl-tmin with additional features, such
+  as the ability to filter crashes based on stderr patterns.
+
+  https://github.com/kcwu/afl-kit
+
 -------------------------------
 Narrow-purpose or experimental:
 -------------------------------
@@ -336,3 +344,11 @@ CGI wrapper (floyd)
   Facilitates the testing of CGI scripts.
 
   https://github.com/floyd-fuh/afl-cgi-wrapper
+
+Fuzzing difficulty estimation (Marcel Boehme)
+---------------------------------------------
+
+  A fork of AFL that tries to quantify the likelihood of finding additional
+  paths or crashes at any point in a fuzzing job.
+
+  https://github.com/mboehme/pythia

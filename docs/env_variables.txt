@@ -145,6 +145,9 @@ checks or alter some of the more exotic semantics of the tool:
     mutated files - say, to fix up checksums. See experimental/post_library/
     for more.
 
+  - AFL_FAST_CAL keeps the calibration stage about 2.5x faster (albeit less
+    precise), which can help when starting a session against a slow target.
+
   - The CPU widget shown at the bottom of the screen is fairly simplistic and
     may complain of high load prematurely, especially on systems with low core
     counts. To avoid the alarming red color, you can set AFL_NO_CPU_RED.
