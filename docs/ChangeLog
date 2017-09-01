@@ -17,6 +17,13 @@ is 2.41b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 ---------------------------
+Version 2.51b (2017-08-30):
+---------------------------
+
+  - Made afl-tmin call setsid to prevent glibc traceback junk from showing
+    up on the terminal in some distros. Suggested by Jakub Wilk.
+
+---------------------------
 Version 2.50b (2017-08-19):
 ---------------------------
 

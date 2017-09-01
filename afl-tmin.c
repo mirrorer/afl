@@ -283,6 +283,8 @@ static u8 run_target(char** argv, u8* mem, u32 len, u8 first_run) {
     close(dev_null_fd);
     close(prog_in_fd);
 
+    setsid();
+
     if (mem_limit) {
 
       r.rlim_max = r.rlim_cur = ((rlim_t)mem_limit) << 20;
