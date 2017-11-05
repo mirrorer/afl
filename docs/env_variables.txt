@@ -213,7 +213,13 @@ to match when minimizing crashes. This will make minimization less useful, but
 may prevent the tool from "jumping" from one crashing condition to another in
 very buggy software. You probably want to combine it with the -e flag.
 
-7) Settings for libdislocator.so
+7) Settings for afl-analyze
+---------------------------
+
+You can set AFL_ANALYZE_HEX to get file offsets printed as hexadecimal instead
+of decimal.
+
+8) Settings for libdislocator.so
 --------------------------------
 
 The library honors three environmental variables:
@@ -233,14 +239,14 @@ The library honors three environmental variables:
     of the common allocators check for that internally and return NULL, so
     it's a security risk only in more exotic setups.
 
-8) Settings for libtokencap.so
+9) Settings for libtokencap.so
 ------------------------------
 
 This library accepts AFL_TOKEN_FILE to indicate the location to which the
 discovered tokens should be written.
 
-9) Third-party variables set by afl-fuzz & other tools
-------------------------------------------------------
+10) Third-party variables set by afl-fuzz & other tools
+-------------------------------------------------------
 
 Several variables are not directly interpreted by afl-fuzz, but are set to
 optimal values if not already present in the environment:

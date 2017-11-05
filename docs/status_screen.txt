@@ -297,7 +297,8 @@ wait a couple of cycles to get their chance).
 
 Next, we have the number of new paths found during this fuzzing section and
 imported from other fuzzer instances when doing parallelized fuzzing; and the
-number of inputs that produce seemingly variable behavior in the tested binary.
+extent to which identical inputs appear to sometimes produce variable behavior
+in the tested binary.
 
 That last bit is actually fairly interesting: it measures the consistency of
 observed traces. If a program always behaves the same for the same input data,

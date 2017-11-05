@@ -7,7 +7,7 @@
 
    Idea & design very much by Andrew Griffiths.
 
-   Copyright 2015, 2016 Google Inc. All rights reserved.
+   Copyright 2015, 2016, 2017 Google Inc. All rights reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
      http://www.apache.org/licenses/LICENSE-2.0
 
    This code is a shim patched into the separately-distributed source
-   code of QEMU 2.2.0. It leverages the built-in QEMU tracing functionality
+   code of QEMU 2.10.0. It leverages the built-in QEMU tracing functionality
    to implement AFL-style instrumentation and to take care of the remaining
    parts of the AFL fork server logic.
 
@@ -47,11 +47,11 @@
    regular instrumentation injected via afl-as.h. */
 
 #define AFL_QEMU_CPU_SNIPPET2 do { \
-    if(tb->pc == afl_entry_point) { \
+    if(itb->pc == afl_entry_point) { \
       afl_setup(); \
-      afl_forkserver(env); \
+      afl_forkserver(cpu); \
     } \
-    afl_maybe_log(tb->pc); \
+    afl_maybe_log(itb->pc); \
   } while (0)
 
 /* We use one additional file descriptor to relay "needs translation"
@@ -81,15 +81,11 @@ static unsigned int afl_inst_rms = MAP_SIZE;
 /* Function declarations. */
 
 static void afl_setup(void);
-static void afl_forkserver(CPUArchState*);
+static void afl_forkserver(CPUState*);
 static inline void afl_maybe_log(abi_ulong);
 
-static void afl_wait_tsl(CPUArchState*, int);
+static void afl_wait_tsl(CPUState*, int);
 static void afl_request_tsl(target_ulong, target_ulong, uint64_t);
-
-static TranslationBlock *tb_find_slow(CPUArchState*, target_ulong,
-                                      target_ulong, uint64_t);
-
 
 /* Data structure passed around by the translate handlers: */
 
@@ -99,11 +95,14 @@ struct afl_tsl {
   uint64_t flags;
 };
 
+/* Some forward decls: */
+
+TranslationBlock *tb_htable_lookup(CPUState*, target_ulong, target_ulong, uint32_t);
+static inline TranslationBlock *tb_find(CPUState*, TranslationBlock*, int);
 
 /*************************
  * ACTUAL IMPLEMENTATION *
  *************************/
-
 
 /* Set up SHM region and initialize other stuff. */
 
@@ -149,12 +148,18 @@ static void afl_setup(void) {
 
   }
 
+  /* pthread_atfork() seems somewhat broken in util/rcu.c, and I'm
+     not entirely sure what is the cause. This disables that
+     behaviour, and seems to work alright? */
+
+  rcu_disable_atfork();
+
 }
 
 
 /* Fork server logic, invoked once we hit _start. */
 
-static void afl_forkserver(CPUArchState *env) {
+static void afl_forkserver(CPUState *cpu) {
 
   static unsigned char tmp[4];
 
@@ -178,7 +183,7 @@ static void afl_forkserver(CPUArchState *env) {
 
     if (read(FORKSRV_FD, tmp, 4) != 4) exit(2);
 
-    /* Establish a channel with child to grab translation commands. We'll 
+    /* Establish a channel with child to grab translation commands. We'll
        read from t_fd[0], child will write to TSL_FD. */
 
     if (pipe(t_fd) || dup2(t_fd[1], TSL_FD) < 0) exit(3);
@@ -207,7 +212,7 @@ static void afl_forkserver(CPUArchState *env) {
 
     /* Collect translation requests until child dies and closes the pipe. */
 
-    afl_wait_tsl(env, t_fd[0]);
+    afl_wait_tsl(cpu, t_fd[0]);
 
     /* Get and relay exit status to parent. */
 
@@ -269,13 +274,13 @@ static void afl_request_tsl(target_ulong pc, target_ulong cb, uint64_t flags) {
 
 }
 
-
 /* This is the other side of the same channel. Since timeouts are handled by
    afl-fuzz simply killing the child, we can just wait until the pipe breaks. */
 
-static void afl_wait_tsl(CPUArchState *env, int fd) {
+static void afl_wait_tsl(CPUState *cpu, int fd) {
 
   struct afl_tsl t;
+  TranslationBlock *tb;
 
   while (1) {
 
@@ -284,11 +289,18 @@ static void afl_wait_tsl(CPUArchState *env, int fd) {
     if (read(fd, &t, sizeof(struct afl_tsl)) != sizeof(struct afl_tsl))
       break;
 
-    tb_find_slow(env, t.pc, t.cs_base, t.flags);
+    tb = tb_htable_lookup(cpu, t.pc, t.cs_base, t.flags);
+
+    if(!tb) {
+      mmap_lock();
+      tb_lock();
+      tb_gen_code(cpu, t.pc, t.cs_base, t.flags, 0);
+      mmap_unlock();
+      tb_unlock();
+    }
 
   }
 
   close(fd);
 
 }
-

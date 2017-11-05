@@ -6,7 +6,7 @@
 # Written by Andrew Griffiths <agriffiths@google.com> and
 #            Michal Zalewski <lcamtuf@google.com>
 #
-# Copyright 2015, 2016 Google Inc. All rights reserved.
+# Copyright 2015, 2016, 2017 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,10 @@
 # will be written to ../afl-qemu-trace.
 #
 
-QEMU_URL="http://wiki.qemu-project.org/download/qemu-2.3.0.tar.bz2"
-QEMU_SHA384="7a0f0c900f7e2048463cc32ff3e904965ab466c8428847400a0f2dcfe458108a68012c4fddb2a7e7c822b4fd1a49639b"
+
+VERSION="2.10.0"
+QEMU_URL="http://download.qemu-project.org/qemu-${VERSION}.tar.xz"
+QEMU_SHA384="68216c935487bc8c0596ac309e1e3ee75c2c4ce898aab796faa321db5740609ced365fedda025678d072d09ac8928105"
 
 echo "================================================="
 echo "AFL binary-only instrumentation QEMU build script"
@@ -89,7 +91,7 @@ CKSUM=`sha384sum -- "$ARCHIVE" 2>/dev/null | cut -d' ' -f1`
 
 if [ ! "$CKSUM" = "$QEMU_SHA384" ]; then
 
-  echo "[*] Downloading QEMU 2.3.0 from the web..."
+  echo "[*] Downloading QEMU ${VERSION} from the web..."
   rm -f "$ARCHIVE"
   wget -O "$ARCHIVE" -- "$QEMU_URL" || exit 1
 
@@ -110,32 +112,34 @@ fi
 
 echo "[*] Uncompressing archive (this will take a while)..."
 
-rm -rf "qemu-2.3.0" || exit 1
+rm -rf "qemu-${VERSION}" || exit 1
 tar xf "$ARCHIVE" || exit 1
 
 echo "[+] Unpacking successful."
 
-echo "[*] Applying patches..."
-
-patch -p0 <patches/elfload.diff || exit 1
-patch -p0 <patches/cpu-exec.diff || exit 1
-patch -p0 <patches/translate-all.diff || exit 1
-patch -p0 <patches/syscall.diff || exit 1
-
-echo "[+] Patching done."
+echo "[*] Configuring QEMU for $CPU_TARGET..."
 
 ORIG_CPU_TARGET="$CPU_TARGET"
 
 test "$CPU_TARGET" = "" && CPU_TARGET="`uname -m`"
 test "$CPU_TARGET" = "i686" && CPU_TARGET="i386"
 
-echo "[*] Configuring QEMU for $CPU_TARGET..."
+cd qemu-$VERSION || exit 1
 
-cd qemu-2.3.0 || exit 1
+echo "[*] Applying patches..."
 
-CFLAGS="-O3" ./configure --disable-system --enable-linux-user \
-  --enable-guest-base --disable-gtk --disable-sdl --disable-vnc \
-  --target-list="${CPU_TARGET}-linux-user" || exit 1
+patch -p1 <../patches/elfload.diff || exit 1
+patch -p1 <../patches/cpu-exec.diff || exit 1
+patch -p1 <../patches/syscall.diff || exit 1
+
+echo "[+] Patching done."
+
+# --enable-pie seems to give a couple of exec's a second performance
+# improvement, much to my surprise. Not sure how universal this is..
+
+CFLAGS="-O3 -ggdb" ./configure --disable-system \
+  --enable-linux-user --disable-gtk --disable-sdl --disable-vnc \
+  --target-list="${CPU_TARGET}-linux-user" --enable-pie --enable-kvm || exit 1
 
 echo "[+] Configuration complete."
 

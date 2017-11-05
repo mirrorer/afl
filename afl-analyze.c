@@ -4,7 +4,7 @@
 
    Written and maintained by Michal Zalewski <lcamtuf@google.com>
 
-   Copyright 2016 Google Inc. All rights reserved.
+   Copyright 2016, 2017 Google Inc. All rights reserved.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -68,6 +68,7 @@ static s32 shm_id,                    /* ID of the SHM region              */
            dev_null_fd = -1;          /* FD to /dev/null                   */
 
 static u8  edges_only,                /* Ignore hit counts?                */
+           use_hex_offsets,           /* Show hex offsets?                 */
            use_stdin = 1;             /* Use stdin for program input?      */
 
 static volatile u8
@@ -486,9 +487,13 @@ static void dump_hex(u8* buf, u32 len, u8* b_data) {
       /* Every 16 digits, display offset. */
 
       if (!((i + off) % 16)) {
-    
+
         if (off) SAYF(cRST cLCY ">");
-        SAYF(cRST cGRA "%s[%06u] " cRST, (i + off) ? "\n" : "", i + off);
+
+        if (use_hex_offsets)
+          SAYF(cRST cGRA "%s[%06x] " cRST, (i + off) ? "\n" : "", i + off);
+        else
+          SAYF(cRST cGRA "%s[%06u] " cRST, (i + off) ? "\n" : "", i + off);
 
       }
 
@@ -512,7 +517,10 @@ static void dump_hex(u8* buf, u32 len, u8* b_data) {
 
 #else
 
-    SAYF("    Offset %u, length %u: ", i, rlen);
+    if (use_hex_offsets)
+      SAYF("    Offset %x, length %u: ", i, rlen);
+    else
+      SAYF("    Offset %u, length %u: ", i, rlen);
 
     switch (rtype) {
 
@@ -874,6 +882,10 @@ static char** get_qemu_argv(u8* own_loc, char** argv, int argc) {
   char** new_argv = ck_alloc(sizeof(char*) * (argc + 4));
   u8 *tmp, *cp, *rsl, *own_copy;
 
+  /* Workaround for a QEMU stability glitch. */
+
+  setenv("QEMU_LOG", "nochain", 1);
+
   memcpy(new_argv + 3, argv + 1, sizeof(char*) * argc);
 
   /* Now we need to actually find qemu for argv[0]. */
@@ -1025,6 +1037,8 @@ int main(int argc, char** argv) {
     }
 
   if (optind == argc || !in_file) usage(argv[0]);
+
+  use_hex_offsets = !!getenv("AFL_ANALYZE_HEX");
 
   setup_shm();
   setup_signal_handlers();

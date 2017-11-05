@@ -17,6 +17,27 @@ is 2.41b. If you're stuck on an earlier release, it's strongly advisable
 to get on with the times.
 
 ---------------------------
+Version 2.52b (2017-11-04):
+---------------------------
+
+  - Upgraded QEMU patches from 2.3.0 to 2.10.0. Required troubleshooting
+    several weird issues. All the legwork done by Andrew Griffiths.
+
+  - Added setsid to afl-showmap. See the notes for 2.51b.
+
+  - Added target mode (deferred, persistent, qemu, etc) to fuzzer_stats.
+    Requested by Jakub Wilk.
+
+  - afl-tmin should now save a partially minimized file when Ctrl-C
+    is pressed. Suggested by Jakub Wilk.
+
+  - Added an option for afl-analyze to dump offsets in hex. Suggested by
+    Jakub Wilk.
+
+  - Added support for parameters in triage_crashes.sh. Patch by Adam of
+    DC949.
+
+---------------------------
 Version 2.51b (2017-08-30):
 ---------------------------
 

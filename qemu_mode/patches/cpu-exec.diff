@@ -1,33 +1,28 @@
---- qemu-2.3.0/cpu-exec.c.orig     2014-12-09 14:45:40.000000000 +0000
-+++ qemu-2.3.0/cpu-exec.c  2015-02-20 22:07:02.966000000 +0000
-@@ -28,6 +28,8 @@
- #include "exec/memory-internal.h"
- #include "qemu/rcu.h"
-
+--- qemu-2.10.0-rc3-clean/accel/tcg/cpu-exec.c	2017-08-15 11:39:41.000000000 -0700
++++ qemu-2.10.0-rc3/accel/tcg/cpu-exec.c	2017-08-22 14:34:55.868730680 -0700
+@@ -36,6 +36,8 @@
+ #include "sysemu/cpus.h"
+ #include "sysemu/replay.h"
+ 
 +#include "../patches/afl-qemu-cpu-inl.h"
 +
  /* -icount align implementation. */
-
+ 
  typedef struct SyncClocks {
-@@ -296,8 +298,11 @@
-     }
-  not_found:
-    /* if no translated code available, then translate it now */
+@@ -144,6 +146,8 @@
+     int tb_exit;
+     uint8_t *tb_ptr = itb->tc_ptr;
+ 
++    AFL_QEMU_CPU_SNIPPET2;
 +
-     tb = tb_gen_code(cpu, pc, cs_base, flags, 0);
-
-+    AFL_QEMU_CPU_SNIPPET1;
-+
-  found:
-     /* Move the last found TB to the head of the list */
-     if (likely(*ptb1)) {
-@@ -492,6 +497,9 @@
-                     next_tb = 0;
-                     tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
-                 }
-+
-+                AFL_QEMU_CPU_SNIPPET2;
-+
-                 if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
-                     qemu_log("Trace %p [" TARGET_FMT_lx "] %s\n",
-                              tb->tc_ptr, tb->pc, lookup_symbol(tb->pc));
+     qemu_log_mask_and_addr(CPU_LOG_EXEC, itb->pc,
+                            "Trace %p [%d: " TARGET_FMT_lx "] %s\n",
+                            itb->tc_ptr, cpu->cpu_index, itb->pc,
+@@ -365,6 +369,7 @@
+             if (!tb) {
+                 /* if no translated code available, then translate it now */
+                 tb = tb_gen_code(cpu, pc, cs_base, flags, 0);
++                AFL_QEMU_CPU_SNIPPET1;
+             }
+ 
+             mmap_unlock();

@@ -21,7 +21,7 @@ The idea and much of the implementation comes from Andrew Griffiths.
 2) How to use
 -------------
 
-The feature is implemented with a fairly simple patch to QEMU 2.3.0. The
+The feature is implemented with a fairly simple patch to QEMU 2.10.0. The
 simplest way to build it is to run ./build_qemu_support.sh. The script will
 download, configure, and compile the QEMU binary for you.
 
